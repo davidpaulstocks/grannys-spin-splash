@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 
 import { BACKGROUND_COLOUR, SCALE_CONFIG } from './config';
+import * as poki from './poki';
 
 class EmptyScene extends Phaser.Scene {
   constructor() {
@@ -11,12 +12,20 @@ class EmptyScene extends Phaser.Scene {
 
   create(): void {
     // Sprint 0 placeholder — gameplay scenes land in Sprint 1.
+    // Assets-ready signal fires here for now; BootScene will own it from Sprint 1.
+    poki.gameLoadingFinished();
   }
 }
 
-new Phaser.Game({
-  type: Phaser.AUTO,
-  backgroundColor: BACKGROUND_COLOUR,
-  scale: SCALE_CONFIG,
-  scene: [EmptyScene],
-});
+async function boot(): Promise<void> {
+  await poki.init();
+
+  new Phaser.Game({
+    type: Phaser.AUTO,
+    backgroundColor: BACKGROUND_COLOUR,
+    scale: SCALE_CONFIG,
+    scene: [EmptyScene],
+  });
+}
+
+void boot();
