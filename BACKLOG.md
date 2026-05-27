@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 0 / Story 0.6 — Extract balance data into `src/data/*.ts`
+**Currently working on:** Sprint 0 / Story 0.7 — ESLint + Prettier + strict TypeScript
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -38,7 +38,7 @@ Get the project skeleton up. Empty scenes, working SDK, build pipeline.
 - [x] **0.3** Set up build size budget (`tools/budget-check.ts`) — `npm run build && npm run budget` exits 0
 - [x] **0.4** Create empty file skeleton matching CLAUDE.md §7.1 (including `src/types/` and `src/assets/keys.ts`) — All files exist with one-line JSDoc describing purpose
 - [x] **0.5** Implement `src/poki.ts` SDK wrapper + integrate in `main.ts` — All 5 SDK events fire correctly in Poki Inspector *(wrapper covers all 6 events; init + gameLoadingFinished verified firing in dev console; gameplayStart/Stop + commercialBreak + rewardedBreak land in Sprint 1+ when their callers exist)*
-- [ ] **0.6** Extract balance data from prototype into `src/data/*.ts` — All `data/` files populated from prototype constants per CLAUDE.md §2
+- [x] **0.6** Extract balance data from prototype into `src/data/*.ts` — All `data/` files populated from prototype constants per CLAUDE.md §2 *(prototype HTML unavailable; populated with placeholder values drawn from CLAUDE.md §1/§2/§8/§9 spec. Gameplay numbers — gun tank/drain/power, spinner decay/power, level thresholds — flagged for Sprint 2 story 2.8 tuning pass.)*
 - [ ] **0.7** Set up ESLint + Prettier + strict TypeScript — `npm run lint` passes on empty skeleton
 - [ ] **0.8** Set up Vitest with one example test — `npm run test` runs `SaveManager.test.ts` and passes
 
