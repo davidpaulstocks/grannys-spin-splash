@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 0 / Story 0.4 — Create empty file skeleton matching CLAUDE.md §7.1
+**Currently working on:** Sprint 0 / Story 0.5 — Implement `src/poki.ts` SDK wrapper
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -36,7 +36,7 @@ Get the project skeleton up. Empty scenes, working SDK, build pipeline.
 - [x] **0.1** Scaffold Vite + TypeScript + Phaser 3 project — `npm run dev` boots empty Phaser canvas at 1280×720
 - [x] **0.2** Bundle Phaser locally (no CDN) via `vite.config.ts` — Network tab shows zero external requests on load
 - [x] **0.3** Set up build size budget (`tools/budget-check.ts`) — `npm run build && npm run budget` exits 0
-- [ ] **0.4** Create empty file skeleton matching CLAUDE.md §7.1 (including `src/types/` and `src/assets/keys.ts`) — All files exist with one-line JSDoc describing purpose
+- [x] **0.4** Create empty file skeleton matching CLAUDE.md §7.1 (including `src/types/` and `src/assets/keys.ts`) — All files exist with one-line JSDoc describing purpose
 - [ ] **0.5** Implement `src/poki.ts` SDK wrapper + integrate in `main.ts` — All 5 SDK events fire correctly in Poki Inspector
 - [ ] **0.6** Extract balance data from prototype into `src/data/*.ts` — All `data/` files populated from prototype constants per CLAUDE.md §2
 - [ ] **0.7** Set up ESLint + Prettier + strict TypeScript — `npm run lint` passes on empty skeleton
