@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 0 / Story 0.8 — Vitest with one example test
+**Currently working on:** Sprint 0 complete — awaiting review before Sprint 1
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -11,7 +11,7 @@
 
 | Sprint | Goal | Status |
 |---|---|---|
-| Sprint 0 | Foundation — empty scenes, working SDK, build pipeline | 🟡 In progress |
+| Sprint 0 | Foundation — empty scenes, working SDK, build pipeline | ✅ Done |
 | Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ⚪ Not started |
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ⚪ Not started |
 | Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⚪ Not started |
@@ -40,7 +40,7 @@ Get the project skeleton up. Empty scenes, working SDK, build pipeline.
 - [x] **0.5** Implement `src/poki.ts` SDK wrapper + integrate in `main.ts` — All 5 SDK events fire correctly in Poki Inspector *(wrapper covers all 6 events; init + gameLoadingFinished verified firing in dev console; gameplayStart/Stop + commercialBreak + rewardedBreak land in Sprint 1+ when their callers exist)*
 - [x] **0.6** Extract balance data from prototype into `src/data/*.ts` — All `data/` files populated from prototype constants per CLAUDE.md §2 *(prototype HTML unavailable; populated with placeholder values drawn from CLAUDE.md §1/§2/§8/§9 spec. Gameplay numbers — gun tank/drain/power, spinner decay/power, level thresholds — flagged for Sprint 2 story 2.8 tuning pass.)*
 - [x] **0.7** Set up ESLint + Prettier + strict TypeScript — `npm run lint` passes on empty skeleton
-- [ ] **0.8** Set up Vitest with one example test — `npm run test` runs `SaveManager.test.ts` and passes
+- [x] **0.8** Set up Vitest with one example test — `npm run test` runs `SaveManager.test.ts` and passes
 
 **Exit criteria:** Empty Phaser game boots in browser, SDK initialises, all data files populated, lint/test/build pipeline working. No gameplay yet.
 
