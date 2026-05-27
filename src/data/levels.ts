@@ -21,9 +21,39 @@ export interface GrannyLevel {
 }
 
 export const GRANNY_LEVELS: readonly GrannyLevel[] = [
-  { min: 0, label: 'Apprentice Granny', iconKey: 'icon_level_apprentice', col: '#7FD9A8', desc: 'Just getting started!' },
-  { min: 100, label: 'Splash Cadet', iconKey: 'icon_level_cadet', col: '#4DB3E5', desc: 'Finding your aim.' },
-  { min: 400, label: 'Spin Master', iconKey: 'icon_level_master', col: '#FFC93C', desc: 'The wall fears you.' },
-  { min: 1200, label: 'Drench Queen', iconKey: 'icon_level_queen', col: '#FF6BA8', desc: 'Royalty of the rotation.' },
-  { min: 3000, label: 'Legendary Granny', iconKey: 'icon_level_legendary', col: '#FF8A3D', desc: 'You are the Frenzy.' },
+  {
+    min: 0,
+    label: 'Apprentice Granny',
+    iconKey: 'icon_level_apprentice',
+    col: '#7FD9A8',
+    desc: 'Just getting started!',
+  },
+  {
+    min: 100,
+    label: 'Splash Cadet',
+    iconKey: 'icon_level_cadet',
+    col: '#4DB3E5',
+    desc: 'Finding your aim.',
+  },
+  {
+    min: 400,
+    label: 'Spin Master',
+    iconKey: 'icon_level_master',
+    col: '#FFC93C',
+    desc: 'The wall fears you.',
+  },
+  {
+    min: 1200,
+    label: 'Drench Queen',
+    iconKey: 'icon_level_queen',
+    col: '#FF6BA8',
+    desc: 'Royalty of the rotation.',
+  },
+  {
+    min: 3000,
+    label: 'Legendary Granny',
+    iconKey: 'icon_level_legendary',
+    col: '#FF8A3D',
+    desc: 'You are the Frenzy.',
+  },
 ];

@@ -27,9 +27,39 @@ export interface PowerUpDef {
 }
 
 export const POWERUP_DEFS: readonly PowerUpDef[] = [
-  { id: 'doubleScore', label: 'icon_doublescore', name: 'Double Score', duration: 8, effect: 'doubleScore' },
-  { id: 'speedBoost', label: 'icon_speedboost', name: 'Speed Boost', duration: 6, effect: 'speedBoost' },
-  { id: 'waterRefill', label: 'icon_waterrefill', name: 'Water Refill', duration: 0, effect: 'waterRefill' },
-  { id: 'megaSplash', label: 'icon_megasplash', name: 'Mega Splash', duration: 0, effect: 'megaSplash' },
-  { id: 'timeBonus', label: 'icon_timebonus', name: 'Time Bonus', duration: 0, effect: 'timeBonus' },
+  {
+    id: 'doubleScore',
+    label: 'icon_doublescore',
+    name: 'Double Score',
+    duration: 8,
+    effect: 'doubleScore',
+  },
+  {
+    id: 'speedBoost',
+    label: 'icon_speedboost',
+    name: 'Speed Boost',
+    duration: 6,
+    effect: 'speedBoost',
+  },
+  {
+    id: 'waterRefill',
+    label: 'icon_waterrefill',
+    name: 'Water Refill',
+    duration: 0,
+    effect: 'waterRefill',
+  },
+  {
+    id: 'megaSplash',
+    label: 'icon_megasplash',
+    name: 'Mega Splash',
+    duration: 0,
+    effect: 'megaSplash',
+  },
+  {
+    id: 'timeBonus',
+    label: 'icon_timebonus',
+    name: 'Time Bonus',
+    duration: 0,
+    effect: 'timeBonus',
+  },
 ];

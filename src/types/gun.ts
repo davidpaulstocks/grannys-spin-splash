@@ -11,7 +11,9 @@ export type GunAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
  * Per-angle nozzle position (where water/fire emits from in the gun PNG).
  * Authored manually by the anchor-picker tool (CLAUDE.md §8.3.1 step 4).
  */
-export type AnchorJSON = Readonly<Record<`${GunAngle}`, { readonly x: number; readonly y: number }>>;
+export type AnchorJSON = Readonly<
+  Record<`${GunAngle}`, { readonly x: number; readonly y: number }>
+>;
 
 export interface GunDef {
   readonly id: string;

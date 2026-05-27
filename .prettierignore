@@ -1,0 +1,10 @@
+dist/
+node_modules/
+coverage/
+.playwright-mcp/
+package-lock.json
+
+# Planning docs are authored manually — let the human pick the formatting.
+CLAUDE.md
+BACKLOG.md
+README.md
