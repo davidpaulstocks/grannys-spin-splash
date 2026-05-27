@@ -45,3 +45,6 @@ _reference/
 # Misc
 .cache/
 tmp/
+
+# Playwright MCP scratch
+.playwright-mcp/
