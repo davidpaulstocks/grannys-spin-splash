@@ -2,6 +2,8 @@
 
 import Phaser from 'phaser';
 
+import { COLOUR_HEX } from './utils/colour';
+
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
@@ -13,7 +15,8 @@ export const SCALE_CONFIG: Phaser.Types.Core.ScaleConfig = {
   parent: 'game',
 };
 
-export const BACKGROUND_COLOUR = '#F5F2E8';
+/** Cloud — CLAUDE.md §5.1 backgrounds. */
+export const BACKGROUND_COLOUR: string = COLOUR_HEX.cloud;
 
 /** Round length lives in data/worlds.ts (ROUND_LENGTH_SECONDS) — worlds own pacing, not config. */
 

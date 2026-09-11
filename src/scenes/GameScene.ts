@@ -1,10 +1,9 @@
 /**
  * Core gameplay loop — orchestrates spinners, Granny, water, combo, and
- * Frenzy for a single 30-second run (CLAUDE.md §7.2, story 1.5). Sprint 1
- * scope: a fully playable walking skeleton with placeholder/procedural
- * visuals and a plain corner-text debug readout — HUDScene, WaterBar,
- * TimerDial, and FrenzyMeterUI (the real, minimal production HUD per
- * CLAUDE.md §5.8/§6.1) are Sprint 2 work, not duplicated here.
+ * Frenzy for a single 30-second run (CLAUDE.md §7.2, story 1.5). HUDScene
+ * runs alongside it as a parallel overlay (CLAUDE.md §7.2) — GameScene
+ * feeds it fresh state once per frame; GameOverScene takes over once the
+ * round ends.
  */
 
 import Phaser from 'phaser';
@@ -33,18 +32,14 @@ import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
 import { SaveManager } from '../systems/SaveManager';
 import type { GunDef } from '../types/gun';
+import type { HudRefreshData } from '../types/hud';
 import { SpinnerState } from '../types/spinner';
-import { COLOUR } from '../utils/colour';
+import { showBanner, hideBanner } from '../ui/Banner';
+import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { computeGridPositions } from '../utils/grid';
 import { resolveAim } from '../utils/math';
-
-const DEBUG_TEXT_STYLE = {
-  fontFamily: 'monospace',
-  fontSize: '18px',
-  color: '#1F2138',
-  backgroundColor: '#F5F2E8',
-  padding: { x: 8, y: 6 },
-};
+import { textStyle } from '../utils/typography';
+import type { HUDScene } from './HUDScene';
 
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];
@@ -56,8 +51,8 @@ export class GameScene extends Phaser.Scene {
   private _save = new SaveManager();
   private _gun!: GunDef;
   private _crosshair!: Phaser.GameObjects.Arc;
-  private _debugText!: Phaser.GameObjects.Text;
-  private _frenzyBanner!: Phaser.GameObjects.Text;
+  private _hud!: HUDScene;
+  private _frenzyBanner: Phaser.GameObjects.Text | null = null;
   private _pausedText!: Phaser.GameObjects.Text;
 
   private _score = 0;
@@ -81,6 +76,7 @@ export class GameScene extends Phaser.Scene {
     this._gun = GUN_DEFS.find((g) => g.id === DEFAULT_GUN_ID) ?? GUN_DEFS[0];
     this._waterTank = this._gun.tank;
     this._timeRemainingMs = world.time * 1000;
+    this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
 
     this._buildWall(world.grid.cols, world.grid.rows, world.types);
     this._granny = new Granny(this, GAME_WIDTH / 2, GAME_HEIGHT - GRANNY_Y_FROM_BOTTOM);
@@ -91,30 +87,10 @@ export class GameScene extends Phaser.Scene {
       runChildUpdate: true,
     });
 
-    this._crosshair = this.add
-      .circle(0, 0, 10, COLOUR.softSlate, 0)
-      .setStrokeStyle(3, COLOUR.softSlate);
-    this._debugText = this.add.text(16, 16, '', DEBUG_TEXT_STYLE).setDepth(100);
-    this._frenzyBanner = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'SPLASH FRENZY!', {
-        fontFamily: 'monospace',
-        fontSize: '64px',
-        color: '#FFC93C',
-        stroke: '#1F2138',
-        strokeThickness: 8,
-      })
-      .setOrigin(0.5)
-      .setDepth(200)
-      .setVisible(false);
-    this._pausedText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'PAUSED', {
-        fontFamily: 'monospace',
-        fontSize: '48px',
-        color: '#1F2138',
-      })
-      .setOrigin(0.5)
-      .setDepth(200)
-      .setVisible(false);
+    this._createOverlays();
+
+    this.scene.launch('HUDScene');
+    this._hud = this.scene.get('HUDScene') as HUDScene;
 
     this._input.on('first-input', () => this._onFirstInput());
     this._input.on('pause', () => this._togglePause());
@@ -129,7 +105,7 @@ export class GameScene extends Phaser.Scene {
     if (this._roundOver) return;
 
     if (this._paused) {
-      this._refreshDebugText();
+      this._refreshHud();
       return;
     }
 
@@ -145,22 +121,52 @@ export class GameScene extends Phaser.Scene {
       if (result?.leveledUp) this._onSpinnerLeveledUp(spinner, result.state);
     }
     // Read spinner states into the Frenzy meter right after they're fresh —
-    // NOT from inside the debug-text refresh. See FrenzyMeter.ts's header
-    // comment: that used to race with the window-release below.
+    // NOT from inside the HUD refresh. See FrenzyMeter.ts's header comment:
+    // that used to race with the window-release below.
     this._frenzyMeter.update(this._spinners.map((s) => ({ state: s.currentState })));
 
     const aim = this._updateAim();
     this._updateFiring(time, aim);
+    this._updatePump(time);
     this._updateWaterCollisions();
     this._combo.update(delta);
     this._updateFrenzyWindow(time);
 
     if (this._started) {
       this._timeRemainingMs = Math.max(0, this._timeRemainingMs - delta);
-      if (this._timeRemainingMs <= 0) this._endRound();
+      if (this._timeRemainingMs <= 0) {
+        this._endRound();
+        return;
+      }
     }
 
-    this._refreshDebugText();
+    this._refreshHud();
+  }
+
+  /** Creates the two GameScene-owned visual overlays that aren't part of HUDScene: the aim crosshair and the pause overlay. */
+  private _createOverlays(): void {
+    this._crosshair = this.add
+      .circle(0, 0, 10, COLOUR.softSlate, 0)
+      .setStrokeStyle(3, COLOUR.softSlate);
+    const pausedStyle = textStyle('displayL', COLOUR_HEX.ink, COLOUR_HEX.cloud);
+    this._pausedText = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'PAUSED', pausedStyle)
+      .setOrigin(0.5)
+      .setDepth(200)
+      .setVisible(false);
+  }
+
+  /** Resets every field a fresh round needs — covers first boot and a GameOverScene "Play Again" restart alike. */
+  private _resetRoundState(): void {
+    this._spinners = [];
+    this._score = 0;
+    this._started = false;
+    this._paused = false;
+    this._roundOver = false;
+    this._frenzyActive = false;
+    this._frenzyBanner = null;
+    this._frenzyMeter.reset();
+    this._combo.reset();
   }
 
   /** Builds the spinner wall: an even grid within WALL_AREA, kinds cycled round-robin from the world's roster. */
@@ -195,29 +201,27 @@ export class GameScene extends Phaser.Scene {
 
   /** Fires a pooled water particle on cadence while the input is held and the tank isn't empty/pumping. */
   private _updateFiring(time: number, aim: ReturnType<typeof resolveAim>): void {
-    if (
-      this._input.isFiring() &&
-      !this._isPumping &&
-      this._waterTank > 0 &&
-      time >= this._nextFireAt
-    ) {
-      const origin = this._granny.getGunOrigin();
-      const target = aim.target
-        ? (this._spinners.find((s) => s.id === aim.target?.id) ?? null)
-        : null;
-      const particle = this._waterPool.get() as WaterParticle | null;
-      if (particle) {
-        particle.fire(origin.x, origin.y, aim.x, aim.y, target);
-        this._waterTank = Math.max(0, this._waterTank - this._gun.drain);
-        this._nextFireAt = time + this._gun.interval;
-      }
-    }
+    const canFire = this._input.isFiring() && !this._isPumping && this._waterTank > 0;
+    if (!canFire || time < this._nextFireAt) return;
 
+    const origin = this._granny.getGunOrigin();
+    const target = aim.target
+      ? (this._spinners.find((s) => s.id === aim.target?.id) ?? null)
+      : null;
+    const particle = this._waterPool.get() as WaterParticle | null;
+    if (!particle) return;
+
+    particle.fire(origin.x, origin.y, aim.x, aim.y, target);
+    this._waterTank = Math.max(0, this._waterTank - this._gun.drain);
+    this._nextFireAt = time + this._gun.interval;
+  }
+
+  /** Starts a pump-refill once the tank hits empty, and completes it once its timer elapses. */
+  private _updatePump(time: number): void {
     if (this._waterTank <= 0 && !this._isPumping) {
       this._isPumping = true;
       this._pumpEndAt = time + PUMP_REFILL_MS;
-    }
-    if (this._isPumping && time >= this._pumpEndAt) {
+    } else if (this._isPumping && time >= this._pumpEndAt) {
       this._isPumping = false;
       this._waterTank = this._gun.tank;
     }
@@ -248,14 +252,17 @@ export class GameScene extends Phaser.Scene {
       spinner.maxOut();
       spinner.locked = true;
     }
-    this._frenzyBanner.setVisible(true);
+    this._frenzyBanner = showBanner(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, 'SPLASH FRENZY!');
   }
 
   private _updateFrenzyWindow(time: number): void {
     if (!this._frenzyActive || time < this._frenzyEndAt) return;
     this._frenzyActive = false;
     for (const spinner of this._spinners) spinner.locked = false;
-    this._frenzyBanner.setVisible(false);
+    if (this._frenzyBanner) {
+      hideBanner(this, this._frenzyBanner);
+      this._frenzyBanner = null;
+    }
   }
 
   private _onFirstInput(): void {
@@ -280,20 +287,24 @@ export class GameScene extends Phaser.Scene {
     if (this._score > save.highScore) {
       this._save.save({ ...save, highScore: this._score });
     }
+
+    this.scene.stop('HUDScene');
+    this.scene.start('GameOverScene', { score: this._score });
   }
 
-  private _refreshDebugText(): void {
-    const seconds = Math.ceil(this._timeRemainingMs / 1000);
-    const waterPct = Math.round((this._waterTank / this._gun.tank) * 100);
-    const status = this._roundOver ? 'TIME UP' : this._started ? 'RUNNING' : 'WAITING FOR INPUT';
-    this._debugText.setText(
-      [
-        `[${status}]`,
-        `Time: ${seconds}s`,
-        `Score: ${this._score}`,
-        `Water: ${waterPct}%${this._isPumping ? ' (pumping)' : ''}`,
-        `Combo: x${this._combo.multiplier}`,
-      ].join('  |  '),
-    );
+  private _refreshHud(): void {
+    const data: HudRefreshData = {
+      secondsRemaining: this._timeRemainingMs / 1000,
+      waterPct: (this._waterTank / this._gun.tank) * 100,
+      isPumping: this._isPumping,
+      spinners: this._spinners.map((s) => ({
+        x: s.x,
+        y: s.y,
+        r: s.def.r,
+        currentSpeed: s.currentSpeed,
+        currentState: s.currentState,
+      })),
+    };
+    this._hud.refresh(data);
   }
 }

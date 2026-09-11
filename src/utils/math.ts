@@ -17,6 +17,20 @@ export function lerp(start: number, end: number, t: number): number {
 }
 
 /**
+ * The corner radius for a fully-rounded "pill" shape (CLAUDE.md §5.4:
+ * "999px (pill) for chips/CTAs"). That 999 is a CSS `border-radius`
+ * convention — browsers silently clamp it to `min(width,height)/2`.
+ * Phaser's `Graphics.fillRoundedRect`/`strokeRoundedRect` do NOT clamp:
+ * passing a literal 999 on a small box builds a degenerate, wildly
+ * oversized arc path that's pathologically expensive to fill — confirmed
+ * live (Sprint 2): it took a single 96×56 button from a ~2ms render to
+ * ~250ms. Always compute the radius through this function instead.
+ */
+export function pillRadius(width: number, height: number): number {
+  return Math.min(width, height) / 2;
+}
+
+/**
  * Snaps a raw pointer/touch position to the nearest spinner within
  * `snapRadius`, so every shot lands even with a sloppy aim (CLAUDE.md §6.4).
  */

@@ -3,13 +3,17 @@
  * reference prototype's `redrawSpinner`/`_drawCog`/`_drawDisco`/
  * `_drawGolden` (CLAUDE.md §2 — behavioural/visual reference, not a
  * verbatim port). Module-internal to Spinner.ts; not a shared type.
- * Sprint 1 scope: visually distinct per state, not yet re-skinned to the
- * production hero palette (Sprint 2 story 2.7/2.8 does that pass).
+ *
+ * Blade/body colours stay the prototype's own (kept for physics/
+ * behavioural fidelity per data/spinners.ts's header); the state GLOW
+ * re-skins to the production hero palette (Sprint 2 story 2.7/2.8) since
+ * that's pure UI feedback, not tuned gameplay data.
  */
 
 import Phaser from 'phaser';
 
 import { SpinnerState, type SpinnerDef } from '../types/spinner';
+import { COLOUR } from '../utils/colour';
 
 /** Brightness multiplier per state — darkest at STOPPED, full colour at FULL. */
 const DIM_BY_STATE: Record<SpinnerState, number> = {
@@ -207,17 +211,16 @@ function drawGolden(g: Phaser.GameObjects.Graphics, def: SpinnerDef, dim: number
 function drawGlow(g: Phaser.GameObjects.Graphics, def: SpinnerDef, state: SpinnerState): void {
   const r = def.r;
   if (state === SpinnerState.FULL) {
-    const glowColour =
-      def.style === 'golden' ? 0xffff00 : def.style === 'disco' ? 0xff88ff : 0xffdd00;
+    const glowColour = def.style === 'disco' ? COLOUR.grannyPink : COLOUR.sunnyGold;
     g.fillStyle(glowColour, def.style === 'golden' ? 0.4 : 0.22);
     g.fillCircle(0, 0, r + 14);
-    g.fillStyle(0xffff88, 0.1);
+    g.fillStyle(COLOUR.sunnyGold, 0.1);
     g.fillCircle(0, 0, r + 28);
   } else if (state === SpinnerState.MEDIUM) {
-    g.fillStyle(0xccccff, 0.14);
+    g.fillStyle(COLOUR.waterBlue, 0.14);
     g.fillCircle(0, 0, r + 8);
   } else if (state === SpinnerState.SLOW) {
-    g.fillStyle(0xffbb44, 0.08);
+    g.fillStyle(COLOUR.heatOrange, 0.08);
     g.fillCircle(0, 0, r + 4);
   }
 }

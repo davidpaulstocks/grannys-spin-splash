@@ -4,7 +4,9 @@ import Phaser from 'phaser';
 
 import { BACKGROUND_COLOUR, SCALE_CONFIG } from './config';
 import * as poki from './poki';
+import { GameOverScene } from './scenes/GameOverScene';
 import { GameScene } from './scenes/GameScene';
+import { HUDScene } from './scenes/HUDScene';
 
 declare global {
   interface Window {
@@ -13,17 +15,34 @@ declare global {
   }
 }
 
-async function boot(): Promise<void> {
-  await poki.init();
+/**
+ * Waits for Fredoka to actually be usable before Phaser draws any text.
+ * Canvas text (unlike DOM text) is rasterised once at creation and never
+ * re-renders if the font finishes loading late, so this has to be awaited
+ * up front, not left to `font-display` alone.
+ */
+async function loadFredoka(): Promise<void> {
+  try {
+    await document.fonts.load('700 32px Fredoka');
+    await document.fonts.ready;
+  } catch {
+    // Font failed to load — Phaser text falls back to a system sans-serif. Not fatal.
+  }
+}
 
-  // Sprint 1: GameScene boots directly — there's nothing to preload yet
-  // (procedural graphics + a placeholder Granny), so BootScene stays a
-  // stub until Sprint 3's sprite/audio assets need a real loading screen.
+async function boot(): Promise<void> {
+  await Promise.all([poki.init(), loadFredoka()]);
+
+  // GameScene boots directly — there's nothing to preload yet (procedural
+  // graphics + a placeholder Granny), so BootScene stays a stub until
+  // Sprint 3's sprite/audio assets need a real loading screen. HUDScene
+  // and GameOverScene are registered but not started here — GameScene
+  // launches/starts them itself once it's running.
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
     scale: SCALE_CONFIG,
-    scene: [GameScene],
+    scene: [GameScene, HUDScene, GameOverScene],
   });
 
   if (import.meta.env.DEV) window.__gameForDebug = game;
