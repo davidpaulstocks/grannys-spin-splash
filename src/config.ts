@@ -74,3 +74,12 @@ export const WALL_AREA = {
 
 /** Horizontal margin kept between Granny's edges and the canvas edges while moving. */
 export const GRANNY_X_MARGIN = 48;
+
+/**
+ * Water bar layout (CLAUDE.md §5.8's bottom-8% HUD strip) — lives here,
+ * not inside HUDScene.ts, because GameScene also needs WATER_BAR_Y to
+ * position the mid-run refill prompt (story 6.3) directly above it.
+ */
+export const WATER_BAR_MARGIN_X = 96;
+export const WATER_BAR_HEIGHT = 32;
+export const WATER_BAR_Y = GAME_HEIGHT - WATER_BAR_HEIGHT - 24;

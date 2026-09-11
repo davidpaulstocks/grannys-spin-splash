@@ -10,7 +10,13 @@
 
 import Phaser from 'phaser';
 
-import { GAME_HEIGHT, GAME_WIDTH } from '../config';
+import {
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  WATER_BAR_HEIGHT,
+  WATER_BAR_MARGIN_X,
+  WATER_BAR_Y,
+} from '../config';
 import type { HudRefreshData } from '../types/hud';
 import { FrenzyMeterUI } from '../ui/FrenzyMeterUI';
 import { TimerDial } from '../ui/TimerDial';
@@ -18,10 +24,6 @@ import { WaterBar } from '../ui/WaterBar';
 
 /** Top 8% of the canvas (CLAUDE.md §5.8) — where the timer dial sits. */
 const TIMER_Y = GAME_HEIGHT * 0.04;
-/** Bottom 8% of the canvas (CLAUDE.md §5.8) — where the water bar sits. */
-const WATER_BAR_MARGIN_X = 96;
-const WATER_BAR_HEIGHT = 32;
-const WATER_BAR_Y = GAME_HEIGHT - WATER_BAR_HEIGHT - 24;
 
 export class HUDScene extends Phaser.Scene {
   private _timerDial!: TimerDial;

@@ -12,6 +12,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import * as poki from '../poki';
+import { adManager } from '../systems/AdManager';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
@@ -44,6 +45,7 @@ export class SplashScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
   private _gunCarousel!: Carousel;
   private _vaultText!: Phaser.GameObjects.Text;
+  private _isStartingRun = false;
 
   constructor() {
     super('SplashScene');
@@ -86,7 +88,7 @@ export class SplashScene extends Phaser.Scene {
       label: 'PLAY',
       variant: 'primary',
       minWidth: 300,
-      onClick: () => this._onPlay(),
+      onClick: () => void this._onPlay(),
     });
 
     this._buildRewardButton();
@@ -161,7 +163,15 @@ export class SplashScene extends Phaser.Scene {
     showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.88 - 50, `Unlocked ${unlockedName}!`);
   }
 
-  private _onPlay(): void {
+  /** CLAUDE.md §11.1: a commercial break shows before every *2nd* "Play Again" — AdManager tracks the cadence. */
+  private async _onPlay(): Promise<void> {
+    if (this._isStartingRun) return; // guards against a double-tap firing two commercial breaks
+    this._isStartingRun = true;
+
+    if (adManager.shouldShowCommercialBreak()) {
+      await adManager.playCommercialBreak();
+    }
+
     this.scene.start('GameScene', {
       grannyId: this._unlocks.getSelectedGrannyId(),
       gunId: this._unlocks.getSelectedGunId(),

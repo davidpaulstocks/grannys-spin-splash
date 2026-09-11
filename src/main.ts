@@ -7,6 +7,7 @@ import * as poki from './poki';
 import { GameOverScene } from './scenes/GameOverScene';
 import { GameScene } from './scenes/GameScene';
 import { HUDScene } from './scenes/HUDScene';
+import { PauseScene } from './scenes/PauseScene';
 import { SplashScene } from './scenes/SplashScene';
 
 declare global {
@@ -43,7 +44,7 @@ async function boot(): Promise<void> {
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
     scale: SCALE_CONFIG,
-    scene: [SplashScene, GameScene, HUDScene, GameOverScene],
+    scene: [SplashScene, GameScene, HUDScene, GameOverScene, PauseScene],
   });
 
   if (import.meta.env.DEV) window.__gameForDebug = game;

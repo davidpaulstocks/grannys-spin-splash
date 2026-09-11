@@ -18,6 +18,7 @@ import {
   GRANNY_Y_FROM_BOTTOM,
   PUMP_REFILL_MS,
   WALL_AREA,
+  WATER_BAR_Y,
   WATER_PARTICLE_MAX_POOL,
 } from '../config';
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
@@ -34,15 +35,16 @@ import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
+import { adManager } from '../systems/AdManager';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { createRefillPrompt } from '../ui/RefillPrompt';
+import { COLOUR } from '../utils/colour';
 import { computeGridPositions } from '../utils/grid';
 import { resolveAim } from '../utils/math';
-import { textStyle } from '../utils/typography';
 import type { HUDScene } from './HUDScene';
 
 export class GameScene extends Phaser.Scene {
@@ -57,7 +59,7 @@ export class GameScene extends Phaser.Scene {
   private _crosshair!: Phaser.GameObjects.Arc;
   private _hud!: HUDScene;
   private _frenzyBanner: Phaser.GameObjects.Text | null = null;
-  private _pausedText!: Phaser.GameObjects.Text;
+  private _refillPrompt!: Phaser.GameObjects.Container;
 
   private _score = 0;
   private _waterTank = 0;
@@ -66,7 +68,6 @@ export class GameScene extends Phaser.Scene {
   private _nextFireAt = 0;
   private _timeRemainingMs = 0;
   private _started = false;
-  private _paused = false;
   private _roundOver = false;
   private _frenzyActive = false;
   private _frenzyEndAt = 0;
@@ -99,7 +100,7 @@ export class GameScene extends Phaser.Scene {
     this._hud = this.scene.get('HUDScene') as HUDScene;
 
     this._input.on('first-input', () => this._onFirstInput());
-    this._input.on('pause', () => this._togglePause());
+    this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._onFrenzyStart());
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this._input.destroy());
@@ -108,12 +109,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   override update(time: number, delta: number): void {
+    // No manual pause guard needed here — Phaser skips update() entirely
+    // for a paused scene (this.scene.pause(), called from _pauseGame()).
     if (this._roundOver) return;
-
-    if (this._paused) {
-      this._refreshHud();
-      return;
-    }
 
     this._granny.move(
       this._input.getMoveDir(),
@@ -149,17 +147,17 @@ export class GameScene extends Phaser.Scene {
     this._refreshHud();
   }
 
-  /** Creates the two GameScene-owned visual overlays that aren't part of HUDScene: the aim crosshair and the pause overlay. */
+  /** Creates the GameScene-owned visual overlays that aren't part of HUDScene: the aim crosshair and the refill prompt. */
   private _createOverlays(): void {
     this._crosshair = this.add
       .circle(0, 0, 10, COLOUR.softSlate, 0)
       .setStrokeStyle(3, COLOUR.softSlate);
-    const pausedStyle = textStyle('displayL', COLOUR_HEX.ink, COLOUR_HEX.cloud);
-    this._pausedText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'PAUSED', pausedStyle)
-      .setOrigin(0.5)
-      .setDepth(200)
-      .setVisible(false);
+    this._refillPrompt = createRefillPrompt(
+      this,
+      GAME_WIDTH / 2,
+      WATER_BAR_Y,
+      () => void this._onWatchAdForRefill(),
+    );
   }
 
   /** Resets every field a fresh round needs — covers first boot and a GameOverScene "Play Again" restart alike. */
@@ -167,7 +165,6 @@ export class GameScene extends Phaser.Scene {
     this._spinners = [];
     this._score = 0;
     this._started = false;
-    this._paused = false;
     this._roundOver = false;
     this._frenzyActive = false;
     this._frenzyBanner = null;
@@ -232,10 +229,23 @@ export class GameScene extends Phaser.Scene {
     if (this._waterTank <= 0 && !this._isPumping) {
       this._isPumping = true;
       this._pumpEndAt = time + PUMP_REFILL_MS;
+      this._refillPrompt.setVisible(true);
     } else if (this._isPumping && time >= this._pumpEndAt) {
       this._isPumping = false;
       this._waterTank = this._gun.tank;
+      this._refillPrompt.setVisible(false);
     }
+  }
+
+  /** CLAUDE.md story 6.3: player-initiated only, shown solely while pumping — watching completes the refill instantly. */
+  private async _onWatchAdForRefill(): Promise<void> {
+    if (!this._isPumping) return;
+    const watched = await adManager.playRewarded('small');
+    if (!watched || !this._isPumping) return;
+
+    this._isPumping = false;
+    this._waterTank = this._gun.tank;
+    this._refillPrompt.setVisible(false);
   }
 
   /** Tests every pooled particle against its candidate spinner(s); applies hits and combo/score on a landing. */
@@ -290,17 +300,23 @@ export class GameScene extends Phaser.Scene {
     poki.gameplayStart();
   }
 
-  private _togglePause(): void {
-    if (!this._started || this._roundOver) return;
-    this._paused = !this._paused;
-    this._pausedText.setVisible(this._paused);
-    if (this._paused) poki.gameplayStop();
-    else poki.gameplayStart();
+  /**
+   * ESC → real Phaser scene pause (not a manual flag): `this.scene.pause()`
+   * stops `update()` from running at all, so GameScene needs no internal
+   * paused-state branching anywhere else. PauseScene (story 6.6) owns
+   * resuming — its Resume button calls `this.scene.resume('GameScene')`.
+   */
+  private _pauseGame(): void {
+    if (!this._started || this._roundOver || this.scene.isPaused()) return;
+    poki.gameplayStop();
+    this.scene.pause();
+    this.scene.launch('PauseScene');
   }
 
   private _endRound(): void {
     this._roundOver = true;
     poki.gameplayStop();
+    adManager.recordRunCompleted();
 
     this._unlocks.addStars(this._score);
     const save = saveManager.load();
