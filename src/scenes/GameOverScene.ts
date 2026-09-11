@@ -1,22 +1,22 @@
 /**
- * Score reveal + Play Again (CLAUDE.md §7.2). Sprint 2 scope only: a big
- * score number and one button — score count-up, level reveal, vault save,
- * and the unlock shop all need UnlockManager, which doesn't exist until
- * Sprint 5. commercialBreak() before restart is Sprint 6 story 6.1; this
- * restarts straight into GameScene.
+ * Score reveal + Play Again (CLAUDE.md §7.2). Still a lean first pass: a
+ * big score number and one button — score count-up and level reveal need
+ * GRANNY_LEVELS wiring (CLAUDE.md §7.2's `entities/progression/levels.ts`,
+ * not yet consumed anywhere) and are a later polish pass, not Sprint 5
+ * scope. Play Again returns to SplashScene, not straight into GameScene —
+ * Sprint 5's exit criteria is the full loop (splash → game → game over →
+ * splash) so newly-earned vault stars are visible before the next run.
+ * commercialBreak() before restart is Sprint 6 story 6.1.
  */
 
 import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
+import type { GameOverData } from '../types/sceneData';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { showBanner } from '../ui/Banner';
 import { createButton } from '../ui/Button';
 import { textStyle } from '../utils/typography';
-
-export interface GameOverData {
-  readonly score: number;
-}
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -43,7 +43,7 @@ export class GameOverScene extends Phaser.Scene {
       label: 'PLAY AGAIN',
       variant: 'primary',
       minWidth: 280,
-      onClick: () => this.scene.start('GameScene'),
+      onClick: () => this.scene.start('SplashScene'),
     });
   }
 }

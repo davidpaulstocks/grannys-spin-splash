@@ -7,6 +7,7 @@ import * as poki from './poki';
 import { GameOverScene } from './scenes/GameOverScene';
 import { GameScene } from './scenes/GameScene';
 import { HUDScene } from './scenes/HUDScene';
+import { SplashScene } from './scenes/SplashScene';
 
 declare global {
   interface Window {
@@ -33,16 +34,16 @@ async function loadFredoka(): Promise<void> {
 async function boot(): Promise<void> {
   await Promise.all([poki.init(), loadFredoka()]);
 
-  // GameScene boots directly — there's nothing to preload yet (procedural
-  // graphics + a placeholder Granny), so BootScene stays a stub until
-  // Sprint 3's sprite/audio assets need a real loading screen. HUDScene
-  // and GameOverScene are registered but not started here — GameScene
-  // launches/starts them itself once it's running.
+  // SplashScene boots first (splash → game → game over → splash, Sprint 5
+  // exit criteria) — there's nothing to preload yet (procedural graphics +
+  // a placeholder Granny), so BootScene stays a stub until Sprint 3's
+  // sprite/audio assets need a real loading screen. HUDScene is registered
+  // but not started here — GameScene launches it itself once it's running.
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
     scale: SCALE_CONFIG,
-    scene: [GameScene, HUDScene, GameOverScene],
+    scene: [SplashScene, GameScene, HUDScene, GameOverScene],
   });
 
   if (import.meta.env.DEV) window.__gameForDebug = game;

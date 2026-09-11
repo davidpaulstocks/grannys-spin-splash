@@ -32,9 +32,11 @@ import * as poki from '../poki';
 import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
-import { SaveManager } from '../systems/SaveManager';
+import { saveManager } from '../systems/SaveManager';
+import { UnlockManager } from '../systems/UnlockManager';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
+import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
@@ -50,7 +52,7 @@ export class GameScene extends Phaser.Scene {
   private _waterPool!: Phaser.GameObjects.Group;
   private _frenzyMeter = new FrenzyMeter();
   private _combo = new ComboTracker();
-  private _save = new SaveManager();
+  private _unlocks = new UnlockManager(saveManager);
   private _gun!: GunDef;
   private _crosshair!: Phaser.GameObjects.Arc;
   private _hud!: HUDScene;
@@ -73,9 +75,10 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  create(): void {
+  create(data: Partial<GameSceneData>): void {
     const world = WORLD_DEFS[0];
-    this._gun = GUN_DEFS.find((g) => g.id === DEFAULT_GUN_ID) ?? GUN_DEFS[0];
+    const gunId = data.gunId ?? DEFAULT_GUN_ID;
+    this._gun = GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0];
     this._waterTank = this._gun.tank;
     this._timeRemainingMs = world.time * 1000;
     this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
@@ -299,13 +302,15 @@ export class GameScene extends Phaser.Scene {
     this._roundOver = true;
     poki.gameplayStop();
 
-    const save = this._save.load();
+    this._unlocks.addStars(this._score);
+    const save = saveManager.load();
     if (this._score > save.highScore) {
-      this._save.save({ ...save, highScore: this._score });
+      saveManager.save({ ...save, highScore: this._score });
     }
 
     this.scene.stop('HUDScene');
-    this.scene.start('GameOverScene', { score: this._score });
+    const gameOverData: GameOverData = { score: this._score };
+    this.scene.start('GameOverScene', gameOverData);
   }
 
   private _refreshHud(): void {

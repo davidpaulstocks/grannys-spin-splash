@@ -1,7 +1,21 @@
-/** All localStorage I/O — try/catch wrapped, JSON serialised. CLAUDE.md §7.3 rule 7. */
+/**
+ * All localStorage I/O — try/catch wrapped, JSON serialised. CLAUDE.md
+ * §7.3 rule 7.
+ *
+ * `load()` caches after its first read so repeated calls in one frame
+ * don't hit localStorage repeatedly — but that means two independent
+ * `SaveManager` instances (e.g. one per scene) can drift: one writes
+ * through `save()`, the other's stale cache never finds out. Confirmed
+ * live (Sprint 5): GameScene's own instance correctly banked a run's
+ * score, but SplashScene's separate instance still showed the vault at 0
+ * after "Play Again". Fixed by exporting one shared `saveManager`
+ * singleton below — every scene imports and uses *that*, not `new
+ * SaveManager()`. The class itself stays exported for tests, which
+ * deliberately want fresh, isolated instances.
+ */
 
-import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
-import { DEFAULT_GUN_ID } from '../entities/gun/gun.data';
+import { DEFAULT_GRANNY_ID, GRANNY_DEFS } from '../entities/granny/granny.data';
+import { DEFAULT_GUN_ID, GUN_DEFS } from '../entities/gun/gun.data';
 import { SAVE_VERSION, type SaveData } from '../types/save';
 
 const STORAGE_KEY = 'grannySpinSplash.save.v1';
@@ -45,15 +59,24 @@ export class SaveManager {
     }
   }
 
+  /**
+   * A fresh player starts with every 0★ launch item already unlocked, not
+   * just the single default — CLAUDE.md §8.1's roster has two free
+   * grannies and two free guns specifically "to validate the splash-screen
+   * carousel works with multiple unlocked items from run one".
+   */
   private _defaultSave(): SaveData {
     return {
       version: SAVE_VERSION,
       vault: 0,
-      unlockedGrannies: [DEFAULT_GRANNY_ID],
-      unlockedGuns: [DEFAULT_GUN_ID],
+      unlockedGrannies: GRANNY_DEFS.filter((g) => g.unlockCost === 0).map((g) => g.id),
+      unlockedGuns: GUN_DEFS.filter((g) => g.cost === 0).map((g) => g.id),
       selectedGrannyId: DEFAULT_GRANNY_ID,
       selectedGunId: DEFAULT_GUN_ID,
       highScore: 0,
     };
   }
 }
+
+/** The one shared instance every scene/system should use — see the class-level doc comment for why. */
+export const saveManager = new SaveManager();
