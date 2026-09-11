@@ -20,8 +20,10 @@ export interface CarouselItem {
   readonly label: string;
   readonly unlocked: boolean;
   readonly cost: number;
-  /** Placeholder colour swatch standing in for real sprite art (Sprint 3). */
+  /** Colour swatch — used when `swatchTextureKey` isn't given (worlds don't have carousel thumbnails yet). */
   readonly swatchColour: number;
+  /** A loaded texture key to render instead of the flat colour swatch, once real art exists for this item. */
+  readonly swatchTextureKey?: string;
 }
 
 const CARD_WIDTH = 220;
@@ -40,6 +42,7 @@ export class Carousel extends Phaser.GameObjects.Container {
 
   private readonly _cardBg: Phaser.GameObjects.Graphics;
   private readonly _swatch: Phaser.GameObjects.Rectangle;
+  private readonly _swatchImage: Phaser.GameObjects.Image;
   private readonly _label: Phaser.GameObjects.Text;
   private readonly _lockOverlay: Phaser.GameObjects.Container;
   private readonly _costText: Phaser.GameObjects.Text;
@@ -63,6 +66,7 @@ export class Carousel extends Phaser.GameObjects.Container {
     this._cardBg = scene.add.graphics();
     this._swatch = scene.add.rectangle(0, -20, SWATCH_SIZE, SWATCH_SIZE, COLOUR.cloud);
     this._swatch.setStrokeStyle(4, COLOUR.ink);
+    this._swatchImage = scene.add.image(0, -20, '__DEFAULT').setVisible(false);
     this._label = scene.add
       .text(0, 60, '', textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud))
       .setOrigin(0.5);
@@ -80,7 +84,7 @@ export class Carousel extends Phaser.GameObjects.Container {
     this._buildArrow(scene, -(CARD_WIDTH / 2 + ARROW_GAP), -1);
     this._buildArrow(scene, CARD_WIDTH / 2 + ARROW_GAP, 1);
 
-    this.add([this._cardBg, this._swatch, this._label, this._lockOverlay]);
+    this.add([this._cardBg, this._swatch, this._swatchImage, this._label, this._lockOverlay]);
     scene.add.existing(this);
 
     const hitZone = scene.add
@@ -178,7 +182,16 @@ export class Carousel extends Phaser.GameObjects.Container {
       CARD_RADIUS,
     );
 
-    this._swatch.setFillStyle(item.swatchColour);
+    if (item.swatchTextureKey && this.scene.textures.exists(item.swatchTextureKey)) {
+      this._swatch.setVisible(false);
+      this._swatchImage.setVisible(true).setTexture(item.swatchTextureKey);
+      const frame = this._swatchImage.frame;
+      const scale = Math.min(SWATCH_SIZE / frame.width, SWATCH_SIZE / frame.height);
+      this._swatchImage.setScale(scale);
+    } else {
+      this._swatch.setVisible(true).setFillStyle(item.swatchColour);
+      this._swatchImage.setVisible(false);
+    }
     this._label.setText(item.label);
     this._lockOverlay.setVisible(!item.unlocked);
     this._costText.setText(`${item.cost}`);

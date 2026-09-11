@@ -31,8 +31,10 @@ import {
   WORLD_DEFS,
 } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
-import { drawWorldBackground } from '../entities/world/worldBackgrounds';
+import { drawWorldBackground, preloadWorldBackground } from '../entities/world/worldBackgrounds';
+import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
+import { Gun } from '../entities/gun/Gun';
 import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
 import { spawnSplash } from '../entities/waterParticle/splashVFX';
@@ -45,7 +47,8 @@ import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
 import { audioBus, AD_MUTE_HOOKS } from '../audio/AudioBus';
 import * as SFX from '../audio/SFX';
-import type { GunDef } from '../entities/gun/gun.types';
+import { SPRITE_KEYS } from '../assets/keys';
+import type { GunAngle, GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
@@ -65,16 +68,21 @@ const DUCK_BOUNCE_MARGIN = 60;
 const MOVING_TARGET_COUNT = 3;
 const MOVING_TARGET_DRIFT_RANGE = 55;
 
+/** Mirrors Gun.ts's own angle set — needed here only to iterate preload() calls, not for aim logic. */
+const GUN_ANGLES: readonly GunAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
+
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];
   private _obstacles: Obstacle[] = [];
   private _granny!: Granny;
+  private _gunSprite!: Gun;
   private _input!: InputManager;
   private _waterPool!: Phaser.GameObjects.Group;
   private _frenzyMeter = new FrenzyMeter();
   private _combo = new ComboTracker();
   private _unlocks = new UnlockManager(saveManager);
   private _world!: WorldDef;
+  private _grannyId!: string;
   private _gun!: GunDef;
   private _crosshair!: Phaser.GameObjects.Arc;
   private _hud!: HUDScene;
@@ -101,11 +109,38 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  create(data: Partial<GameSceneData>): void {
+  /** Runs before preload()/create() — resolves the selected loadout early so preload() knows what to load. */
+  init(data: Partial<GameSceneData>): void {
     const worldId = data.worldId ?? DEFAULT_WORLD_ID;
     this._world = WORLD_DEFS.find((w) => w.id === worldId) ?? WORLD_DEFS[0];
+    this._grannyId = data.grannyId ?? DEFAULT_GRANNY_ID;
     const gunId = data.gunId ?? DEFAULT_GUN_ID;
     this._gun = GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0];
+  }
+
+  /** Loads the selected world's background, granny gameplay poses, and gun angle set + nozzle anchors. */
+  preload(): void {
+    preloadWorldBackground(this, this._world.id);
+
+    this.load.image(
+      SPRITE_KEYS.grannyPose(this._grannyId, 'back'),
+      SPRITE_KEYS.grannyPath(this._grannyId, 'back'),
+    );
+    this.load.image(
+      SPRITE_KEYS.grannyPose(this._grannyId, 'back_firing'),
+      SPRITE_KEYS.grannyPath(this._grannyId, 'back_firing'),
+    );
+
+    for (const angle of GUN_ANGLES) {
+      this.load.image(
+        SPRITE_KEYS.gunAngle(this._gun.id, angle),
+        SPRITE_KEYS.gunAnglePath(this._gun.id, angle),
+      );
+    }
+    this.load.json(SPRITE_KEYS.gunAnchorKey(this._gun.id), SPRITE_KEYS.gunAnchorPath(this._gun.id));
+  }
+
+  create(): void {
     this._waterTank = this._gun.tank;
     this._timeRemainingMs = this._world.time * 1000;
     this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
@@ -115,7 +150,13 @@ export class GameScene extends Phaser.Scene {
     this._applyMovingTargets();
     this._buildObstacles();
     this._scheduleNextGolden();
-    this._granny = new Granny(this, GAME_WIDTH / 2, GAME_HEIGHT - GRANNY_Y_FROM_BOTTOM);
+    this._granny = new Granny(
+      this,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - GRANNY_Y_FROM_BOTTOM,
+      this._grannyId,
+    );
+    this._gunSprite = new Gun(this, this._gun.id);
     this._input = new InputManager(this);
     this._waterPool = this.add.group({
       classType: WaterParticle,
@@ -171,6 +212,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     const aim = this._updateAim();
+    const grip = this._granny.getGunGripOrigin();
+    this._gunSprite.updateAim(grip.x, grip.y, aim.x, aim.y);
+    this._granny.setFiring(this._input.isFiring());
     this._updateFiring(time, aim);
     this._updatePump(time);
     this._updateWaterCollisions();
@@ -279,7 +323,7 @@ export class GameScene extends Phaser.Scene {
     const canFire = this._input.isFiring() && !this._isPumping && this._waterTank > 0;
     if (!canFire || time < this._nextFireAt) return;
 
-    const origin = this._granny.getGunOrigin();
+    const origin = this._gunSprite.getNozzleWorldPosition();
     const target = aim.target
       ? (this._activeSpinners().find((s) => s.id === aim.target?.id) ?? null)
       : null;

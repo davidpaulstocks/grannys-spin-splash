@@ -1,5 +1,8 @@
 /** GrannyDef — character roster shape. CLAUDE.md §7.2, §8.1. */
 
+/** front = splash-carousel portrait; back/back_firing = actual gameplay sprites (CLAUDE.md §14, 2026-09-11 re-plan). */
+export type GrannyPose = 'front' | 'back' | 'back_firing';
+
 export interface GrannyDef {
   readonly id: string;
   readonly name: string;

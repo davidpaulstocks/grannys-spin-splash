@@ -1,15 +1,67 @@
 /**
- * Procedural world backdrops (CLAUDE.md §5.7) — muted, low-saturation,
- * never animated. A ground plane band grounds Granny in the scene; a
- * couple of large, very-low-opacity shapes suggest depth without
- * competing with the spinner wall. One draw function per world id
- * (entities/world/world.data.ts).
+ * World backdrops (CLAUDE.md §5.7 / WORLD_BACKGROUND_BRIEF.md). Real
+ * illustrated art (WORLD_BG_ASSETS below) takes priority once delivered;
+ * the procedural drawers below it (muted, low-saturation, never animated)
+ * stay as the fallback for any world that doesn't have art yet.
  */
 
 import Phaser from 'phaser';
 
-import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
+import { GAME_HEIGHT, GAME_WIDTH, WALL_AREA } from '../../config';
 import { COLOUR, shade } from '../../utils/colour';
+
+/**
+ * Illustrated backgrounds are richly detailed by design (WORLD_BACKGROUND_
+ * BRIEF.md) — but live-tested against a real spinner wall (2026-09-11,
+ * Garden's first delivered image), busy mid-frame detail (flowers, roof
+ * tiles) competed directly with the spinners rendered on top, especially
+ * at STOPPED/dim state where a spinner's own colour is already muted. A
+ * soft light scrim over the wall band recovers contrast without needing
+ * every future background to fight this in the art itself — spinners stay
+ * legible, the illustration stays visible (veiled, not hidden) around and
+ * through it.
+ */
+const WALL_SCRIM_MARGIN = 32;
+const WALL_SCRIM_OPACITY = 0.38;
+
+function drawWallScrim(scene: Phaser.Scene): void {
+  const g = scene.add.graphics().setDepth(-99);
+  g.fillStyle(COLOUR.cloud, WALL_SCRIM_OPACITY);
+  g.fillRoundedRect(
+    WALL_AREA.x - WALL_SCRIM_MARGIN,
+    WALL_AREA.y - WALL_SCRIM_MARGIN,
+    WALL_AREA.width + WALL_SCRIM_MARGIN * 2,
+    WALL_AREA.height + WALL_SCRIM_MARGIN * 2,
+    32,
+  );
+}
+
+/**
+ * worldId → texture key + file path, for worlds with delivered
+ * illustrated art (WORLD_BACKGROUND_BRIEF.md). Add an entry here as each
+ * world's background PNG/JPG lands in public/sprites/worlds/ — everything
+ * else (preload, render, fallback) picks it up automatically.
+ */
+const WORLD_BG_ASSETS: Readonly<Record<string, { key: string; path: string }>> = {
+  garden: { key: 'world_garden_bg', path: 'sprites/worlds/garden_bg.jpg' },
+  workshop: { key: 'world_workshop_bg', path: 'sprites/worlds/workshop_bg.jpg' },
+  kitchen: { key: 'world_kitchen_bg', path: 'sprites/worlds/kitchen_bg.jpg' },
+  funfair: { key: 'world_funfair_bg', path: 'sprites/worlds/funfair_bg.jpg' },
+  disco: { key: 'world_disco_bg', path: 'sprites/worlds/disco_bg.jpg' },
+};
+
+/** Loads the world's background image if real art exists for it — no-op otherwise (procedural fallback needs no asset). */
+export function preloadWorldBackground(scene: Phaser.Scene, worldId: string): void {
+  const asset = WORLD_BG_ASSETS[worldId];
+  if (asset && !scene.textures.exists(asset.key)) {
+    scene.load.image(asset.key, asset.path);
+  }
+}
+
+/** The loaded texture key for a world's illustrated background, if art has landed for it — for carousel swatches etc. */
+export function worldBackgroundKey(worldId: string): string | undefined {
+  return WORLD_BG_ASSETS[worldId]?.key;
+}
 
 /** Ground plane occupies the bottom slice of the canvas — where Granny stands. */
 const GROUND_HEIGHT_RATIO = 0.24;
@@ -144,7 +196,20 @@ const BACKGROUND_DRAWERS: Readonly<Record<string, (scene: Phaser.Scene) => void>
   disco: drawDisco,
 };
 
-/** Draws the named world's backdrop. No-ops (transparent Cloud only) for an unrecognised id. */
+/** Draws an already-loaded illustrated background, scaled to cover the canvas with no distortion (may crop slightly). */
+function drawIllustratedBackground(scene: Phaser.Scene, textureKey: string): void {
+  const image = scene.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, textureKey).setDepth(-100);
+  const scale = Math.max(GAME_WIDTH / image.width, GAME_HEIGHT / image.height);
+  image.setScale(scale);
+  drawWallScrim(scene);
+}
+
+/** Renders the named world's backdrop — real illustrated art if it's loaded, else the procedural placeholder. */
 export function drawWorldBackground(scene: Phaser.Scene, worldId: string): void {
+  const asset = WORLD_BG_ASSETS[worldId];
+  if (asset && scene.textures.exists(asset.key)) {
+    drawIllustratedBackground(scene, asset.key);
+    return;
+  }
   BACKGROUND_DRAWERS[worldId]?.(scene);
 }

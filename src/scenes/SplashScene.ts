@@ -9,9 +9,11 @@
 import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
+import { SPRITE_KEYS } from '../assets/keys';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
+import { preloadWorldBackground, worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import * as poki from '../poki';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
@@ -55,6 +57,18 @@ const REWARD_MAX_TIER = 4;
 /** Where unlock/select feedback toasts appear — a shared anchor above PLAY, not per-carousel (CLAUDE.md §10). */
 const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
 
+/**
+ * Title lockup — the illustrated flourish wreath sits behind the drippy
+ * wordmark, both centred at the same point (CLAUDE.md §3 rule 6 bans
+ * studio splash screens, not the game's own stylised title on its own
+ * menu). Sized to leave room for the vault line + carousels below —
+ * see the sizing note above `_buildTitle()`.
+ */
+const TITLE_CENTRE_Y = 80;
+const TITLE_FLOURISH_HEIGHT = 180;
+const TITLE_WORDMARK_HEIGHT = 100;
+const VAULT_Y = 195;
+
 export class SplashScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
   private _grannyCarousel!: Carousel;
@@ -67,17 +81,24 @@ export class SplashScene extends Phaser.Scene {
     super('SplashScene');
   }
 
+  /** Loads every carousel's real art — all 3 grannies' portraits, all 6 guns' 0° angle, every world's backdrop. */
+  preload(): void {
+    for (const g of GRANNY_DEFS) {
+      this.load.image(SPRITE_KEYS.grannyPose(g.id, 'front'), SPRITE_KEYS.grannyPath(g.id, 'front'));
+    }
+    for (const g of GUN_DEFS) {
+      this.load.image(SPRITE_KEYS.gunAngle(g.id, 0), SPRITE_KEYS.gunAnglePath(g.id, 0));
+    }
+    for (const w of WORLD_DEFS) {
+      preloadWorldBackground(this, w.id);
+    }
+    this.load.image(SPRITE_KEYS.titleWordmark, 'sprites/ui/wordmark.png');
+    this.load.image(SPRITE_KEYS.titleFlourish, 'sprites/ui/title_flourish.png');
+  }
+
   create(): void {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud).setOrigin(0);
-    this.add
-      .text(
-        GAME_WIDTH / 2,
-        90,
-        "GRANNY'S SPIN SPLASH",
-        textStyle('displayXL', COLOUR_HEX.grannyPink, COLOUR_HEX.ink),
-      )
-      .setOrigin(0.5);
-
+    this._buildTitle();
     this._buildVaultDisplay();
 
     this._grannyCarousel = new Carousel(
@@ -126,6 +147,7 @@ export class SplashScene extends Phaser.Scene {
       unlocked: this._unlocks.isGrannyUnlocked(g.id),
       cost: g.unlockCost,
       swatchColour: GRANNY_SWATCH[g.id] ?? COLOUR.softSlate,
+      swatchTextureKey: SPRITE_KEYS.grannyPose(g.id, 'front'),
     }));
   }
 
@@ -136,17 +158,22 @@ export class SplashScene extends Phaser.Scene {
       unlocked: this._unlocks.isGunUnlocked(g.id),
       cost: g.cost,
       swatchColour: GUN_TIER_SWATCH[g.tier] ?? COLOUR.softSlate,
+      swatchTextureKey: SPRITE_KEYS.gunAngle(g.id, 0),
     }));
   }
 
   private _worldItems(): CarouselItem[] {
-    return WORLD_DEFS.map((w) => ({
-      id: w.id,
-      label: w.name,
-      unlocked: this._unlocks.isWorldUnlocked(w.id),
-      cost: w.unlockThreshold,
-      swatchColour: WORLD_SWATCH[w.id] ?? COLOUR.softSlate,
-    }));
+    return WORLD_DEFS.map((w) => {
+      const bgKey = worldBackgroundKey(w.id);
+      return {
+        id: w.id,
+        label: w.name,
+        unlocked: this._unlocks.isWorldUnlocked(w.id),
+        cost: w.unlockThreshold,
+        swatchColour: WORLD_SWATCH[w.id] ?? COLOUR.softSlate,
+        ...(bgKey ? { swatchTextureKey: bgKey } : {}),
+      };
+    });
   }
 
   /** CLAUDE.md §10: tapping a locked item spends vault stars to unlock it if affordable, else nudges to earn more. */
@@ -217,8 +244,39 @@ export class SplashScene extends Phaser.Scene {
     showToast(this, GAME_WIDTH / 2, SELECT_TOAST_Y, `Earn ${short}★ more to unlock ${item.name}`);
   }
 
+  /**
+   * The flourish wreath is drawn behind, the wordmark on top, both centred
+   * on the same point — the flourish's own empty centre was composed to
+   * frame roughly a 2:1 lockup, which the wordmark's two-line ("GRANNY'S" /
+   * "SPIN SPLASH") layout matches closely (WORLD_BACKGROUND_BRIEF.md-era
+   * asset delivery, 2026-09-11). Falls back to plain styled text if either
+   * image failed to load, rather than showing nothing.
+   */
+  private _buildTitle(): void {
+    const hasArt =
+      this.textures.exists(SPRITE_KEYS.titleFlourish) &&
+      this.textures.exists(SPRITE_KEYS.titleWordmark);
+    if (!hasArt) {
+      this.add
+        .text(
+          GAME_WIDTH / 2,
+          TITLE_CENTRE_Y + 10,
+          "GRANNY'S SPIN SPLASH",
+          textStyle('displayXL', COLOUR_HEX.grannyPink, COLOUR_HEX.ink),
+        )
+        .setOrigin(0.5);
+      return;
+    }
+
+    const flourish = this.add.image(GAME_WIDTH / 2, TITLE_CENTRE_Y, SPRITE_KEYS.titleFlourish);
+    flourish.setScale(TITLE_FLOURISH_HEIGHT / flourish.height);
+
+    const wordmark = this.add.image(GAME_WIDTH / 2, TITLE_CENTRE_Y, SPRITE_KEYS.titleWordmark);
+    wordmark.setScale(TITLE_WORDMARK_HEIGHT / wordmark.height);
+  }
+
   private _buildVaultDisplay(): void {
-    const y = 170;
+    const y = VAULT_Y;
     const starGfx = this.add.graphics().setPosition(GAME_WIDTH / 2 - 70, y);
     drawStarIcon(starGfx, 14, COLOUR.sunnyGold);
     this._vaultText = this.add

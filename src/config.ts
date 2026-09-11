@@ -23,7 +23,7 @@ export const BACKGROUND_COLOUR: string = COLOUR_HEX.cloud;
 /** Auto-aim snap radius in px, desktop (CLAUDE.md §6.4). Mobile scales this at call sites. */
 export const AIM_SNAP_RADIUS = 96;
 
-/** Granny placeholder rectangle (Sprint 1; replaced by sprites in Sprint 3, CLAUDE.md §8.1). */
+/** Granny's on-screen size (CLAUDE.md §8.1 sprite art, wired Sprint 3). */
 export const GRANNY_WIDTH = 96;
 export const GRANNY_HEIGHT = 160;
 export const GRANNY_MOVE_SPEED = 360;
@@ -32,6 +32,9 @@ export const GRANNY_Y_FROM_BOTTOM = 96;
 /** Idle breath cycle duration, ms — one full scale-up-and-back (CLAUDE.md §5.6: "scale 1.0 ↔ 1.02"). */
 export const GRANNY_BREATH_CYCLE_MS = 2000;
 export const GRANNY_BREATH_SCALE = 1.02;
+
+/** Gun's longest on-screen dimension, px — its 8 angle sprites all target roughly this same apparent size. */
+export const GUN_LENGTH_PX = 110;
 
 /** Water particle arc physics — extracted from the reference prototype's `_spawnWater`. */
 export const WATER_PARTICLE_SPEED = 650;
