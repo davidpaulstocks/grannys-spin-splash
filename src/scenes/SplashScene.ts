@@ -13,6 +13,7 @@ import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import * as poki from '../poki';
 import { adManager } from '../systems/AdManager';
+import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
@@ -154,7 +155,7 @@ export class SplashScene extends Phaser.Scene {
       return;
     }
 
-    const watched = await poki.rewardedBreak('large');
+    const watched = await adManager.playRewarded('large', AD_MUTE_HOOKS);
     if (!watched) return;
 
     this._unlocks.grantGun(reward);
@@ -169,7 +170,7 @@ export class SplashScene extends Phaser.Scene {
     this._isStartingRun = true;
 
     if (adManager.shouldShowCommercialBreak()) {
-      await adManager.playCommercialBreak();
+      await adManager.playCommercialBreak(AD_MUTE_HOOKS);
     }
 
     this.scene.start('GameScene', {

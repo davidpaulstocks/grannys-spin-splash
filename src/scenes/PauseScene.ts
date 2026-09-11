@@ -2,18 +2,20 @@
  * Overlay on pause — Resume, Quit (CLAUDE.md §7.2, story 6.6). Launched
  * on top of a genuinely-paused GameScene (`this.scene.pause()`, not a
  * manual flag — see GameScene.ts's `_pauseGame()`). No "Settings" entry:
- * there's nothing to configure yet (no audio system until Sprint 4) —
- * building a menu item for settings that don't exist would be exactly
- * the kind of UI sprawl CLAUDE.md §6.1 warns against. Add it back once
- * there's an actual setting.
+ * there's a volume toggle's worth of settings and nothing else yet —
+ * building a whole menu item for one on/off switch would be exactly the
+ * kind of UI sprawl CLAUDE.md §6.1 warns against. Add it back once
+ * there's more than that to configure.
  */
 
 import Phaser from 'phaser';
 
+import { audioBus } from '../audio/AudioBus';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import * as poki from '../poki';
 import { createButton } from '../ui/Button';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { DURATION } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 
 const DIM_ALPHA = 0.7;
@@ -55,6 +57,7 @@ export class PauseScene extends Phaser.Scene {
 
   private _resume(): void {
     this.scene.resume('GameScene');
+    audioBus.fadeIn(DURATION.stateChange);
     poki.gameplayStart();
     this.scene.stop();
   }

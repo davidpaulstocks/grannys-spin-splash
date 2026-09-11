@@ -14,6 +14,7 @@ import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { adManager } from '../systems/AdManager';
+import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import type { GameOverData } from '../types/sceneData';
@@ -73,7 +74,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private async _onDoubleScore(score: number): Promise<void> {
-    const watched = await adManager.playRewarded('medium');
+    const watched = await adManager.playRewarded('medium', AD_MUTE_HOOKS);
     if (!watched) return;
 
     this._unlocks.addStars(score); // the base score is already banked by GameScene — this tops it up to 2×

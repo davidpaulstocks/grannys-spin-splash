@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 6 complete — game has a full, playable loop (splash → game → game over → splash) with unlocks and ad flows, submission-ready pending Sprints 3/4/7. Sprint 3 blocked on user-supplied art (ART_BRIEF.md), Sprint 4's 12-stem music is blocked on an audio source decision (CLAUDE.md §9.3) — but its one-shot SFX (story 4.5) needs no licensed assets, synthesized Web Audio tones only, so tackling that next before moving to Sprint 7's QA/optimization pass (which needs no art/audio either).
+**Currently working on:** Sprint 4's one-shot SFX (4.4/4.5) done and verified live in Chrome — game now has real audio feedback (hit/combo/upgrade/pump/refill/deflect/frenzy tones) plus ad-break muting. Sprint 4's 12-stem orchestra (4.1/4.2/4.3/4.6) remains blocked on the audio source decision (CLAUDE.md §9.3); Sprint 3 remains blocked on user-supplied art (ART_BRIEF.md). Moving to Sprint 7's QA/optimization pass next — the last unblocked sprint — per the user's request to finish the whole unblocked plan and do a bot playthrough before art gets slotted in.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -15,7 +15,7 @@
 | Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ✅ Done |
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
 | Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⏳ Blocked on user art (ART_BRIEF.md) |
-| Sprint 4 | ASMR Orchestra — 12-layer audio | ⏳ Blocked on audio source decision (§9.3) |
+| Sprint 4 | ASMR Orchestra — 12-layer audio | 🟡 SFX (4.4/4.5) done; 12-stem orchestra (4.1/4.2/4.3/4.6) blocked on audio source decision (§9.3) |
 | Sprint 5 | Splash Screen + Unlocks | ✅ Done (5.7 thumbnails deferred — needs real art) |
 | Sprint 6 | Monetization Polish | ✅ Done (mobile two-finger-pause noted as a gap) |
 | Sprint 7 | Launch Polish + Poki submission | ⚪ Not started |
@@ -124,11 +124,15 @@ The headline feature. Layered music that builds with player progress.
 - [ ] **4.1** Audio source decision + procure 12-layer ASMR loop pack (see CLAUDE.md §9.3) — 12 OGG files, same BPM, same length, same key
 - [ ] **4.2** Implement `AudioOrchestra.ts` mixing class — Smooth gain tweening; no clicks/pops at layer change
 - [ ] **4.3** Wire orchestra to *each spinner's own* charge level, continuously — CLAUDE.md §9.1.1 (2026-09-11 refinement, requested by the user: "each spinner is an instrument"). Not `FrenzyMeter` population thresholds — a spinner's `currentSpeed / MAX_SPINNER_SPEED` directly drives its assigned layer's gain every frame, smoothed 250ms. FrenzyMeter's `full` event still drives the two Frenzy-exclusive layers (drop bass sustain + cinematic hit one-shot) — Acceptance: each grid position audibly maps to the same instrument every run; the mix breathes in real time with actual play, not just crossed thresholds
-- [ ] **4.4** Implement `AudioBus` master mute + fade on ad — Audio mutes within 100ms of `commercialBreak()`
-- [ ] **4.5** Port one-shot SFX from prototype synth code into `SFX.ts` — Hit/splash/unlock/frenzy SFX sound right
-- [ ] **4.6** Playtest: does it feel like ASMR? — 5-person test, ≥4/5 say "satisfying"
+- [x] **4.4** Implement `AudioBus` master mute + fade on ad — done. Single shared `AudioContext` + master `GainNode` (`src/audio/AudioBus.ts`), `fadeOut(100)`/`fadeIn(300)` linear ramps, `AD_MUTE_HOOKS` wired into all 3 `adManager.play*()` call sites (SplashScene commercial break, GameOverScene double-score reward, GameScene mid-run refill reward) plus `_pauseGame()`'s fade-out. `init()` called from `GameScene._onFirstInput()` — a real user gesture, per browser autoplay policy.
+- [x] **4.5** Port one-shot SFX from prototype synth code into `SFX.ts` — done. `src/audio/SFX.ts`: `scheduleTone`/`playTone`/`playSequence` primitives ported from the prototype's synth recipes, plus `playHit` (pitch scales with spinner speed), `playCombo`, `playUpgrade`, `playPump`, `playRefill`, `playDeflect`, `playFrenzy`. Wired into `GameScene.ts` at every trigger point (water-spinner collisions, combo increments, spinner state-tier upgrades, pump empty/refill, deflect, frenzy start). No licensed assets needed — pure Web Audio synthesis — so this shipped independently of the 4.1 audio-source decision.
+  - **Verification note:** live-tested in Chrome by driving the real splash→play→first-click flow (not just unit tests) and confirmed end-to-end: `AudioContext` construction (proxy-patched `window.AudioContext` to intercept), `audioBus.ready` becoming `true` inside the actual imported module SFX.ts uses, and a real `AudioContext.prototype.createOscillator` call firing from `SFX.playHit()`. An earlier debugging session showed `audioBus.ready: false` when checked via a fresh ad-hoc `import('/src/audio/AudioBus.ts')` from the browser console — traced to Vite HMR module-versioning (a bare dynamic import resolving to an orphaned module instance distinct from the one already wired into the live game after a mid-session file edit), not a code bug. Confirmed via prototype-patching (`AudioContext.prototype.createOscillator`), which is instance-agnostic and unambiguous.
+- [ ] **4.1** Audio source decision + procure 12-layer ASMR loop pack — still blocked (CLAUDE.md §9.3)
+- [ ] **4.2** Implement `AudioOrchestra.ts` mixing class — blocked on 4.1
+- [ ] **4.3** Wire orchestra to each spinner's own charge level (§9.1.1) — blocked on 4.1
+- [ ] **4.6** Playtest: does it feel like ASMR? — blocked on 4.1–4.3
 
-**Exit criteria:** Game sounds incredible. The audio is the differentiator.
+**Exit criteria:** Partially met — one-shot SFX (4.4/4.5) done and verified live; the 12-stem orchestra (4.1/4.2/4.3/4.6) remains blocked on the audio-source decision (§9.3). Game sounds good today; the ASMR differentiator lands once that decision is made.
 
 ---
 

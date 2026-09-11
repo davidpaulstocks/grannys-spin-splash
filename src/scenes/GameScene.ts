@@ -36,6 +36,8 @@ import { InputManager } from '../systems/InputManager';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
+import { audioBus, AD_MUTE_HOOKS } from '../audio/AudioBus';
+import * as SFX from '../audio/SFX';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
@@ -230,17 +232,19 @@ export class GameScene extends Phaser.Scene {
       this._isPumping = true;
       this._pumpEndAt = time + PUMP_REFILL_MS;
       this._refillPrompt.setVisible(true);
+      SFX.playPump();
     } else if (this._isPumping && time >= this._pumpEndAt) {
       this._isPumping = false;
       this._waterTank = this._gun.tank;
       this._refillPrompt.setVisible(false);
+      SFX.playRefill();
     }
   }
 
   /** CLAUDE.md story 6.3: player-initiated only, shown solely while pumping — watching completes the refill instantly. */
   private async _onWatchAdForRefill(): Promise<void> {
     if (!this._isPumping) return;
-    const watched = await adManager.playRewarded('small');
+    const watched = await adManager.playRewarded('small', AD_MUTE_HOOKS);
     if (!watched || !this._isPumping) return;
 
     this._isPumping = false;
@@ -256,9 +260,18 @@ export class GameScene extends Phaser.Scene {
       const hitY = particle.y;
       const hitSpinner = particle.checkCollision(particle.getCandidates(this._spinners));
       if (!hitSpinner) continue;
+
       const landed = hitSpinner.hit(this._gun.power);
-      if (landed) this._combo.registerHit(hitSpinner.id);
       spawnSplash(this, hitX, hitY);
+      if (!landed) {
+        SFX.playDeflect(); // whirligig
+        continue;
+      }
+
+      SFX.playHit(hitSpinner.currentSpeed);
+      const comboBefore = this._combo.combo;
+      const comboAfter = this._combo.registerHit(hitSpinner.id);
+      if (comboAfter !== comboBefore) SFX.playCombo(comboAfter);
     }
   }
 
@@ -266,6 +279,7 @@ export class GameScene extends Phaser.Scene {
   private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState): void {
     const levelBonus = Math.max(0, STATE_ORDINAL[newState] - 1);
     this._score += (spinner.def.stars + levelBonus) * this._combo.multiplier;
+    SFX.playUpgrade(STATE_ORDINAL[newState]);
   }
 
   private _onFrenzyStart(): void {
@@ -282,6 +296,7 @@ export class GameScene extends Phaser.Scene {
       GAME_HEIGHT / 2,
       'SPLASH FRENZY!',
     );
+    SFX.playFrenzy();
   }
 
   private _updateFrenzyWindow(time: number): void {
@@ -297,6 +312,13 @@ export class GameScene extends Phaser.Scene {
   private _onFirstInput(): void {
     if (this._started) return;
     this._started = true;
+    // AudioContext creation/resume must happen on a real user gesture
+    // (browser autoplay policy) — first-input is that gesture. Also
+    // guarantees the gain is back at full even if a previous round was
+    // quit mid-pause-fade without ever resuming.
+    audioBus.init();
+    audioBus.resume();
+    audioBus.fadeIn(0);
     poki.gameplayStart();
   }
 
@@ -309,6 +331,7 @@ export class GameScene extends Phaser.Scene {
   private _pauseGame(): void {
     if (!this._started || this._roundOver || this.scene.isPaused()) return;
     poki.gameplayStop();
+    audioBus.fadeOut(100);
     this.scene.pause();
     this.scene.launch('PauseScene');
   }
