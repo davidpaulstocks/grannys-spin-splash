@@ -24,6 +24,9 @@ interface TrackedKeys {
   readonly d: Phaser.Input.Keyboard.Key;
   readonly space: Phaser.Input.Keyboard.Key;
   readonly esc: Phaser.Input.Keyboard.Key;
+  /** Unused by gameplay — captured only so an accidental press can't scroll the page (CLAUDE.md §3 rule 10). */
+  readonly up: Phaser.Input.Keyboard.Key;
+  readonly down: Phaser.Input.Keyboard.Key;
 }
 
 export class InputManager extends EventEmitter {
@@ -47,7 +50,10 @@ export class InputManager extends EventEmitter {
     if (!kb) throw new Error('InputManager requires a scene with keyboard input enabled');
 
     const Keys = Phaser.Input.Keyboard.KeyCodes;
-    kb.addCapture([Keys.LEFT, Keys.RIGHT, Keys.SPACE]);
+    // All 4 arrows + space, not just the 2 this game actually binds — the
+    // page-scroll-prevention rule covers arrow keys generally, and an
+    // unbound UP/DOWN press would otherwise scroll straight past Phaser.
+    kb.addCapture([Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN, Keys.SPACE]);
 
     this._keys = {
       left: kb.addKey(Keys.LEFT),
@@ -56,6 +62,8 @@ export class InputManager extends EventEmitter {
       d: kb.addKey(Keys.D),
       space: kb.addKey(Keys.SPACE),
       esc: kb.addKey(Keys.ESC),
+      up: kb.addKey(Keys.UP),
+      down: kb.addKey(Keys.DOWN),
     };
 
     this._keys.space.on('down', () => {

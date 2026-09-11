@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 
 import { BACKGROUND_COLOUR, SCALE_CONFIG } from './config';
 import * as poki from './poki';
+import { BootScene } from './scenes/BootScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { GameScene } from './scenes/GameScene';
 import { HUDScene } from './scenes/HUDScene';
@@ -40,11 +41,11 @@ async function boot(): Promise<void> {
   // call regardless of platform.
   poki.movePill(0, 24);
 
-  // SplashScene boots first (splash → game → game over → splash, Sprint 5
-  // exit criteria) — there's nothing to preload yet (procedural graphics +
-  // a placeholder Granny), so BootScene stays a stub until Sprint 3's
-  // sprite/audio assets need a real loading screen. HUDScene is registered
-  // but not started here — GameScene launches it itself once it's running.
+  // BootScene boots first — preloads every launch sprite once so neither
+  // SplashScene nor GameScene ever shows a blank/partial frame waiting on
+  // art (splash → game → game over → splash after that, Sprint 5 exit
+  // criteria). HUDScene is registered but not started here — GameScene
+  // launches it itself once it's running.
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
@@ -53,7 +54,7 @@ async function boot(): Promise<void> {
     // second simultaneous finger, which the two-finger pause gesture
     // (CLAUDE.md §6.3, InputManager.ts) needs to detect at all.
     input: { activePointers: 2 },
-    scene: [SplashScene, GameScene, HUDScene, GameOverScene, PauseScene],
+    scene: [BootScene, SplashScene, GameScene, HUDScene, GameOverScene, PauseScene],
   });
 
   if (import.meta.env.DEV) window.__gameForDebug = game;

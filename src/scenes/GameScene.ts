@@ -31,7 +31,7 @@ import {
   WORLD_DEFS,
 } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
-import { drawWorldBackground, preloadWorldBackground } from '../entities/world/worldBackgrounds';
+import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
 import { Gun } from '../entities/gun/Gun';
@@ -47,8 +47,7 @@ import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
 import { audioBus, AD_MUTE_HOOKS } from '../audio/AudioBus';
 import * as SFX from '../audio/SFX';
-import { SPRITE_KEYS } from '../assets/keys';
-import type { GunAngle, GunDef } from '../entities/gun/gun.types';
+import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
@@ -67,9 +66,6 @@ const DUCK_BOUNCE_MARGIN = 60;
 /** Funfair-only: how many spinners drift, and the drift radius (prototype: 3 spinners, 55px). */
 const MOVING_TARGET_COUNT = 3;
 const MOVING_TARGET_DRIFT_RANGE = 55;
-
-/** Mirrors Gun.ts's own angle set — needed here only to iterate preload() calls, not for aim logic. */
-const GUN_ANGLES: readonly GunAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
 
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];
@@ -109,35 +105,18 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  /** Runs before preload()/create() — resolves the selected loadout early so preload() knows what to load. */
+  /**
+   * Runs before create() — resolves the selected loadout early. No
+   * preload() needed any more: BootScene preloads every launch granny/gun/
+   * world asset up front, so every texture this scene uses is already in
+   * the cache by the time a round starts.
+   */
   init(data: Partial<GameSceneData>): void {
     const worldId = data.worldId ?? DEFAULT_WORLD_ID;
     this._world = WORLD_DEFS.find((w) => w.id === worldId) ?? WORLD_DEFS[0];
     this._grannyId = data.grannyId ?? DEFAULT_GRANNY_ID;
     const gunId = data.gunId ?? DEFAULT_GUN_ID;
     this._gun = GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0];
-  }
-
-  /** Loads the selected world's background, granny gameplay poses, and gun angle set + nozzle anchors. */
-  preload(): void {
-    preloadWorldBackground(this, this._world.id);
-
-    this.load.image(
-      SPRITE_KEYS.grannyPose(this._grannyId, 'back'),
-      SPRITE_KEYS.grannyPath(this._grannyId, 'back'),
-    );
-    this.load.image(
-      SPRITE_KEYS.grannyPose(this._grannyId, 'back_firing'),
-      SPRITE_KEYS.grannyPath(this._grannyId, 'back_firing'),
-    );
-
-    for (const angle of GUN_ANGLES) {
-      this.load.image(
-        SPRITE_KEYS.gunAngle(this._gun.id, angle),
-        SPRITE_KEYS.gunAnglePath(this._gun.id, angle),
-      );
-    }
-    this.load.json(SPRITE_KEYS.gunAnchorKey(this._gun.id), SPRITE_KEYS.gunAnchorPath(this._gun.id));
   }
 
   create(): void {
@@ -174,8 +153,6 @@ export class GameScene extends Phaser.Scene {
     this._frenzyMeter.on('full', () => this._onFrenzyStart());
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this._input.destroy());
-
-    poki.gameLoadingFinished();
   }
 
   override update(time: number, delta: number): void {

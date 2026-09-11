@@ -13,8 +13,7 @@ import { SPRITE_KEYS } from '../assets/keys';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
-import { preloadWorldBackground, worldBackgroundKey } from '../entities/world/worldBackgrounds';
-import * as poki from '../poki';
+import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { saveManager } from '../systems/SaveManager';
@@ -81,21 +80,6 @@ export class SplashScene extends Phaser.Scene {
     super('SplashScene');
   }
 
-  /** Loads every carousel's real art — all 3 grannies' portraits, all 6 guns' 0° angle, every world's backdrop. */
-  preload(): void {
-    for (const g of GRANNY_DEFS) {
-      this.load.image(SPRITE_KEYS.grannyPose(g.id, 'front'), SPRITE_KEYS.grannyPath(g.id, 'front'));
-    }
-    for (const g of GUN_DEFS) {
-      this.load.image(SPRITE_KEYS.gunAngle(g.id, 0), SPRITE_KEYS.gunAnglePath(g.id, 0));
-    }
-    for (const w of WORLD_DEFS) {
-      preloadWorldBackground(this, w.id);
-    }
-    this.load.image(SPRITE_KEYS.titleWordmark, 'sprites/ui/wordmark.png');
-    this.load.image(SPRITE_KEYS.titleFlourish, 'sprites/ui/title_flourish.png');
-  }
-
   create(): void {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud).setOrigin(0);
     this._buildTitle();
@@ -136,8 +120,6 @@ export class SplashScene extends Phaser.Scene {
     });
 
     this._buildRewardButton();
-
-    poki.gameLoadingFinished();
   }
 
   private _grannyItems(): CarouselItem[] {
