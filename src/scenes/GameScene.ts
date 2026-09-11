@@ -202,7 +202,7 @@ export class GameScene extends Phaser.Scene {
     return aim;
   }
 
-  /** Fires a pooled water particle on cadence while the input is held and the tank isn't empty/pumping. */
+  /** Fires `gun.streams` pooled water particles on cadence while held and the tank isn't empty/pumping. */
   private _updateFiring(time: number, aim: ReturnType<typeof resolveAim>): void {
     const canFire = this._input.isFiring() && !this._isPumping && this._waterTank > 0;
     if (!canFire || time < this._nextFireAt) return;
@@ -211,10 +211,15 @@ export class GameScene extends Phaser.Scene {
     const target = aim.target
       ? (this._spinners.find((s) => s.id === aim.target?.id) ?? null)
       : null;
-    const particle = this._waterPool.get() as WaterParticle | null;
-    if (!particle) return;
 
-    particle.fire(origin.x, origin.y, aim.x, aim.y, target);
+    // Multi-stream guns (Splash Jr, Soaker 3000) fire several particles per
+    // cycle, all at the same aim point — each particle's own randomised
+    // wobble (WaterParticle.fire) is what gives them a visible spread.
+    for (let i = 0; i < this._gun.streams; i++) {
+      const particle = this._waterPool.get() as WaterParticle | null;
+      if (!particle) break;
+      particle.fire(origin.x, origin.y, aim.x, aim.y, target);
+    }
     this._waterTank = Math.max(0, this._waterTank - this._gun.drain);
     this._nextFireAt = time + this._gun.interval;
   }

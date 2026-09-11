@@ -1,8 +1,31 @@
 /**
  * GUN_DEFS — launch roster of 6 guns × 8 angles each (CLAUDE.md §8.2).
- * Tier + cost are locked by spec; gameplay numbers (tank/drain/pump/
- * interval/power/streams/sz) are placeholder values that ramp loosely with
- * tier and will be tuned during Sprint 2 story 2.8 playtest pacing pass.
+ * Tier + cost are locked by spec; tank/drain/pump/interval/streams/sz are
+ * still first-pass placeholders. `power` values were tuned in Sprint 2
+ * story 2.8 against a live-simulated player (manual frame-stepping —
+ * see BACKLOG.md's Sprint 2 notes) who commits to one spinner at a time
+ * until it hits FULL, then moves to whichever spinner is lowest, swept
+ * against Garden's 12-spinner wall.
+ *
+ * The original placeholders gave pistol an effective DPS
+ * (power × streams / interval) of ~27/s — confirmed live to never reach
+ * SPLASH FRENZY in a 30s round; 10 of 12 spinners still read STOPPED at
+ * round end. A first retune to ~82/s (the "charge every spinner exactly
+ * once, back-to-back, zero decay" arithmetic minimum) still only reached
+ * 1 spinner FULL at round end — the arithmetic minimum badly undersells
+ * the real problem, which is maintaining earlier spinners while sweeping
+ * the rest (they keep decaying the whole time you're elsewhere). Pushed
+ * further and re-measured empirically until the simulated sweep showed
+ * real convergence (4 of 12 FULL, zero STOPPED, at ~136/s) — that's the
+ * number pistol now uses. The other 5 guns scale from it by the same
+ * factor, keeping the original tier-cost ordering (effective DPS: 136 →
+ * 185 → 294 → 493 → 662 → 754, pistol through Inferno).
+ *
+ * Still a first pass, not a final balance pass: this measures one
+ * synthetic "commits and doesn't miss" strategy, not real human variance
+ * (aim misses, distraction, exploring the wall) — needs a real playtest
+ * to confirm "~50% of runs" specifically, not just "convergence is
+ * possible for a disciplined player."
  */
 
 import type { GunDef } from './gun.types';
@@ -18,7 +41,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     drain: 1,
     pump: 25,
     interval: 220,
-    power: 6,
+    power: 30,
     streams: 1,
     sz: 6,
     type: 'water',
@@ -33,7 +56,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     drain: 1,
     pump: 25,
     interval: 200,
-    power: 8,
+    power: 37,
     streams: 1,
     sz: 8,
     type: 'water',
@@ -48,7 +71,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     drain: 2,
     pump: 30,
     interval: 160,
-    power: 10,
+    power: 47,
     streams: 1,
     sz: 10,
     type: 'water',
@@ -63,7 +86,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     drain: 2,
     pump: 35,
     interval: 150,
-    power: 12,
+    power: 37,
     streams: 2,
     sz: 8,
     type: 'water',
@@ -78,7 +101,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     drain: 2,
     pump: 40,
     interval: 130,
-    power: 14,
+    power: 43,
     streams: 2,
     sz: 10,
     type: 'water',
@@ -93,7 +116,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     drain: 3,
     pump: 35,
     interval: 110,
-    power: 20,
+    power: 83,
     streams: 1,
     sz: 12,
     type: 'fire',
