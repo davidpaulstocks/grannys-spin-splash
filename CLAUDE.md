@@ -80,10 +80,10 @@ The prototype is open in another tab. Read it, don't port it. Specifically:
 |---|---|---|
 | Spinner stats (decay/power/stars/r/blades/style/colors) | `const ST = { … }` | `src/data/spinners.ts` |
 | World configs (grid/types/obs/time) | `const WORLDS = { … }` | `src/data/worlds.ts` |
-| Weapon stats (cost/tank/drain/pump/interval/power/streams/sz) | `const WEAPON_DEFS = { … }` | `src/data/guns.ts` |
 | Granny level thresholds | `const GRANNY_LEVELS = [ … ]` | `src/data/levels.ts` |
 | Power-up effects | `const PU = { … }` | `src/data/powerups.ts` |
-| Granny character defs (colours, names, unlock costs) | `const GRANNY_CHARS = [ … ]` | `src/data/grannies.ts` (cost values only — visual specs come from sprite brief) |
+
+> **Correction (Sprint 1):** `game prototype/granny-spin-splash.html` — the actual prototype file in this repo — has no `WEAPON_DEFS` or `GRANNY_CHARS` constant. It's single-player with one default water gun and no granny selection; guns and the 3-granny roster are original v1 designs with no prototype source. `src/data/guns.ts` and `src/data/grannies.ts` carry placeholder gameplay numbers (cost/tier values are locked by CLAUDE.md §8.1/§8.2) — tune tank/drain/pump/interval/power once Sprint 2 story 2.8's playtest pass runs.
 
 ### Read these for behavioural reference (rewrite cleanly)
 

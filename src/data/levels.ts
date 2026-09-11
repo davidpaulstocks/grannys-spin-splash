@@ -1,10 +1,15 @@
 /**
  * GRANNY_LEVELS — rank ladder revealed at game over (CLAUDE.md §7.2).
- * The prototype used emoji here; this version stores icon keys per
- * §7.3 rule 8 (resolved to SVG by HUD/Banner in Sprint 2).
+ * Thresholds, labels, descriptions, and colours are extracted verbatim
+ * from the reference prototype's `GRANNY_LEVELS` table
+ * (`game prototype/granny-spin-splash.html`) — its emoji are replaced
+ * with icon keys per CLAUDE.md §7.3 rule 8 (no emoji in user-facing UI).
  *
- * Score thresholds are placeholder values — tune in Sprint 2 once
- * spinner pacing is locked in story 2.8.
+ * Note: the top tier's label is "GOLDEN GRANNY", same name as the
+ * post-launch 10,000★ vault character unlock (CLAUDE.md §4, §13 C5) —
+ * they are unrelated systems that happen to share a name in both the
+ * prototype and the spec. This ladder is a per-run score rank; the
+ * post-launch unlock is a permanent roster addition.
  */
 
 export interface GrannyLevel {
@@ -14,46 +19,70 @@ export interface GrannyLevel {
   readonly label: string;
   /** Icon key (from ICON_KEYS) shown alongside the label. */
   readonly iconKey: string;
-  /** Phaser tint colour in #RRGGBB. */
+  /** Tint colour in #RRGGBB. */
   readonly col: string;
   /** Flavour text beneath the label. */
   readonly desc: string;
+  /** True only for the top tier — gets the celebratory gold treatment. */
+  readonly isTopTier?: boolean;
 }
 
 export const GRANNY_LEVELS: readonly GrannyLevel[] = [
   {
     min: 0,
-    label: 'Apprentice Granny',
-    iconKey: 'icon_level_apprentice',
-    col: '#7FD9A8',
-    desc: 'Just getting started!',
+    label: 'Soggy Granny',
+    iconKey: 'icon_level_soggy',
+    col: '#6699BB',
+    desc: 'A valiant first splash!',
   },
   {
     min: 100,
-    label: 'Splash Cadet',
-    iconKey: 'icon_level_cadet',
-    col: '#4DB3E5',
-    desc: 'Finding your aim.',
+    label: 'Garden Granny',
+    iconKey: 'icon_level_garden',
+    col: '#88CC55',
+    desc: "You're getting the hang of it!",
   },
   {
-    min: 400,
-    label: 'Spin Master',
-    iconKey: 'icon_level_master',
-    col: '#FFC93C',
-    desc: 'The wall fears you.',
+    min: 250,
+    label: 'Splash Rookie',
+    iconKey: 'icon_level_rookie',
+    col: '#55AADD',
+    desc: 'Nice and steady soaking!',
+  },
+  {
+    min: 480,
+    label: 'Wave Rider',
+    iconKey: 'icon_level_waverider',
+    col: '#4488FF',
+    desc: 'Riding the spray beautifully!',
+  },
+  {
+    min: 800,
+    label: 'Power Sprayer',
+    iconKey: 'icon_level_powersprayer',
+    col: '#FFCC33',
+    desc: 'Electrifying aim and power!',
   },
   {
     min: 1200,
-    label: 'Drench Queen',
-    iconKey: 'icon_level_queen',
-    col: '#FF6BA8',
-    desc: 'Royalty of the rotation.',
+    label: 'Spin Queen',
+    iconKey: 'icon_level_spinqueen',
+    col: '#FFAA44',
+    desc: 'You rule the spinning wall!',
   },
   {
-    min: 3000,
+    min: 1700,
     label: 'Legendary Granny',
     iconKey: 'icon_level_legendary',
-    col: '#FF8A3D',
-    desc: 'You are the Frenzy.',
+    col: '#FF6622',
+    desc: 'A true splash LEGEND!',
+  },
+  {
+    min: 2400,
+    label: 'GOLDEN GRANNY',
+    iconKey: 'icon_level_goldengranny',
+    col: '#FFD700',
+    desc: 'THE ULTIMATE WATER WARRIOR!!',
+    isTopTier: true,
   },
 ];

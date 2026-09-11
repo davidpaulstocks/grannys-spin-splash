@@ -8,3 +8,6 @@ package-lock.json
 CLAUDE.md
 BACKLOG.md
 README.md
+
+# Read-only design artefact, not source code (see root CLAUDE.md §2).
+game prototype/

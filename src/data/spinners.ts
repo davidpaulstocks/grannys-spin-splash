@@ -1,10 +1,15 @@
 /**
  * SPINNER_DEFS — the 8 spinner kinds (CLAUDE.md §1) and the state-machine
- * speed thresholds (§2). Gameplay numbers (decay/power/stars) are
- * placeholders that loosely scale with `r` and tuned in Sprint 2 story 2.8.
+ * speed thresholds (§2). Gameplay numbers (decay/power/stars/r/blades/
+ * colors) are extracted verbatim from the reference prototype's `ST` table
+ * (`game prototype/granny-spin-splash.html`, playtested and tuned) per
+ * CLAUDE.md §2's extraction instructions — this replaces the Sprint 0
+ * placeholder values (0.6 was completed before the prototype file was
+ * available in this repo).
  *
- * Palette references CLAUDE.md §5.1 — colours stored as #RRGGBB strings so
- * data is portable; objects/Spinner.ts converts to Phaser 0x format.
+ * Palette references CLAUDE.md §5.1 loosely — the prototype's own colours
+ * are kept here for physics/behavioural fidelity; Sprint 2 story 2.7/2.8
+ * may re-skin to the production hero palette without touching the numbers.
  */
 
 import { SpinnerState, type SpinnerDef } from '../types/spinner';
@@ -17,7 +22,7 @@ export const SPINNER_STATE_THRESHOLDS: Readonly<Record<SpinnerState, number>> = 
   [SpinnerState.FULL]: 100,
 };
 
-/** Combo persistence window in milliseconds (CLAUDE.md §2). */
+/** Combo persistence window in milliseconds (CLAUDE.md §2; prototype `comboTimer = 2.0`). */
 export const COMBO_WINDOW_MS = 2000;
 
 /** Mini-frenzy + full-frenzy thresholds expressed as proportion of spinners at FULL (§2, §9.1). */
@@ -31,81 +36,83 @@ export const SPINNER_DEFS: readonly SpinnerDef[] = [
   {
     type: 'pinwheel',
     decay: 8,
-    power: 10,
+    power: 28,
     stars: 1,
-    r: 36,
-    blades: 5,
-    style: 'pinwheel',
-    colors: ['#FF6BA8', '#FFC93C'],
-  },
-  {
-    type: 'cog',
-    decay: 10,
-    power: 8,
-    stars: 2,
     r: 40,
-    blades: 8,
-    style: 'cog',
-    colors: ['#6B6F8C', '#1F2138'],
+    blades: 4,
+    style: 'pinwheel',
+    colors: ['#FF4455', '#4499FF', '#44DD66', '#FFCC00'],
   },
   {
     type: 'fan',
-    decay: 6,
-    power: 12,
+    decay: 15,
+    power: 32,
     stars: 1,
-    r: 44,
-    blades: 4,
+    r: 36,
+    blades: 5,
     style: 'fan',
-    colors: ['#4DB3E5', '#F5F2E8'],
+    colors: ['#CCDDEE', '#AABBCC', '#BBCCDD', '#99AABB', '#DDEEFF'],
   },
   {
-    type: 'daisy',
-    decay: 7,
-    power: 9,
+    type: 'windmill',
+    decay: 4,
+    power: 20,
     stars: 2,
-    r: 38,
-    blades: 6,
-    style: 'daisy',
-    colors: ['#7FD9A8', '#FFC93C'],
+    r: 44,
+    blades: 4,
+    style: 'windmill',
+    colors: ['#CC8844', '#AA6622', '#DD9955', '#BB7733'],
+  },
+  {
+    type: 'cog',
+    decay: 5,
+    power: 15,
+    stars: 2,
+    r: 34,
+    blades: 0,
+    style: 'cog',
+    colors: ['#CC8833', '#AA6611', '#EEAA44', '#BB7722'],
   },
   {
     type: 'propeller',
-    decay: 9,
-    power: 11,
-    stars: 2,
-    r: 42,
+    decay: 3,
+    power: 12,
+    stars: 3,
+    r: 50,
     blades: 3,
     style: 'propeller',
-    colors: ['#FF8A3D', '#1F2138'],
+    colors: ['#8899AA', '#99AABB', '#778899', '#BBCCDD'],
   },
   {
-    type: 'wheel',
-    decay: 11,
-    power: 7,
+    type: 'whirligig',
+    decay: 6,
+    power: 22,
     stars: 3,
-    r: 48,
-    blades: 10,
-    style: 'wheel',
-    colors: ['#4DB3E5', '#1F2138'],
+    r: 40,
+    blades: 6,
+    style: 'whirligig',
+    colors: ['#FF4444', '#FF8844', '#FFCC44', '#44FF88', '#4488FF', '#FF44FF'],
+    deflects: true,
   },
   {
-    type: 'turbine',
-    decay: 12,
-    power: 9,
-    stars: 3,
-    r: 46,
-    blades: 7,
-    style: 'turbine',
-    colors: ['#7FD9A8', '#4DB3E5'],
-  },
-  {
-    type: 'gear',
-    decay: 14,
-    power: 6,
+    type: 'disco',
+    decay: 2,
+    power: 18,
     stars: 5,
-    r: 52,
-    blades: 12,
-    style: 'gear',
-    colors: ['#FFC93C', '#FF8A3D'],
+    r: 38,
+    blades: 0,
+    style: 'disco',
+    colors: ['#DDDDDD', '#EEEEEE', '#CCCCCC', '#AAAAAA'],
+  },
+  {
+    type: 'golden',
+    decay: 18,
+    power: 50,
+    stars: 10,
+    r: 28,
+    blades: 4,
+    style: 'golden',
+    colors: ['#FFDD00', '#FFAA00', '#FFEE44', '#FFCC00'],
+    isGolden: true,
   },
 ];
