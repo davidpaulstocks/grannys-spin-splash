@@ -12,8 +12,8 @@
 
 import Phaser from 'phaser';
 
-import { SpinnerState, type SpinnerDef } from '../types/spinner';
-import { COLOUR } from '../utils/colour';
+import { SpinnerState, type SpinnerDef } from './spinner.types';
+import { COLOUR } from '../../utils/colour';
 
 /** Brightness multiplier per state — darkest at STOPPED, full colour at FULL. */
 const DIM_BY_STATE: Record<SpinnerState, number> = {

@@ -74,16 +74,16 @@ The prototype is now retired as a source of code. **This document is the build s
 
 The prototype is open in another tab. Read it, don't port it. Specifically:
 
-### Extract these data values verbatim into `src/data/*.ts`
+### Extract these data values verbatim into `src/entities/*/*.data.ts`
 
 | Value | Source location in prototype | Target file |
 |---|---|---|
-| Spinner stats (decay/power/stars/r/blades/style/colors) | `const ST = { … }` | `src/data/spinners.ts` |
-| World configs (grid/types/obs/time) | `const WORLDS = { … }` | `src/data/worlds.ts` |
-| Granny level thresholds | `const GRANNY_LEVELS = [ … ]` | `src/data/levels.ts` |
-| Power-up effects | `const PU = { … }` | `src/data/powerups.ts` |
+| Spinner stats (decay/power/stars/r/blades/style/colors) | `const ST = { … }` | `src/entities/spinner/spinner.data.ts` |
+| World configs (grid/types/obs/time) | `const WORLDS = { … }` | `src/entities/world/world.data.ts` |
+| Granny level thresholds | `const GRANNY_LEVELS = [ … ]` | `src/entities/progression/levels.ts` |
+| Power-up effects | `const PU = { … }` | `src/entities/powerup/powerup.data.ts` |
 
-> **Correction (Sprint 1):** `game prototype/granny-spin-splash.html` — the actual prototype file in this repo — has no `WEAPON_DEFS` or `GRANNY_CHARS` constant. It's single-player with one default water gun and no granny selection; guns and the 3-granny roster are original v1 designs with no prototype source. `src/data/guns.ts` and `src/data/grannies.ts` carry placeholder gameplay numbers (cost/tier values are locked by CLAUDE.md §8.1/§8.2) — tune tank/drain/pump/interval/power once Sprint 2 story 2.8's playtest pass runs.
+> **Correction (Sprint 1):** `game prototype/granny-spin-splash.html` — the actual prototype file in this repo — has no `WEAPON_DEFS` or `GRANNY_CHARS` constant. It's single-player with one default water gun and no granny selection; guns and the 3-granny roster are original v1 designs with no prototype source. `src/entities/gun/gun.data.ts` and `src/entities/granny/granny.data.ts` carry placeholder gameplay numbers (cost/tier values are locked by CLAUDE.md §8.1/§8.2) — tune tank/drain/pump/interval/power once Sprint 2 story 2.8's playtest pass runs.
 
 ### Read these for behavioural reference (rewrite cleanly)
 
@@ -369,6 +369,21 @@ In-game text limited to: score numbers, "FRENZY!" banner, weapon/granny names. E
 
 ### 7.1 Folder structure
 
+> **Re-plan (Sprint 2, 2026-09-11):** the original `objects/` + `data/` +
+> per-entity `types/` split (still visible in git history) grouped files by
+> *technical layer*. Restructured to group by *feature/entity* instead — a
+> `spinner/` folder holds `Spinner.ts`, its data, its types, and its
+> renderer together, same for `granny/`, `gun/`, `world/`, `powerup/`,
+> `obstacle/`, `waterParticle/`, `progression/`. `scenes/`, `systems/`,
+> `ui/`, `audio/`, `utils/` stay as cross-cutting layers — they aren't
+> "entities" and forcing them into entity folders would just scatter
+> orchestration code across folders it doesn't belong to. `types/` now
+> holds only the genuinely shared contracts nothing entity-specific owns
+> (`save.ts`, `input.ts`, `hud.ts`) — CLAUDE.md §7.3 rule 12 already said
+> module-internal types live alongside their code; this just applies that
+> consistently. Every file's *responsibility* is unchanged, only its
+> address — see §7.2 for what still does what.
+
 ```
 granny-spin-splash/
 ├── README.md                          # Setup + run commands
@@ -422,34 +437,42 @@ granny-spin-splash/
 │   │   ├── PauseScene.ts              # ESC/2-finger pause overlay
 │   │   └── GameOverScene.ts           # Score reveal, unlocks, Play Again
 │   │
-│   ├── objects/
-│   │   ├── Granny.ts                  # Sprite-based player character
-│   │   ├── Gun.ts                     # Sprite-based, 8-angle rotation
-│   │   ├── Spinner.ts                 # Procedural Phaser.Graphics
-│   │   ├── WaterParticle.ts           # Pooled particle
-│   │   ├── PowerUp.ts                 # Floating pickup
-│   │   └── Obstacle.ts                # Cat, Umbrella, Duck
+│   ├── entities/                      # one folder per game entity — its class, data, types, and renderer travel together
+│   │   ├── spinner/
+│   │   │   ├── Spinner.ts             # Procedural Phaser.Graphics state machine
+│   │   │   ├── spinnerRenderers.ts    # Per-style draw routines (module-internal)
+│   │   │   ├── spinner.data.ts        # SPINNER_DEFS, state thresholds, combo/frenzy constants
+│   │   │   └── spinner.types.ts       # SpinnerState enum, SpinnerDef, SpinnerStyle
+│   │   ├── granny/
+│   │   │   ├── Granny.ts              # Sprite-based player character
+│   │   │   ├── granny.data.ts         # GRANNY_DEFS + unlock thresholds
+│   │   │   └── granny.types.ts        # GrannyDef
+│   │   ├── gun/
+│   │   │   ├── Gun.ts                 # Sprite-based, 8-angle rotation
+│   │   │   ├── gun.data.ts            # GUN_DEFS + unlock thresholds
+│   │   │   └── gun.types.ts           # GunDef, AnchorJSON shape, GunTier
+│   │   ├── world/
+│   │   │   ├── world.data.ts          # WORLD_DEFS
+│   │   │   └── world.types.ts         # WorldDef
+│   │   ├── powerup/
+│   │   │   ├── PowerUp.ts             # Floating pickup
+│   │   │   └── powerup.data.ts        # POWERUP_DEFS
+│   │   ├── obstacle/
+│   │   │   └── Obstacle.ts            # Cat, Umbrella, Duck
+│   │   ├── waterParticle/
+│   │   │   └── WaterParticle.ts       # Pooled particle
+│   │   └── progression/
+│   │       └── levels.ts              # GRANNY_LEVELS (score-rank ladder — not tied to the granny roster)
 │   │
 │   ├── audio/
 │   │   ├── AudioOrchestra.ts          # 12-layer ASMR mixing — CORE
 │   │   ├── SFX.ts                     # One-shot sound effects
 │   │   └── AudioBus.ts                # Master volume, mute, fade
 │   │
-│   ├── data/
-│   │   ├── grannies.ts                # GRANNY_DEFS + unlock thresholds
-│   │   ├── guns.ts                    # GUN_DEFS + unlock thresholds
-│   │   ├── spinners.ts                # SPINNER_DEFS
-│   │   ├── worlds.ts                  # WORLD_DEFS
-│   │   ├── powerups.ts                # POWERUP_DEFS
-│   │   └── levels.ts                  # GRANNY_LEVELS
-│   │
-│   ├── types/
-│   │   ├── spinner.ts                 # SpinnerState enum, SpinnerDef, SpinnerStyle
+│   ├── types/                         # ONLY genuinely cross-cutting contracts — nothing entity-specific lives here
 │   │   ├── save.ts                    # SaveData v1 schema + migration types
-│   │   ├── gun.ts                     # GunDef, AnchorJSON shape, GunTier
-│   │   ├── granny.ts                  # GrannyDef
-│   │   ├── world.ts                   # WorldDef
-│   │   └── input.ts                   # AimResult, InputEvent union
+│   │   ├── input.ts                   # AimResult, InputEvent union
+│   │   └── hud.ts                     # HudRefreshData, HudSpinnerSnapshot (GameScene → HUDScene)
 │   │
 │   ├── assets/
 │   │   └── keys.ts                    # SPRITE_KEYS / AUDIO_KEYS / ICON_KEYS constants
@@ -469,12 +492,15 @@ granny-spin-splash/
 │   │   ├── Banner.ts                  # FRENZY banner, level reveal
 │   │   ├── WaterBar.ts                # Water tank UI
 │   │   ├── TimerDial.ts               # Top-of-screen timer
-│   │   └── FrenzyMeterUI.ts           # On-wall meter bar + dots
+│   │   └── FrenzyMeterUI.ts           # On-wall progress rings per spinner
 │   │
 │   └── utils/
-│       ├── math.ts                    # distance, clamp, lerp
-│       ├── tween.ts                   # Common tween presets
-│       └── colour.ts                  # Palette accessors
+│       ├── math.ts                    # distance, clamp, lerp, pillRadius, resolveAim
+│       ├── tween.ts                   # Durations/easing constants
+│       ├── colour.ts                  # Palette accessors + shade()
+│       ├── typography.ts              # Fredoka type scale
+│       ├── grid.ts                    # Even grid layout math
+│       └── EventEmitter.ts            # Dependency-free pub/sub for Systems/ (no Phaser import)
 │
 ├── tools/
 │   ├── budget-check.ts                # Asserts dist/ < 8 MB after build
@@ -512,16 +538,27 @@ granny-spin-splash/
 | `PauseScene.ts` | Overlay on pause — Resume, Settings, Quit. Fires `PokiSDK.gameplayStop()` |
 | `GameOverScene.ts` | Score count-up, level reveal, vault save, unlock shop, Play Again → `commercialBreak()` |
 
-#### Objects (Phaser game objects)
+#### Entities (one folder per game entity — class + data + types + renderer together)
 
-| File | Responsibility |
-|---|---|
-| `Granny.ts` | Render selected granny sprite, handle movement, swap to firing pose, breath idle |
-| `Gun.ts` | Render selected gun sprite at correct rotation angle (snap to 8 cardinals), expose nozzle position |
-| `Spinner.ts` | Procedural spinner — state machine, decay, redraw on state change |
-| `WaterParticle.ts` | Pooled — physics, collision check, splash on impact |
-| `PowerUp.ts` | Floating pickup, collision, applies effect to GameScene |
-| `Obstacle.ts` | Cat/Umbrella/Duck — block water, special behaviours |
+| Folder | File | Responsibility |
+|---|---|---|
+| `spinner/` | `Spinner.ts` | Procedural spinner — state machine, decay, redraw on state change |
+| | `spinnerRenderers.ts` | Per-style draw routines (module-internal, not imported outside this folder) |
+| | `spinner.data.ts` | `SPINNER_DEFS: { type, decay, power, stars, r, blades, style, colors }[]`, state thresholds, combo/Frenzy constants |
+| | `spinner.types.ts` | `SpinnerState` enum (`STOPPED`/`SLOW`/`MEDIUM`/`FULL`), `SpinnerDef`, `SpinnerStyle` |
+| `granny/` | `Granny.ts` | Render selected granny sprite, handle movement, swap to firing pose, breath idle |
+| | `granny.data.ts` | `GRANNY_DEFS: { id, name, spriteKey, unlockCost }[]` |
+| | `granny.types.ts` | `GrannyDef` |
+| `gun/` | `Gun.ts` | Render selected gun sprite at correct rotation angle (snap to 8 cardinals), expose nozzle position |
+| | `gun.data.ts` | `GUN_DEFS: { id, name, spriteKey, tier, cost, tank, drain, pump, interval, power, streams, sz, type }[]` |
+| | `gun.types.ts` | `GunDef`, `AnchorJSON` (angle → nozzle XY map), `GunTier` |
+| `world/` | `world.data.ts` | `WORLD_DEFS: { id, name, bg, grid, types, obstacles, time, unlockThreshold }[]` |
+| | `world.types.ts` | `WorldDef` |
+| `powerup/` | `PowerUp.ts` | Floating pickup, collision, applies effect to GameScene |
+| | `powerup.data.ts` | `POWERUP_DEFS: { id, label, name, duration, effect }[]` |
+| `obstacle/` | `Obstacle.ts` | Cat/Umbrella/Duck — block water, special behaviours |
+| `waterParticle/` | `WaterParticle.ts` | Pooled — physics, collision check, splash on impact |
+| `progression/` | `levels.ts` | `GRANNY_LEVELS: { min, label, iconKey, col, desc }[]` — score-rank ladder, not part of the granny roster |
 
 #### Audio (the headline differentiator)
 
@@ -531,27 +568,13 @@ granny-spin-splash/
 | `SFX.ts` | One-shot effects — splash, hit, unlock, frenzy, etc. |
 | `AudioBus.ts` | Master mute, fade-out on ad break, fade-in on resume |
 
-#### Data (no logic, pure config)
+#### Types (only genuinely cross-cutting contracts — everything entity-specific lives in `entities/`)
 
 | File | Responsibility |
 |---|---|
-| `grannies.ts` | `GRANNY_DEFS: { id, name, spriteKey, unlockCost }[]` |
-| `guns.ts` | `GUN_DEFS: { id, name, spriteKey, tier, cost, tank, drain, pump, interval, power, streams, sz, type }[]` |
-| `spinners.ts` | `SPINNER_DEFS: { type, decay, power, stars, r, blades, style, colors }[]` |
-| `worlds.ts` | `WORLD_DEFS: { id, name, bg, grid, types, obstacles, time, unlockThreshold }[]` |
-| `powerups.ts` | `POWERUP_DEFS: { id, label, name, duration, effect }[]` |
-| `levels.ts` | `GRANNY_LEVELS: { min, label, emoji, col, desc }[]` |
-
-#### Types (shared interfaces, no runtime code)
-
-| File | Responsibility |
-|---|---|
-| `spinner.ts` | `SpinnerState` enum (`STOPPED`/`SLOW`/`MEDIUM`/`FULL`), `SpinnerDef`, `SpinnerStyle` |
 | `save.ts` | `SaveData` v1 schema, version tag for future migration |
-| `gun.ts` | `GunDef`, `AnchorJSON` (angle → nozzle XY map), `GunTier` |
-| `granny.ts` | `GrannyDef` |
-| `world.ts` | `WorldDef` |
 | `input.ts` | `AimResult`, `InputEvent` union (`fire`/`aim`/`move`/`pause`) |
+| `hud.ts` | `HudRefreshData`, `HudSpinnerSnapshot` — GameScene's per-frame payload into HUDScene |
 
 #### Assets (string-key registry)
 
@@ -594,9 +617,9 @@ granny-spin-splash/
 
 1. **No file over 300 lines.** If it grows past that, split it.
 2. **No `any` types.** TypeScript strict mode on.
-3. **No magic numbers.** All constants live in `data/*.ts` or `config.ts`.
+3. **No magic numbers.** All constants live in an entity's `*.data.ts` or `config.ts`.
 4. **One responsibility per file.** Spinner.ts doesn't talk to localStorage. SaveManager doesn't render.
-5. **Data flows one way:** Systems → Scenes → Objects/UI. No backwards calls.
+5. **Data flows one way:** Systems → Scenes → Entities/UI. No backwards calls.
 6. **No direct `PokiSDK.*` calls outside `poki.ts`** — single source of truth.
 7. **No direct `localStorage.*` calls outside `SaveManager.ts`** — must be wrapped.
 8. **No emoji in TS source as user-facing UI** — only in code comments. UI uses SVG icons.
@@ -626,7 +649,7 @@ granny-spin-splash/
             └──────┬───────────────────┬─────────────────┘
                    │ adds to scene      │ adds to scene
         ┌──────────▼──────────┐   ┌─────▼──────────────┐
-        │  Objects/           │   │  UI/ components    │
+        │  Entities/          │   │  UI/ components    │
         │  (Granny, Gun,      │   │  (Button, Toast,   │
         │   Spinner, etc.)    │   │   FrenzyMeterUI)   │
         └─────────────────────┘   └────────────────────┘

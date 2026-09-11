@@ -5,7 +5,7 @@
  * tier and will be tuned during Sprint 2 story 2.8 playtest pacing pass.
  */
 
-import type { GunDef } from '../types/gun';
+import type { GunDef } from './gun.types';
 
 export const GUN_DEFS: readonly GunDef[] = [
   {

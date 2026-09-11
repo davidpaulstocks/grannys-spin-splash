@@ -20,20 +20,20 @@ import {
   WALL_AREA,
   WATER_PARTICLE_MAX_POOL,
 } from '../config';
-import { GUN_DEFS, DEFAULT_GUN_ID } from '../data/guns';
-import { SPINNER_DEFS } from '../data/spinners';
-import { WORLD_DEFS } from '../data/worlds';
-import { Granny } from '../objects/Granny';
-import { Spinner, STATE_ORDINAL } from '../objects/Spinner';
-import { WaterParticle } from '../objects/WaterParticle';
+import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
+import { SPINNER_DEFS } from '../entities/spinner/spinner.data';
+import { WORLD_DEFS } from '../entities/world/world.data';
+import { Granny } from '../entities/granny/Granny';
+import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
+import { WaterParticle } from '../entities/waterParticle/WaterParticle';
 import * as poki from '../poki';
 import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
 import { SaveManager } from '../systems/SaveManager';
-import type { GunDef } from '../types/gun';
+import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
-import { SpinnerState } from '../types/spinner';
+import { SpinnerState } from '../entities/spinner/spinner.types';
 import { showBanner, hideBanner } from '../ui/Banner';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { computeGridPositions } from '../utils/grid';

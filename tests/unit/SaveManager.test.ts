@@ -5,8 +5,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_GRANNY_ID } from '../../src/data/grannies';
-import { DEFAULT_GUN_ID } from '../../src/data/guns';
+import { DEFAULT_GRANNY_ID } from '../../src/entities/granny/granny.data';
+import { DEFAULT_GUN_ID } from '../../src/entities/gun/gun.data';
 import { SaveManager } from '../../src/systems/SaveManager';
 import { SAVE_VERSION } from '../../src/types/save';
 

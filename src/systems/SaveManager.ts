@@ -1,7 +1,7 @@
 /** All localStorage I/O — try/catch wrapped, JSON serialised. CLAUDE.md §7.3 rule 7. */
 
-import { DEFAULT_GRANNY_ID } from '../data/grannies';
-import { DEFAULT_GUN_ID } from '../data/guns';
+import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
+import { DEFAULT_GUN_ID } from '../entities/gun/gun.data';
 import { SAVE_VERSION, type SaveData } from '../types/save';
 
 const STORAGE_KEY = 'grannySpinSplash.save.v1';

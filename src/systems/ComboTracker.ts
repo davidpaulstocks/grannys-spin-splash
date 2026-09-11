@@ -8,7 +8,7 @@
  * rather than "fixed".
  */
 
-import { COMBO_WINDOW_MS, MAX_COMBO } from '../data/spinners';
+import { COMBO_WINDOW_MS, MAX_COMBO } from '../entities/spinner/spinner.data';
 
 export class ComboTracker {
   private _combo = 0;

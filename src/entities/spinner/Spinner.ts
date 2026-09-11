@@ -6,8 +6,8 @@
 
 import Phaser from 'phaser';
 
-import { MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from '../data/spinners';
-import { SpinnerState, type SpinnerDef } from '../types/spinner';
+import { MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
+import { SpinnerState, type SpinnerDef } from './spinner.types';
 import { drawSpinner } from './spinnerRenderers';
 
 /** Degrees-per-second-per-speed-unit for the visible spin (prototype: `angle += speed * 0.065 * dt`). */

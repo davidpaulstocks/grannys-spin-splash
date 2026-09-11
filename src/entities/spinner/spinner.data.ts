@@ -12,7 +12,7 @@
  * may re-skin to the production hero palette without touching the numbers.
  */
 
-import type { SpinnerDef } from '../types/spinner';
+import type { SpinnerDef } from './spinner.types';
 
 /**
  * Speed breakpoints for the STOPPED → SLOW → MEDIUM → FULL state machine,

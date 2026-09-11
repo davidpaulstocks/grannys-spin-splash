@@ -27,3 +27,16 @@ export const COLOUR_HEX = {
   softSlate: '#6B6F8C',
   cloud: '#F5F2E8',
 } as const;
+
+/**
+ * Darkens (factor < 1) or lightens (factor > 1) a 0xRRGGBB colour by
+ * multiplying each channel — the one sanctioned way to get a muted/shaded
+ * variant of a palette colour without inventing a new raw hex (rule 3).
+ * Used for the ground plane's "grass" tone, spinner state dimming, etc.
+ */
+export function shade(hex: number, factor: number): number {
+  const r = Math.min(255, Math.max(0, Math.floor(((hex >> 16) & 0xff) * factor)));
+  const g = Math.min(255, Math.max(0, Math.floor(((hex >> 8) & 0xff) * factor)));
+  const b = Math.min(255, Math.max(0, Math.floor((hex & 0xff) * factor)));
+  return (r << 16) | (g << 8) | b;
+}

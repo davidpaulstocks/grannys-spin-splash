@@ -23,8 +23,8 @@
  * player actually rebuilds the wall.
  */
 
-import { FRENZY_THRESHOLDS } from '../data/spinners';
-import { SpinnerState } from '../types/spinner';
+import { FRENZY_THRESHOLDS } from '../entities/spinner/spinner.data';
+import { SpinnerState } from '../entities/spinner/spinner.types';
 import { EventEmitter } from '../utils/EventEmitter';
 
 export interface SpinnerStateSnapshot {

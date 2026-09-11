@@ -7,9 +7,9 @@
 
 import Phaser from 'phaser';
 
-import { GRANNY_HEIGHT, GRANNY_MOVE_SPEED, GRANNY_WIDTH } from '../config';
-import { COLOUR } from '../utils/colour';
-import { clamp } from '../utils/math';
+import { GRANNY_HEIGHT, GRANNY_MOVE_SPEED, GRANNY_WIDTH } from '../../config';
+import { COLOUR } from '../../utils/colour';
+import { clamp } from '../../utils/math';
 
 export class Granny extends Phaser.GameObjects.Container {
   private readonly _body: Phaser.GameObjects.Rectangle;

@@ -15,7 +15,7 @@
  * deliberately folded into Garden here rather than cut.
  */
 
-import type { WorldDef } from '../types/world';
+import type { WorldDef } from './world.types';
 
 export const ROUND_LENGTH_SECONDS = 30;
 

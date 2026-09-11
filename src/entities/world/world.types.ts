@@ -1,6 +1,6 @@
 /** WorldDef — level/world config shape. CLAUDE.md §7.2, §4. */
 
-import type { SpinnerKind } from './spinner';
+import type { SpinnerKind } from '../spinner/spinner.types';
 
 export type ObstacleKind = 'cat' | 'umbrella' | 'duck';
 

@@ -19,10 +19,10 @@ import {
   WATER_PARTICLE_RADIUS,
   WATER_PARTICLE_SPEED,
   WATER_PARTICLE_WOBBLE,
-} from '../config';
-import { COLOUR } from '../utils/colour';
-import { distance } from '../utils/math';
-import type { Spinner } from './Spinner';
+} from '../../config';
+import { COLOUR } from '../../utils/colour';
+import { distance } from '../../utils/math';
+import type { Spinner } from '../spinner/Spinner';
 
 /** How far out of bounds (px) a particle may drift before being recycled. */
 const OUT_OF_BOUNDS_MARGIN = 20;

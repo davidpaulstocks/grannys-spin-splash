@@ -4,7 +4,7 @@
  * public/sprites/grannies/. Sprint 3 generates the actual PNGs.
  */
 
-import type { GrannyDef } from '../types/granny';
+import type { GrannyDef } from './granny.types';
 
 export const GRANNY_DEFS: readonly GrannyDef[] = [
   { id: 'classic', name: 'Classic Granny', spriteKey: 'granny_classic', unlockCost: 0 },

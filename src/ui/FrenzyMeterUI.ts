@@ -7,8 +7,8 @@
 
 import Phaser from 'phaser';
 
-import { MAX_SPINNER_SPEED } from '../data/spinners';
-import { SpinnerState } from '../types/spinner';
+import { MAX_SPINNER_SPEED } from '../entities/spinner/spinner.data';
+import { SpinnerState } from '../entities/spinner/spinner.types';
 import type { HudSpinnerSnapshot } from '../types/hud';
 import { COLOUR } from '../utils/colour';
 

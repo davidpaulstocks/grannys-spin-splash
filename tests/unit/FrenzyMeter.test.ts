@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { FrenzyMeter } from '../../src/systems/FrenzyMeter';
-import { SpinnerState } from '../../src/types/spinner';
+import { SpinnerState } from '../../src/entities/spinner/spinner.types';
 
 function spinnersAt(fullCount: number, total: number): { state: SpinnerState }[] {
   return Array.from({ length: total }, (_, i) => ({

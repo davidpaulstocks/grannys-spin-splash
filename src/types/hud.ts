@@ -4,7 +4,7 @@
  * snapshot, not live Spinner instances, keeps the two scenes decoupled.
  */
 
-import type { SpinnerState } from './spinner';
+import type { SpinnerState } from '../entities/spinner/spinner.types';
 
 export interface HudSpinnerSnapshot {
   readonly x: number;
