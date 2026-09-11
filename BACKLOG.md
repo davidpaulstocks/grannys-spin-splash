@@ -26,7 +26,7 @@
 
 - ⏳ **Audio approach decision** — needed before Sprint 4 start (~week 4). See CLAUDE.md §9.3 for shortlist: royalty-free / Suno+Udio / commission / placeholder for v1.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
-- ⏳ **Granny + gun art** — user is creating this personally (see CLAUDE.md §8 correction note, 2026-09-11). Sprint 3 needs the delivered files before 3.1/3.2/3.3/3.6 can run; §8.3.1's Nano Banana pipeline is a fallback only, not the default path.
+- ⏳ **Granny + gun art** — user is creating this personally with Nano Banana. Full generation brief delivered: [ART_BRIEF.md](ART_BRIEF.md) (2026-09-11) — palette, exact filenames/paths, per-character prompt seeds, generation order. Grannies now ship 5 poses each (front/front_firing/three_quarter/side/back — a turnaround set for the splash carousel + an optional Frenzy spin, not just the original 2), guns unchanged (8 angles + anchor.json). Sprint 3 needs the delivered files before 3.1/3.2/3.3/3.6 can run; §8.3.1's Nano Banana pipeline is a fallback only, not the default path.
 
 ## Known issues (non-blocking)
 
@@ -187,6 +187,7 @@ Final QA pass and submission.
 - [ ] **C9** Ice Queen gun (Tier 5, 35,000★)
 - [ ] **C10** Neptune's Wrath gun (Tier 6, 60,000★)
 - [ ] **C11** MEGA CANNON (Tier 7, 100,000★ hero unlock)
+- [ ] **C12** 🧪 Space Bubble world — Granny in a bubble, spinning through space, blasting objects. 3D; needs a design/tech spike before it's a real sprint. See CLAUDE.md §13's C12 note for the 3 technical paths considered (pseudo-3D in Phaser is the recommended starting point). Requested by the user's kid, 2026-09-11.
 
 ### Platform / retention features
 

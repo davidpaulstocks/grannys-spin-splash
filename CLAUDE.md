@@ -386,11 +386,12 @@ granny-spin-splash/
 │   ├── thumbnail-static.png           # 512×384 — Poki required
 │   ├── thumbnail-animated.webm        # 5s loop, no audio — Poki required
 │   ├── sprites/
-│   │   ├── grannies/
-│   │   │   ├── classic.png            # 256×384 standing
-│   │   │   ├── classic_firing.png     # 256×384 firing pose
-│   │   │   ├── punk.png / punk_firing.png
-│   │   │   └── … (6 grannies × 2 = 12 files)
+│   │   ├── grannies/                  # per-granny subfolder (ART_BRIEF.md, 2026-09-11) — 5 poses × 3 grannies = 15 files
+│   │   │   ├── classic/
+│   │   │   │   ├── front.png / front_firing.png   # 256×384, gameplay tier
+│   │   │   │   └── three_quarter.png / side.png / back.png  # turnaround tier — carousel + Frenzy spin
+│   │   │   ├── squirt/  … (same 5 filenames)
+│   │   │   └── punk/    … (same 5 filenames)
 │   │   ├── guns/
 │   │   │   ├── pistol/
 │   │   │   │   ├── 0.png 45.png 90.png 135.png
@@ -683,9 +684,11 @@ npm run build && npm run budget && npm run preview
 
 ### 8.1 Grannies (3 launch, others post-launch)
 
-Each character needs:
-- **1× standing pose** — 256×384 px, transparent PNG, arms at sides
-- **1× firing pose** — 256×384 px, arms forward holding gun position
+> **[ART_BRIEF.md](ART_BRIEF.md)** is the full, copy-paste-ready generation spec (2026-09-11) — palette table, per-pose filenames, generation order, character prompt seeds. This section stays the summary/roster source of truth; that file is what you actually work from in Nano Banana.
+
+Each character needs 5 poses (front standing/firing is what gameplay actually uses; the other 3 are a turnaround set for the splash-screen carousel and an optional Frenzy-trigger spin — left/right movement is a code-side horizontal flip, not separate art):
+- **Front standing + front firing** — 256×384 px, transparent PNG
+- **3/4 turn, side, and back — standing only** — 256×384 px, transparent PNG
 
 **Launch roster (3):**
 
@@ -997,8 +1000,8 @@ Replace placeholder Granny + Gun with custom Nano Banana sprite art. **See §8.3
 
 | # | Story | Size | Acceptance |
 |---|---|---|---|
-| 3.1 | Lock Classic Granny standing + firing as style template | M | 2 reference PNGs in `_reference/`, palette/outline/scale exactly right |
-| 3.2 | Generate remaining 2 Granny standing + firing variants from template | M | 4 PNGs delivered, visual consistency review passes, all in `public/sprites/grannies/` |
+| 3.1 | Lock Classic Granny's 5-pose set (front/front_firing/3-quarter/side/back) as style template — see [ART_BRIEF.md](ART_BRIEF.md) | M | 5 reference PNGs in `_reference/`, palette/outline/scale exactly right |
+| 3.2 | Generate remaining 2 Grannies' 5-pose sets from template — see [ART_BRIEF.md](ART_BRIEF.md) | M | 10 PNGs delivered, visual consistency review passes, all in `public/sprites/grannies/<id>/` |
 | 3.3 | Lock Drip Pistol 0° as gun style template | S | 1 reference PNG, outline weight and palette matched to grannies |
 | 3.4 | Generate 8 angles for Drip Pistol + author `anchor.json` | M | 8 PNGs + correct nozzle XY per angle |
 | 3.5 | Build small HTML anchor-picker tool (click nozzle, copy coords) | S | Tool in `tools/anchor-picker.html`, used for stories 3.4 and 3.6 |
@@ -1088,6 +1091,14 @@ Final QA pass and submission.
 | C9 | Ice Queen gun | Tier 5, 35,000★ |
 | C10 | Neptune's Wrath gun | Tier 6, 60,000★ |
 | C11 | MEGA CANNON | Tier 7, 100,000★ hero unlock |
+| C12 | **Space Bubble world** 🧪 | Granny in a bubble, spinning through space, blasting objects — see note below. Requested by the user's kid, 2026-09-11 |
+
+**C12 note — this one is not like the others.** C1–C11 are new content on the existing 2D engine (art + data + a config entry). C12 asks for real 3D (Granny "spinning around" in a bubble, blasting objects in a 3D space) — Phaser 3 has no native 3D. Before this becomes a real sprint, it needs its own design/tech spike to pick one of:
+- **Three.js/Babylon.js side-mode** — a genuinely 3D scene running alongside Phaser for this one world only, switched to like any other world. Biggest scope, most flexible, doubles the render-tech surface area of the whole project.
+- **Pseudo-3D in Phaser** — a fixed-camera "bubble in a starfield" with parallaxed/scaled sprites simulating depth (objects grow as they approach, Granny's aim rotates 360° instead of the current left/right slide). Reuses everything — Spinner-style state machine, the water-hit loop, Frenzy — just with a different wall shape (a sphere-ish field instead of a flat grid) and a repainted background. Much closer to a reskin than a rebuild.
+- **A genuinely separate mini-game/mode**, not sharing GameScene at all, built once the core game has shipped and there's room for an experiment.
+
+Recommendation when this gets picked up: prototype the pseudo-3D route first — it's the only option that doesn't put a second rendering engine into an 8 MB budget game, and the "spinning in a bubble blasting things" feel is achievable without true 3D geometry (think Missile Command / Star Fox-style fixed-point aiming, not a free-roam 3D camera).
 
 **Platform / retention features:**
 
