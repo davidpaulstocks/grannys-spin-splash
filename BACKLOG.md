@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 2 complete — Sprint 3 blocked on user-supplied art (ART_BRIEF.md) and Sprint 4 needs an audio source decision (CLAUDE.md §9.3); proceeding to Sprint 5 (Splash Screen + Unlocks) next in numbered order — it needs no final art (carousels can show placeholders exactly like GameScene's Granny does today) and its UnlockManager is a dependency for Sprint 6's monetization hooks anyway
+**Currently working on:** Sprint 5 complete — Sprint 3 blocked on user-supplied art (ART_BRIEF.md), Sprint 4 blocked on an audio source decision (CLAUDE.md §9.3). Proceeding to Sprint 6 (Monetization Polish) next — it builds on Sprint 5's UnlockManager/AdManager groundwork and needs no art/audio either.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -16,8 +16,8 @@
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
 | Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⏳ Blocked on user art (ART_BRIEF.md) |
 | Sprint 4 | ASMR Orchestra — 12-layer audio | ⏳ Blocked on audio source decision (§9.3) |
-| Sprint 5 | Splash Screen + Unlocks | 🔵 Up next |
-| Sprint 6 | Monetization Polish | ⚪ Not started |
+| Sprint 5 | Splash Screen + Unlocks | ✅ Done (5.7 thumbnails deferred — needs real art) |
+| Sprint 6 | Monetization Polish | 🔵 Up next |
 | Sprint 7 | Launch Polish + Poki submission | ⚪ Not started |
 
 ---
@@ -136,15 +136,21 @@ The headline feature. Layered music that builds with player progress.
 
 Build the new SplashScene with Granny + Gun carousel.
 
-- [ ] **5.1** Implement `UnlockManager` system — Vault total, unlocked sets, validation logic — unit tested
-- [ ] **5.2** Build `Carousel.ts` reusable component — Used for both Granny and Gun selectors
-- [ ] **5.3** Build `SplashScene` matching CLAUDE.md §10 mockup — Two carousels, PLAY button, vault display
-- [ ] **5.4** Wire unlock thresholds to vault total — Locked items show cost + unlock at threshold
-- [ ] **5.5** Add `rewardedBreak()` for random gun unlock — Random tier ≤ current grants only on success
-- [ ] **5.6** Garden world only for v1 (no world-select scene) — First run starts in Garden
-- [ ] **5.7** Create static + animated thumbnails — Meets Poki spec
+- [x] **5.1** Implement `UnlockManager` system — vault, unlock validation, free grants, random-locked-gun picker, granny/gun selection gated on unlock state — 10 unit tests
+- [x] **5.2** Build `Carousel.ts` reusable component — one class, used for both Granny and Gun selectors on `SplashScene`
+- [x] **5.3** Build `SplashScene` matching CLAUDE.md §10 mockup — title, vault display, two carousels, PLAY
+- [x] **5.4** Wire unlock thresholds to vault total — locked items show a lock overlay + cost; tapping one shows a toast instead of selecting it (§10's exact behaviour spec)
+- [x] **5.5** Add `rewardedBreak()` for random gun unlock — "Watch an ad for a free gun" button on `SplashScene`; verified it's never Mint Green and both buttons are visible together (§11.3)
+- [x] **5.6** Garden world only for v1 (no world-select scene) — already true since Sprint 1 (`GameScene` has always hardcoded `WORLD_DEFS[0]`), nothing to build
+- [ ] **5.7** Create static + animated thumbnails — **deferred**, not skipped: a placeholder-art thumbnail isn't worth generating (it'd need regenerating the moment real sprites land). Revisit once ART_BRIEF.md's assets are in.
 
-**Exit criteria:** Full game loop: splash → game → game over → splash. Unlocks feel rewarding.
+**Exit criteria:** ✅ Met (except 5.7, deferred for a real reason above). Full game loop verified live end-to-end: splash → game (with the selected loadout actually passed through) → game over → splash, vault correctly shows the run's earned stars. Pipeline green throughout: lint, 28 tests, typecheck, build.
+
+**Two real bugs found via live testing (not caught by unit tests alone):**
+1. `SaveManager`'s default save only auto-unlocked the single `DEFAULT_GRANNY_ID`/`DEFAULT_GUN_ID` — Squirt Sister and The Squirter (both 0★ per CLAUDE.md §8.1) weren't pre-unlocked on a fresh save. Fixed: default save now unlocks every 0-cost item.
+2. Bigger: `SaveManager` cached per-instance, and each scene created its own `new SaveManager()` — GameScene correctly banked a run's score, but SplashScene's separate stale cache still showed the vault at 0 after Play Again. Only surfaced by scripting the *actual* splash→game→gameover→splash loop end-to-end, not by testing scenes in isolation. Fixed with a shared `saveManager` singleton (`systems/SaveManager.ts`) every scene now imports.
+
+**Also found + fixed, not part of the original 5 stories:** the run's score was earned but never actually persisted anywhere past `highScore` — nothing called `UnlockManager.addStars()`. Wired into `GameScene._endRound()`.
 
 ---
 
