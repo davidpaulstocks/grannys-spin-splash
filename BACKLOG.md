@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 4's one-shot SFX (4.4/4.5) done and verified live in Chrome — game now has real audio feedback (hit/combo/upgrade/pump/refill/deflect/frenzy tones) plus ad-break muting. Sprint 4's 12-stem orchestra (4.1/4.2/4.3/4.6) remains blocked on the audio source decision (CLAUDE.md §9.3); Sprint 3 remains blocked on user-supplied art (ART_BRIEF.md). Moving to Sprint 7's QA/optimization pass next — the last unblocked sprint — per the user's request to finish the whole unblocked plan and do a bot playthrough before art gets slotted in.
+**Currently working on:** Mid-Sprint-7 QA surfaced a scope decision (user asked whether the prototype's other worlds were planned) — re-planned to pull all 4 remaining worlds into v1 (CLAUDE.md §14, 2026-09-11). Workshop/Kitchen/Funfair/Disco now ship alongside Garden: a new 3rd SplashScene carousel (world select, vault-gated same as grannies/guns), obstacles (cat/umbrella/duck — previously an empty stub) fully implemented, moving targets (Funfair) and the Golden Spinner bonus spawn (Disco-frequent, all worlds) wired end-to-end. Along the way, fixed two real pre-existing gaps this surfaced: (1) locked items (grannies/guns/worlds) had no actual "spend vault stars to unlock" UI path, only a dead-end toast — now a tap attempts a real unlock; (2) the cog dead-zone-vs-auto-aim bug (previously "not reachable," now live in Workshop/Kitchen) — fixed via a teeth-ring aim nudge. Also built out mobile controls (§6.3) that were a known gap: edge hold-to-move buttons + two-finger-tap pause. Sprint 4's 12-stem orchestra remains blocked on the audio source decision (§9.3); Sprint 3 remains blocked on user-supplied art (ART_BRIEF.md). All new work verified live in Chrome (all 5 worlds, obstacles, golden spinner lifecycle, unlock purchase success/failure paths) — full pipeline (tsc/lint/test/build/budget) green. Resuming Sprint 7's QA pass next.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -16,9 +16,9 @@
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
 | Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⏳ Blocked on user art (ART_BRIEF.md) |
 | Sprint 4 | ASMR Orchestra — 12-layer audio | 🟡 SFX (4.4/4.5) done; 12-stem orchestra (4.1/4.2/4.3/4.6) blocked on audio source decision (§9.3) |
-| Sprint 5 | Splash Screen + Unlocks | ✅ Done (5.7 thumbnails deferred — needs real art) |
-| Sprint 6 | Monetization Polish | ✅ Done (mobile two-finger-pause noted as a gap) |
-| Sprint 7 | Launch Polish + Poki submission | ⚪ Not started |
+| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done (5.7 thumbnails deferred — needs real art) |
+| Sprint 6 | Monetization Polish | ✅ Done (mobile controls gap closed 2026-09-11 — see below) |
+| Sprint 7 | Launch Polish + Poki submission | 🟡 In progress |
 
 ---
 
@@ -27,10 +27,11 @@
 - ⏳ **Audio approach decision** — needed before Sprint 4 start (~week 4). See CLAUDE.md §9.3 for shortlist: royalty-free / Suno+Udio / commission / placeholder for v1.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
 - ⏳ **Granny + gun art** — user is creating this personally with Nano Banana. Full generation brief delivered: [ART_BRIEF.md](ART_BRIEF.md) (2026-09-11) — palette, exact filenames/paths, per-character prompt seeds, generation order. Grannies now ship 5 poses each (front/front_firing/three_quarter/side/back — a turnaround set for the splash carousel + an optional Frenzy spin, not just the original 2), guns unchanged (8 angles + anchor.json). Sprint 3 needs the delivered files before 3.1/3.2/3.3/3.6 can run; §8.3.1's Nano Banana pipeline is a fallback only, not the default path.
+- ⏳ **World background art** — user flagged (2026-09-11) that the current procedural backgrounds ("so unbelievably basic") don't deliver the immersive, illustrated feel they want. Brief delivered: [WORLD_BACKGROUND_BRIEF.md](WORLD_BACKGROUND_BRIEF.md) — 5 paintings (1536×864, one per world), same style pipeline as ART_BRIEF.md, reference-image chain locking Garden first. `worldBackgrounds.ts`'s procedural drawers stay as the fallback until these land, then get retired in favour of loaded images.
 
 ## Known issues (non-blocking)
 
-- **Cog dead-zone vs. auto-aim snap** — a fully snapped shot lands dead-centre on its target, which is inside a cog's unhittable "hole" (see `COG_DEAD_ZONE_RATIO` in `src/objects/WaterParticle.ts`). Verified live during Sprint 1: a cog under continuous snapped fire never registers a single hit. Not reachable today — Garden's roster (`src/data/worlds.ts`) has no `'cog'` — but fix this before any world adds cogs.
+None currently open. (The cog dead-zone vs. auto-aim bug tracked here since Sprint 1 — "not reachable, Garden has no cog" — became reachable when Workshop/Kitchen shipped 2026-09-11, and was fixed the same day: see `resolveFireAimPoint()` in `src/entities/waterParticle/WaterParticle.ts`, verified live — a dead-centre-locked cog now reaches FULL in ~2s of continuous fire instead of never.)
 
 ---
 
@@ -141,14 +142,22 @@ The headline feature. Layered music that builds with player progress.
 Build the new SplashScene with Granny + Gun carousel.
 
 - [x] **5.1** Implement `UnlockManager` system — vault, unlock validation, free grants, random-locked-gun picker, granny/gun selection gated on unlock state — 10 unit tests
-- [x] **5.2** Build `Carousel.ts` reusable component — one class, used for both Granny and Gun selectors on `SplashScene`
-- [x] **5.3** Build `SplashScene` matching CLAUDE.md §10 mockup — title, vault display, two carousels, PLAY
-- [x] **5.4** Wire unlock thresholds to vault total — locked items show a lock overlay + cost; tapping one shows a toast instead of selecting it (§10's exact behaviour spec)
-- [x] **5.5** Add `rewardedBreak()` for random gun unlock — "Watch an ad for a free gun" button on `SplashScene`; verified it's never Mint Green and both buttons are visible together (§11.3)
-- [x] **5.6** Garden world only for v1 (no world-select scene) — already true since Sprint 1 (`GameScene` has always hardcoded `WORLD_DEFS[0]`), nothing to build
+- [x] **5.2** Build `Carousel.ts` reusable component — one class, used for the Granny, World, and Gun selectors on `SplashScene`
+- [x] **5.3** Build `SplashScene` matching CLAUDE.md §10 mockup — title, vault display, three carousels, PLAY
+- [x] **5.4** Wire unlock thresholds to vault total — locked items show a lock overlay + cost; tapping one *attempts to unlock* (spend + select on success, toast the shortfall on failure) — see the re-plan note below, this changed after 5.4 first shipped
+- [x] **5.6** World-select carousel, all 5 launch worlds (re-planned 2026-09-11 — see CLAUDE.md §14) — Garden free from run one, Workshop/Kitchen/Funfair/Disco purchasable at 500★/1,000★/1,500★/2,000★
 - [ ] **5.7** Create static + animated thumbnails — **deferred**, not skipped: a placeholder-art thumbnail isn't worth generating (it'd need regenerating the moment real sprites land). Revisit once ART_BRIEF.md's assets are in.
 
-**Exit criteria:** ✅ Met (except 5.7, deferred for a real reason above). Full game loop verified live end-to-end: splash → game (with the selected loadout actually passed through) → game over → splash, vault correctly shows the run's earned stars. Pipeline green throughout: lint, 28 tests, typecheck, build.
+**Exit criteria:** ✅ Met (except 5.7, deferred for a real reason above). Full game loop verified live end-to-end: splash → game (with the selected loadout actually passed through) → game over → splash, vault correctly shows the run's earned stars. Pipeline green throughout: lint, 35 tests, typecheck, build.
+
+**World re-plan (2026-09-11) — what shipped beyond the original 6 stories:**
+- **5 worlds, not 1.** `entities/world/world.data.ts` now has Garden/Workshop/Kitchen/Funfair/Disco with real grid sizes, spinner-type rosters, and obstacle rosters extracted from the prototype's `WORLDS` table; unlock costs are new (worlds didn't gate in the prototype — invented to reuse the existing Vault economy rather than ship a second, inconsistent "everything free" system).
+- **Obstacles actually implemented.** `entities/obstacle/Obstacle.ts` was an empty stub (`export {}`) until now — Cat (sits on a random spinner, caps its speed at 30, shoo-able), Umbrella (toggles open/closed, blocks water while open), Duck (paddles, deflects on contact) are all real, ported from the prototype's `_updateCat`/`_updateUmbrella`/`_updateDuck`, collision-checked in `GameScene._updateWaterCollisions()` ahead of the spinner check.
+- **Moving targets (Funfair).** `Spinner.setDrift()` — 3 random spinners per round get a sinusoidal horizontal drift (prototype: range 55px, speed 0.4-0.8 rad/s). Live-verified: exactly 3 spinners report `hasDrift` with x offset from their grid column.
+- **Golden Spinner, previously spec'd but never wired.** `SpinnerDef.isGolden`/`'golden'` style existed since Sprint 1 with a header comment saying "spawn-timer behaviour not yet wired" — now is: spawns at a random point clear of the grid, 6s lifetime, respawns every 25-40s (12-20s in Disco, `goldenFrequent`), awards bonus stars on reaching FULL, shrink-fades out unclaimed. Deliberately excluded from `FrenzyMeter`'s "% of wall at FULL" and the HUD's spinner-dot list — a temporary bonus spawn shouldn't distort either. Live-verified full spawn→claim cycle in Disco (spawned at ~16s into the 12-20s window, claimed cleanly, bonus scored).
+- **Unlock-purchase flow, a real pre-existing gap fixed.** `UnlockManager.unlockGranny/unlockGun` existed and were unit-tested since Sprint 5 first shipped, but nothing in the UI ever called them — tapping a locked item only ever showed "Earn X★ more," a dead end. Found while testing the new world carousel (an unlockable item with no purchase path is a broken feature). Fixed for all three carousels: `Carousel`'s tap handler now always calls `onSelect(id)` regardless of lock state (moved the locked/unlocked branch out of the dumb UI component and into `SplashScene`, which owns `UnlockManager`); a locked tap now attempts unlock-and-select, spending vault stars on success. Live-verified both paths (600★ vault → Workshop unlock succeeds, vault drops to 100; 100★ vault → Kitchen unlock fails, vault untouched, selection unchanged).
+- **Cog dead-zone bug, tracked since Sprint 1, fixed now that it's reachable.** Workshop/Kitchen both roster `'cog'`; auto-aim snapping dead-centre landed inside the cog's unhittable hole. Fixed via `resolveFireAimPoint()` in `WaterParticle.ts` — a cog-locked shot's aim point is nudged onto a random point on the teeth ring instead of dead-centre. Live-verified: a dead-centre-locked cog now reaches FULL in ~2s of continuous pistol fire.
+- All 5 worlds live-tested end-to-end (400+ simulated frames each, zero thrown errors): spinner counts/rosters match spec, obstacles spawn correctly, moving targets drift, Golden Spinner's full lifecycle works in Disco.
 
 **Two real bugs found via live testing (not caught by unit tests alone):**
 1. `SaveManager`'s default save only auto-unlocked the single `DEFAULT_GRANNY_ID`/`DEFAULT_GUN_ID` — Squirt Sister and The Squirter (both 0★ per CLAUDE.md §8.1) weren't pre-unlocked on a fresh save. Fixed: default save now unlocks every 0-cost item.
@@ -167,9 +176,10 @@ Get the ads right. Poki rejects games that get this wrong.
 - [x] **6.3** Add "Watch ad → refill water" mid-run when tank empty — `ui/RefillPrompt.ts`, visible only while pumping
 - [x] **6.4** Verify all reward buttons follow Poki UX rules — checked live: every rewarded button uses Button's `secondary` variant (never Mint Green), always shown alongside a `primary` action, one grant per watch. No 🎬 icon — CLAUDE.md §7.3 rule 8 bans emoji in production UI; the button's own label text ("Watch an ad...") carries the same "this costs an ad" signal without one
 - [x] **6.5** Implement `AdManager` to centralise ad logic + audio mute — done; the mute/unmute hooks are real (caller-supplied) but every call site currently passes none, since there's no AudioBus to mute yet (Sprint 4 blocked) — 6 unit tests
-- [x] **6.6** Build `PauseScene` with ESC trigger — Resume/Quit, fires `gameplayStop()`/`gameplayStart()` correctly, verified live that Phaser's real `scene.pause()` genuinely stops `update()` (not just a visual overlay). **Gap:** CLAUDE.md §6.3's mobile "two-finger tap → pause" gesture isn't built — needs real multi-touch pointer detection I haven't implemented; ESC covers desktop today. Flagging rather than rushing it.
+- [x] **6.6** Build `PauseScene` with ESC + two-finger-tap trigger — Resume/Quit, fires `gameplayStop()`/`gameplayStart()` correctly, verified live that Phaser's real `scene.pause()` genuinely stops `update()` (not just a visual overlay). Mobile gap closed 2026-09-11: `InputManager` now tracks concurrent pointer ids (`input: {activePointers: 2}` in `main.ts`'s game config, default is 1) — a 2nd simultaneous touch emits `pause` and is suppressed from being read as aim/fire.
+- [x] **6.7** *(added 2026-09-11)* Mobile edge move buttons — `ui/MobileMoveButtons.ts`, hold-to-move ◀/▶ pinned to the bottom screen edges, only created on `device.input.touch`. Merged into `InputManager.getMoveDir()` alongside keyboard so `Granny.move()` doesn't need to know the input source. Closes the other half of CLAUDE.md §6.3's mobile control spec (there was previously no way to move Granny on a touch device at all).
 
-**Exit criteria:** ✅ Met (mobile two-finger-pause gap noted above, doesn't block desktop). All ad flows work correctly per Poki rules, verified live in Chrome via direct state inspection, not just screenshots. Game is technically submission-ready pending Sprints 3/4's blockers and Sprint 7.
+**Exit criteria:** ✅ Met, including the mobile control gap that was previously flagged as open — full desktop + mobile control parity now (§6.2/§6.3 both fully built). All ad flows work correctly per Poki rules, verified live in Chrome via direct state inspection, not just screenshots. Game is technically submission-ready pending Sprints 3/4's blockers and Sprint 7.
 
 ---
 

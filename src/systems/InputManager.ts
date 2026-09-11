@@ -5,10 +5,12 @@
  * moment the player does anything at all — GameScene wires that straight
  * to PokiSDK.gameplayStart() (§3 SDK integration, never on scene load).
  *
- * Mobile's edge move-buttons + two-finger pause (§6.3) aren't built yet —
- * pointer aim/fire already works via Phaser's unified touch+mouse pointer,
- * but there's no way to move Granny on a phone until Sprint 2's UI
- * components (Button.ts) exist. Desktop (mouse + A/D/arrows) is complete.
+ * Mobile move (§6.3) comes through `setMobileMove()`, called by the edge
+ * hold-buttons in `ui/MobileMoveButtons.ts` — merged into `getMoveDir()`
+ * alongside the keyboard so GameScene never needs to know which source is
+ * active. Two-finger tap-to-pause is tracked here too: a second
+ * simultaneous pointer both emits 'pause' and suppresses that touch from
+ * being read as an aim/fire input.
  */
 
 import Phaser from 'phaser';
@@ -33,6 +35,9 @@ export class InputManager extends EventEmitter {
   private _pointerDown = false;
   private _autoFire = false;
   private _hasFiredFirstInput = false;
+  private _mobileLeftDown = false;
+  private _mobileRightDown = false;
+  private readonly _activePointerIds = new Set<number>();
 
   constructor(scene: Phaser.Scene) {
     super();
@@ -67,14 +72,28 @@ export class InputManager extends EventEmitter {
       this._pointerY = pointer.y;
     });
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this._activePointerIds.add(pointer.id);
+      this._registerFirstInput();
+      if (this._activePointerIds.size >= 2) {
+        // A second simultaneous touch is the pause gesture (§6.3), not aim/fire.
+        this._pointerDown = false;
+        this.emit('pause');
+        return;
+      }
       this._pointerDown = true;
       this._pointerX = pointer.x;
       this._pointerY = pointer.y;
-      this._registerFirstInput();
     });
-    scene.input.on('pointerup', () => {
+    scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      this._activePointerIds.delete(pointer.id);
       this._pointerDown = false;
     });
+  }
+
+  /** Held state for the on-screen edge buttons (`ui/MobileMoveButtons.ts`) — merged into `getMoveDir()`. */
+  setMobileMove(direction: -1 | 1, down: boolean): void {
+    if (direction === -1) this._mobileLeftDown = down;
+    else this._mobileRightDown = down;
   }
 
   /** Raw pointer/touch position, pre-snap — pass through resolveAim() before using. */
@@ -87,10 +106,10 @@ export class InputManager extends EventEmitter {
     return this._pointerDown || this._autoFire;
   }
 
-  /** -1 (left) / 1 (right) / 0 — both or neither held cancels out to a stop. */
+  /** -1 (left) / 1 (right) / 0 — both or neither held cancels out to a stop. Merges keyboard + mobile buttons. */
   getMoveDir(): -1 | 0 | 1 {
-    const left = this._keys.left.isDown || this._keys.a.isDown;
-    const right = this._keys.right.isDown || this._keys.d.isDown;
+    const left = this._keys.left.isDown || this._keys.a.isDown || this._mobileLeftDown;
+    const right = this._keys.right.isDown || this._keys.d.isDown || this._mobileRightDown;
     if (left === right) return 0;
     return left ? -1 : 1;
   }
@@ -100,6 +119,7 @@ export class InputManager extends EventEmitter {
     this._scene.input.off('pointermove');
     this._scene.input.off('pointerdown');
     this._scene.input.off('pointerup');
+    this._activePointerIds.clear();
     this.removeAllListeners();
   }
 

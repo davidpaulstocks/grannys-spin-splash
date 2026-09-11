@@ -1,8 +1,7 @@
 /** WorldDef — level/world config shape. CLAUDE.md §7.2, §4. */
 
+import type { ObstacleKind } from '../obstacle/obstacle.types';
 import type { SpinnerKind } from '../spinner/spinner.types';
-
-export type ObstacleKind = 'cat' | 'umbrella' | 'duck';
 
 export interface WorldDef {
   readonly id: string;
@@ -19,4 +18,8 @@ export interface WorldDef {
   readonly time: number;
   /** Stars required to unlock; 0 means available from first run. */
   readonly unlockThreshold: number;
+  /** A few spinners drift side to side instead of holding position (Funfair). */
+  readonly movingTargets?: boolean;
+  /** Bonus Golden Spinner spawns more often (every 12-20s instead of 25-40s) — Disco. */
+  readonly goldenFrequent?: boolean;
 }

@@ -16,6 +16,7 @@
 
 import { DEFAULT_GRANNY_ID, GRANNY_DEFS } from '../entities/granny/granny.data';
 import { DEFAULT_GUN_ID, GUN_DEFS } from '../entities/gun/gun.data';
+import { DEFAULT_WORLD_ID, WORLD_DEFS } from '../entities/world/world.data';
 import { SAVE_VERSION, type SaveData } from '../types/save';
 
 const STORAGE_KEY = 'grannySpinSplash.save.v1';
@@ -71,8 +72,10 @@ export class SaveManager {
       vault: 0,
       unlockedGrannies: GRANNY_DEFS.filter((g) => g.unlockCost === 0).map((g) => g.id),
       unlockedGuns: GUN_DEFS.filter((g) => g.cost === 0).map((g) => g.id),
+      unlockedWorlds: WORLD_DEFS.filter((w) => w.unlockThreshold === 0).map((w) => w.id),
       selectedGrannyId: DEFAULT_GRANNY_ID,
       selectedGunId: DEFAULT_GUN_ID,
+      selectedWorldId: DEFAULT_WORLD_ID,
       highScore: 0,
     };
   }

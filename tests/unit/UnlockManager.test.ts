@@ -23,6 +23,8 @@ describe('UnlockManager', () => {
     expect(unlocks.isGunUnlocked('pistol')).toBe(true); // 0★ cost
     expect(unlocks.isGunUnlocked('squirter')).toBe(true); // also 0★ cost
     expect(unlocks.isGunUnlocked('hose')).toBe(false); // 200★ cost
+    expect(unlocks.isWorldUnlocked('garden')).toBe(true); // 0★ cost
+    expect(unlocks.isWorldUnlocked('workshop')).toBe(false); // 500★ cost
   });
 
   it('addStars() accumulates into the vault and persists', () => {
@@ -93,5 +95,18 @@ describe('UnlockManager', () => {
     unlocks.unlockGranny('punk');
     unlocks.selectGranny('punk');
     expect(unlocks.getSelectedGrannyId()).toBe('punk');
+  });
+
+  it('unlockWorld()/selectWorld() follow the same vault-gated pattern as grannies/guns', () => {
+    unlocks.selectWorld('workshop'); // locked — ignored
+    expect(unlocks.getSelectedWorldId()).toBe('garden');
+
+    expect(unlocks.unlockWorld('workshop')).toBe(false); // vault short
+    unlocks.addStars(500);
+    expect(unlocks.unlockWorld('workshop')).toBe(true);
+    expect(unlocks.getVault()).toBe(0);
+
+    unlocks.selectWorld('workshop');
+    expect(unlocks.getSelectedWorldId()).toBe('workshop');
   });
 });

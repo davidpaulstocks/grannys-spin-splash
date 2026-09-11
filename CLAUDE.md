@@ -4,7 +4,7 @@
 **Target platform:** [Poki](https://poki.com) (100M+ MAUs, hand-curated)
 **Tech:** TypeScript + Vite + Phaser 3 (bundled, not CDN)
 **Mode:** Single-player only
-**Launch scope:** 3 grannies, 6 guns, 1 world (Garden). Other content moves to post-launch.
+**Launch scope:** 3 grannies, 6 guns, 5 worlds (Garden, Workshop, Kitchen, Funfair, Disco). Other content moves to post-launch.
 **Sprite pipeline:** Google Nano Banana (Gemini 2.5 Flash Image) for transparent PNG generation.
 **Timeline:** Focused 8–9 weeks to Poki submission.
 **Reference prototype:** `/mnt/user-data/outputs/granny-spin-splash.html` — **read-only design artefact, not source code**
@@ -51,10 +51,11 @@ The prototype is now retired as a source of code. **This document is the build s
 ### What v1 includes
 - **3 grannies** (custom Nano Banana sprites): Classic Granny, The Squirt Sister, Punk Granny
 - **6 guns** (custom sprites, 8 rotation angles each): Drip Pistol, The Squirter, Garden Hose, Splash Jr, Soaker 3000, Inferno
-- **1 world**: Garden
+- **5 worlds**, unlocked by vault stars like grannies/guns: Garden (free), Workshop (500★), Kitchen (1,000★), Funfair (1,500★, moving targets), Disco (2,000★, frequent Golden Spinner)
 - 8 spinner types (procedurally drawn)
 - 5 power-ups
-- 3 obstacles (cat, umbrella, duck)
+- 3 obstacles (cat, umbrella, duck) — spawn per-world per the roster in `entities/world/world.data.ts`
+- Golden Spinner — a timed bonus spawn (own lifetime, outside the grid), more frequent in Disco
 - Layered ASMR audio orchestra
 - Granny Gold Vault with unlock progression
 - Splash Frenzy + mini-frenzies at 60% and 80%
@@ -63,7 +64,6 @@ The prototype is now retired as a source of code. **This document is the build s
 ### What v1 explicitly does not include
 - ❌ Two-player mode
 - ❌ Granddad character
-- ❌ Workshop + Disco + Funfair + Kitchen worlds (post-launch)
 - ❌ Beach Granny, Ninja Granny, GOLDEN GRANNY (post-launch)
 - ❌ Aqua Seeker, Hydro Blaster, Lightning Rod, Ice Queen, Neptune's Wrath, MEGA CANNON (post-launch)
 - ❌ Daily challenges, leaderboards, cloud save (post-launch)
@@ -155,9 +155,9 @@ A tiny old granny wields a custom water gun. The wall in front of her is covered
 
 **Audio system:** as more spinners reach full speed, more musical layers fade in. By Frenzy, you're conducting a full orchestra. This is the headline feature.
 
-**Progression:** stars earned go into a persistent Granny Gold Vault. Spend stars to unlock new grannies (skins) and new guns (mechanics). Splash screen has two carousels — pick your Granny, pick your Gun, press PLAY.
+**Progression:** stars earned go into a persistent Granny Gold Vault. Spend stars to unlock new grannies (skins), new guns (mechanics), and new worlds. Splash screen has three carousels — pick your Granny, pick your World, pick your Gun, press PLAY.
 
-**Difficulty curve (v1):** Single world — Garden. Difficulty ramps via spinner density and decay rates across the 30-second run, not via world unlocks. Workshop and Disco move to post-launch content drops.
+**Difficulty curve (v1):** ramps two ways — within a run via spinner density and decay rates across the 30-second sprint, and across runs via world unlocks: Garden (12 spinners, no obstacles) → Workshop (15, cat/umbrella/duck) → Kitchen (16, double cats) → Funfair (16, moving targets) → Disco (20, frequent Golden Spinner).
 
 **Long-tail unlocks (post-launch):** GOLDEN GRANNY at 10,000★ vault. GRANNY'S MEGA CANNON at 100,000★. These exist to keep retention alive for weeks once added.
 
@@ -458,7 +458,9 @@ granny-spin-splash/
 │   │   │   ├── PowerUp.ts             # Floating pickup
 │   │   │   └── powerup.data.ts        # POWERUP_DEFS
 │   │   ├── obstacle/
-│   │   │   └── Obstacle.ts            # Cat, Umbrella, Duck
+│   │   │   ├── Obstacle.ts            # Cat, Umbrella, Duck — position/state, per-kind update + tryBlock()
+│   │   │   ├── obstacleRenderers.ts   # Per-kind draw routines (module-internal)
+│   │   │   └── obstacle.types.ts      # ObstacleKind
 │   │   ├── waterParticle/
 │   │   │   └── WaterParticle.ts       # Pooled particle
 │   │   └── progression/
@@ -487,12 +489,14 @@ granny-spin-splash/
 │   │
 │   ├── ui/
 │   │   ├── Button.ts                  # Reusable button factory
-│   │   ├── Carousel.ts                # ◀ item ▶ pattern
+│   │   ├── Carousel.ts                # ◀ item ▶ pattern — Granny/World/Gun selectors
 │   │   ├── Toast.ts                   # Floating notification
 │   │   ├── Banner.ts                  # FRENZY banner, level reveal
 │   │   ├── WaterBar.ts                # Water tank UI
 │   │   ├── TimerDial.ts               # Top-of-screen timer
-│   │   └── FrenzyMeterUI.ts           # On-wall progress rings per spinner
+│   │   ├── FrenzyMeterUI.ts           # On-wall progress rings per spinner
+│   │   ├── RefillPrompt.ts            # "Watch ad to refill water" mid-run prompt
+│   │   └── MobileMoveButtons.ts       # Touch-only ◀/▶ hold-to-move edge buttons (§6.3)
 │   │
 │   └── utils/
 │       ├── math.ts                    # distance, clamp, lerp, pillRadius, resolveAim
@@ -1079,11 +1083,11 @@ Build the new SplashScene with Granny + Gun carousel.
 | # | Story | Size | Acceptance |
 |---|---|---|---|
 | 5.1 | Implement `UnlockManager` system | S | Vault total, unlocked sets, validation logic — unit tested |
-| 5.2 | Build `Carousel.ts` reusable component | M | Used for both Granny and Gun selectors |
-| 5.3 | Build `SplashScene` matching §10 mockup | M | Two carousels, PLAY button, vault display |
+| 5.2 | Build `Carousel.ts` reusable component | M | Used for Granny, World, and Gun selectors |
+| 5.3 | Build `SplashScene` matching §10 mockup | M | Three carousels, PLAY button, vault display |
 | 5.4 | Wire unlock thresholds to vault total | S | Locked items show cost + unlock at threshold |
 | 5.5 | Add `rewardedBreak()` for random gun unlock | M | Random tier ≤ current grants only on success |
-| 5.6 | Garden world only for v1 (no world-select scene) | S | First run starts in Garden; no unlock screen for additional worlds |
+| 5.6 | World-select carousel (re-planned 2026-09-11 — all 5 launch worlds, see §14) | M | Every world purchasable from vault stars; Garden free from run one |
 | 5.7 | Create static + animated thumbnails | M | Meets Poki spec |
 
 **Sprint 5 exit criteria:** Full game loop: splash → game → game over → splash. Unlocks feel rewarding.
@@ -1124,8 +1128,6 @@ Final QA pass and submission.
 
 | # | Idea | Notes |
 |---|---|---|
-| C1 | Workshop world | Second world, unlocks at 500★ |
-| C2 | Disco world | Third world, unlocks at 2,000★ |
 | C3 | Beach Granny | 1,500★ unlock |
 | C4 | Ninja Granny | 4,000★ unlock |
 | C5 | GOLDEN GRANNY | 10,000★ hero unlock |
@@ -1136,6 +1138,8 @@ Final QA pass and submission.
 | C10 | Neptune's Wrath gun | Tier 6, 60,000★ |
 | C11 | MEGA CANNON | Tier 7, 100,000★ hero unlock |
 | C12 | **Space Bubble world** 🧪 | Granny in a bubble, spinning through space, blasting objects — see note below. Requested by the user's kid, 2026-09-11 |
+
+*(C1 Workshop world and C2 Disco world shipped into v1 launch scope 2026-09-11 — see §14 — and are no longer post-launch items.)*
 
 **C12 note — this one is not like the others.** C1–C11 are new content on the existing 2D engine (art + data + a config entry). C12 asks for real 3D (Granny "spinning around" in a bubble, blasting objects in a 3D space) — Phaser 3 has no native 3D. Before this becomes a real sprint, it needs its own design/tech spike to pick one of:
 - **Three.js/Babylon.js side-mode** — a genuinely 3D scene running alongside Phaser for this one world only, switched to like any other world. Biggest scope, most flexible, doubles the render-tech surface area of the whole project.
@@ -1150,7 +1154,6 @@ Recommendation when this gets picked up: prototype the pseudo-3D route first —
 |---|---|---|
 | P1 | Daily challenges | Drives DAU |
 | P2 | Cloud save via Poki Accounts SDK | Cross-device |
-| P3 | Funfair + Kitchen worlds | Expand world pool beyond C1/C2 |
 | P4 | Localisation (FR, ES, DE, PT, NL, BR) | After web-fit test passes |
 | P5 | Seasonal Granny variants | Halloween, Christmas |
 | P6 | Speedrun leaderboards | Poki Accounts |
@@ -1170,6 +1173,8 @@ Open scope questions are closed. Recorded here for posterity and for Claude Code
 | Audio pipeline | Decision deferred until Sprint 4 start — see §9.3 for shortlist (royalty-free / Suno+Udio / commission / placeholder) | 2026-05-27 |
 | Studio name | New name to be chosen specifically for this game — needed before Poki Developers profile creation (Sprint 7) | 2026-05-27 |
 | Timeline | Focused 8–9 weeks, priority 1 project | 2026-05-27 |
+| **World scope re-plan** | User asked ("I hope you will be building the different worlds... like in the prototype") whether to pull C1/C2/P3 into v1. Chose "add all 4 remaining worlds now": Workshop/Kitchen/Funfair/Disco ship in v1 alongside Garden, unlocked by vault stars (500★/1,000★/1,500★/2,000★) via a new 3rd SplashScene carousel. Brought obstacles (cat/umbrella/duck — previously an empty stub) and the Golden Spinner (previously spec'd but unwired) fully online as part of this, since Workshop/Kitchen need obstacles and Disco needs the Golden Spinner to mean anything. C1/C2/P3 struck from post-launch backlog accordingly. | 2026-09-11 |
+| **Unlock-purchase flow** | Found live-testing the new world carousel: `UnlockManager.unlockGranny/unlockGun` existed and were unit-tested but were never called from any UI — tapping a locked item only ever showed an "earn more" toast, so grannies/guns (and the new worlds) had no real way to be purchased with vault stars outside the 0★ starter set and the gun rewarded-ad grant. Fixed for all three carousels: a tap now attempts an unlock-and-select, spending vault stars on success. | 2026-09-11 |
 
 **Remaining decisions blocking submission (not blocking dev):**
 1. Studio name — needed by Sprint 7

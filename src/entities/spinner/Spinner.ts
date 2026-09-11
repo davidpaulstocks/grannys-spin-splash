@@ -68,6 +68,13 @@ export class Spinner extends Phaser.GameObjects.Container {
   private readonly _bladeGfx: Phaser.GameObjects.Graphics;
   private readonly _glowGfx: Phaser.GameObjects.Graphics;
 
+  // Funfair-only: side-to-side drift (§1, world.data.ts's `movingTargets`).
+  // Unset (null) for every spinner that isn't drifting — the common case.
+  private _driftBaseX: number | null = null;
+  private _driftRange = 0;
+  private _driftSpeed = 0;
+  private _driftPhase = 0;
+
   constructor(scene: Phaser.Scene, x: number, y: number, def: SpinnerDef) {
     super(scene, x, y);
     this.id = _nextId++;
@@ -93,6 +100,7 @@ export class Spinner extends Phaser.GameObjects.Container {
     }
     this._bladeGfx.rotation += this.currentSpeed * SPIN_ROTATION_FACTOR * dt;
     this._updateWobble(time);
+    this._updateDrift(dt);
 
     const prevState = this.currentState;
     this.currentState = resolveState(this.currentSpeed);
@@ -121,6 +129,20 @@ export class Spinner extends Phaser.GameObjects.Container {
   /** Instantly maxes this spinner out (Golden Splash power-up). */
   maxOut(): void {
     this.currentSpeed = MAX_SPINNER_SPEED;
+  }
+
+  /** Funfair-only: starts a sinusoidal side-to-side drift around the spinner's current x (prototype: `driftRange:55`). */
+  setDrift(range: number, speedRadPerSec: number): void {
+    this._driftBaseX = this.x;
+    this._driftRange = range;
+    this._driftSpeed = speedRadPerSec;
+    this._driftPhase = Math.random() * Math.PI * 2;
+  }
+
+  private _updateDrift(dt: number): void {
+    if (this._driftBaseX === null) return;
+    this._driftPhase += dt * this._driftSpeed;
+    this.x = this._driftBaseX + Math.sin(this._driftPhase) * this._driftRange;
   }
 
   /** Near-max speed gets a subtle scale wobble (CLAUDE.md §5.6) — settles flat again below the threshold. */

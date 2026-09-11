@@ -4,6 +4,7 @@
 export interface GameSceneData {
   readonly grannyId: string;
   readonly gunId: string;
+  readonly worldId: string;
 }
 
 /** GameScene → GameOverScene: the just-finished run's result. */

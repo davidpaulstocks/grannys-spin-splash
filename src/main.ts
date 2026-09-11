@@ -35,6 +35,11 @@ async function loadFredoka(): Promise<void> {
 async function boot(): Promise<void> {
   await Promise.all([poki.init(), loadFredoka()]);
 
+  // Poki's mobile branding pill defaults to a corner that overlaps our own
+  // UI — a no-op on desktop, but CLAUDE.md §12 must-fix 8 requires this
+  // call regardless of platform.
+  poki.movePill(0, 24);
+
   // SplashScene boots first (splash → game → game over → splash, Sprint 5
   // exit criteria) — there's nothing to preload yet (procedural graphics +
   // a placeholder Granny), so BootScene stays a stub until Sprint 3's
@@ -44,6 +49,10 @@ async function boot(): Promise<void> {
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
     scale: SCALE_CONFIG,
+    // 2 concurrent touch pointers — Phaser's default of 1 can't see a
+    // second simultaneous finger, which the two-finger pause gesture
+    // (CLAUDE.md §6.3, InputManager.ts) needs to detect at all.
+    input: { activePointers: 2 },
     scene: [SplashScene, GameScene, HUDScene, GameOverScene, PauseScene],
   });
 

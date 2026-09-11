@@ -154,3 +154,13 @@ export function playFrenzy(): void {
     0.2,
   );
 }
+
+/** A Golden Spinner appears — three quick bright chimes (prototype: 880/1047/1319 sine). */
+export function playGoldenAppear(): void {
+  playSequence([{ freq: 880 }, { freq: 1047 }, { freq: 1319 }], 0.06, 0.2, 0.15);
+}
+
+/** A Golden Spinner expires unclaimed — a short falling tone. */
+export function playGoldenExpire(): void {
+  playTone('sine', 440, 0.5, 0.12, 220);
+}

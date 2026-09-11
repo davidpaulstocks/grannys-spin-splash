@@ -9,8 +9,10 @@ export interface SaveData {
   vault: number;
   unlockedGrannies: readonly string[];
   unlockedGuns: readonly string[];
+  unlockedWorlds: readonly string[];
   selectedGrannyId: string;
   selectedGunId: string;
+  selectedWorldId: string;
   highScore: number;
 }
 

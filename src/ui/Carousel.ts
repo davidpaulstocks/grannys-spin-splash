@@ -1,9 +1,11 @@
 /**
- * Generic ◀ item ▶ carousel — used for both the Granny and Gun selectors
- * (CLAUDE.md §7.2, §10, story 5.2). Locked items show their star cost;
- * tapping one shows a "earn more ★" toast instead of selecting it (§10
- * behaviour spec) — arrows always step through every item regardless of
- * lock state, only the centre tap is gated.
+ * Generic ◀ item ▶ carousel — used for the Granny, World, and Gun
+ * selectors (CLAUDE.md §7.2, §10, story 5.2). Locked items show their
+ * star cost; arrows always step through every item regardless of lock
+ * state. A centre tap always calls `onSelect(id)`, locked or not — the
+ * caller (SplashScene) decides what that means: select an unlocked item,
+ * or attempt to spend vault stars to unlock a locked one (§10's "shows
+ * cost + prompt" behaviour).
  */
 
 import Phaser from 'phaser';
@@ -11,7 +13,6 @@ import Phaser from 'phaser';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { drawLockIcon, drawStarIcon } from './icons';
 import { pillRadius } from '../utils/math';
-import { showToast } from './Toast';
 import { textStyle } from '../utils/typography';
 
 export interface CarouselItem {
@@ -147,15 +148,12 @@ export class Carousel extends Phaser.GameObjects.Container {
 
   private _onTapCurrent(): void {
     const item = this._items[this._index];
-    if (!item.unlocked) {
-      showToast(
-        this.scene,
-        this.x,
-        this.y - CARD_HEIGHT / 2 - 16,
-        `Earn ${item.cost}★ more to unlock`,
-      );
-      return;
-    }
+    // Locked or not, the caller decides what a tap means: an unlocked item
+    // just gets selected, a locked one gets an unlock *attempt* — spend
+    // vault stars and select on success, or nudge the player to earn more
+    // (CLAUDE.md §10's "Tapping a locked item shows cost + prompt" — the
+    // prompt now doubles as the actual purchase flow, not a dead end).
+    // Carousel stays a dumb UI component; SplashScene owns that logic.
     this._onSelect(item.id);
   }
 

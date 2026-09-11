@@ -7,6 +7,7 @@
 
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
+import { WORLD_DEFS } from '../entities/world/world.data';
 import type { SaveManager } from './SaveManager';
 
 export class UnlockManager {
@@ -25,12 +26,20 @@ export class UnlockManager {
     return this._save.load().unlockedGuns.includes(id);
   }
 
+  isWorldUnlocked(id: string): boolean {
+    return this._save.load().unlockedWorlds.includes(id);
+  }
+
   getSelectedGrannyId(): string {
     return this._save.load().selectedGrannyId;
   }
 
   getSelectedGunId(): string {
     return this._save.load().selectedGunId;
+  }
+
+  getSelectedWorldId(): string {
+    return this._save.load().selectedWorldId;
   }
 
   /** Adds stars earned from a run to the vault (CLAUDE.md §11.4 — earn-only, never purchasable). */
@@ -52,6 +61,13 @@ export class UnlockManager {
     const def = GUN_DEFS.find((g) => g.id === id);
     if (!def) return false;
     return this._unlock(id, def.cost, 'unlockedGuns');
+  }
+
+  /** Spends vault stars to unlock a world. Returns false if already unlocked or vault is short. */
+  unlockWorld(id: string): boolean {
+    const def = WORLD_DEFS.find((w) => w.id === id);
+    if (!def) return false;
+    return this._unlock(id, def.unlockThreshold, 'unlockedWorlds');
   }
 
   /** Grants a gun for free — a successful rewarded-ad watch (CLAUDE.md §11.1/§11.4), never a purchase. */
@@ -86,7 +102,18 @@ export class UnlockManager {
     this._save.save({ ...save, selectedGunId: id });
   }
 
-  private _unlock(id: string, cost: number, field: 'unlockedGrannies' | 'unlockedGuns'): boolean {
+  /** Selects a world for the next run. No-ops if it isn't unlocked. */
+  selectWorld(id: string): void {
+    if (!this.isWorldUnlocked(id)) return;
+    const save = this._save.load();
+    this._save.save({ ...save, selectedWorldId: id });
+  }
+
+  private _unlock(
+    id: string,
+    cost: number,
+    field: 'unlockedGrannies' | 'unlockedGuns' | 'unlockedWorlds',
+  ): boolean {
     const save = this._save.load();
     if (save[field].includes(id)) return false;
     if (save.vault < cost) return false;
