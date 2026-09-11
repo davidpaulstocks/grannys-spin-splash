@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 0 complete — awaiting review before Sprint 1
+**Currently working on:** Sprint 1 complete — awaiting review before Sprint 2
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -12,7 +12,7 @@
 | Sprint | Goal | Status |
 |---|---|---|
 | Sprint 0 | Foundation — empty scenes, working SDK, build pipeline | ✅ Done |
-| Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ⚪ Not started |
+| Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ✅ Done |
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ⚪ Not started |
 | Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⚪ Not started |
 | Sprint 4 | ASMR Orchestra — 12-layer audio | ⚪ Not started |
@@ -26,6 +26,11 @@
 
 - ⏳ **Audio approach decision** — needed before Sprint 4 start (~week 4). See CLAUDE.md §9.3 for shortlist: royalty-free / Suno+Udio / commission / placeholder for v1.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
+- ⏳ **Granny + gun art** — user is creating this personally (see CLAUDE.md §8 correction note, 2026-09-11). Sprint 3 needs the delivered files before 3.1/3.2/3.3/3.6 can run; §8.3.1's Nano Banana pipeline is a fallback only, not the default path.
+
+## Known issues (non-blocking)
+
+- **Cog dead-zone vs. auto-aim snap** — a fully snapped shot lands dead-centre on its target, which is inside a cog's unhittable "hole" (see `COG_DEAD_ZONE_RATIO` in `src/objects/WaterParticle.ts`). Verified live during Sprint 1: a cog under continuous snapped fire never registers a single hit. Not reachable today — Garden's roster (`src/data/worlds.ts`) has no `'cog'` — but fix this before any world adds cogs.
 
 ---
 
@@ -50,22 +55,28 @@ Get the project skeleton up. Empty scenes, working SDK, build pipeline.
 
 Build the core loop with placeholder graphics. Make it playable end-to-end before any polish.
 
-- [ ] **1.1** Implement `SaveManager` with localStorage try/catch — Unit test passes; survives incognito mode
-- [ ] **1.2** Implement `Spinner.ts` with state machine (procedural draw) — 4 states render distinctly; decay + hit increase work
-- [ ] **1.3** Implement `Granny.ts` as a placeholder coloured rectangle — Moves left/right via `InputManager`
-- [ ] **1.4** Implement `WaterParticle.ts` with arc physics + collision — Pooled (max 50), hits register on spinners
-- [ ] **1.5** Build `GameScene` to wire spinners + Granny + water together — Click/tap to fire works, spinners go SLOW→FULL
-- [ ] **1.6** Implement `FrenzyMeter` system + trigger — All spinners FULL triggers frenzy event
-- [ ] **1.7** Add `preventDefault` for arrows + space in `InputManager` — No page scroll in Poki Inspector
-- [ ] **1.8** Wire `PokiSDK.gameplayStart()` to first input + `gameplayStop()` to game over — Verified in Inspector logs
+- [x] **1.1** Implement `SaveManager` with localStorage try/catch — 6 unit tests (default/round-trip/version-mismatch/both incognito throw paths); live-verified writing `highScore` at round end
+- [x] **1.2** Implement `Spinner.ts` with state machine (procedural draw) — all 8 kinds render distinctly per state via `spinnerRenderers.ts` (ported from the prototype's draw code); decay/hit/state-transition math live-verified frame-by-frame
+- [x] **1.3** Implement `Granny.ts` as a placeholder coloured rectangle — moves left/right via `InputManager`, clamped to the play field
+- [x] **1.4** Implement `WaterParticle.ts` with arc physics + collision — pooled (max 50) `Phaser.GameObjects.Group`; live-verified drain/flight/collision against a real target
+- [x] **1.5** Build `GameScene` to wire spinners + Granny + water together — click/tap fires, spinners advance SLOW→FULL, confirmed live via manual frame-stepping (real browser tabs are `document.hidden` in this headless setup, so rAF never fires — verification drove `game.loop.step()` directly instead of relying on wall-clock waits)
+- [x] **1.6** Implement `FrenzyMeter` system + trigger — **found + fixed a real bug during verification**: the original `_frenzyActive`/`endFrenzy()` latch design let SPLASH FRENZY re-trigger itself forever, because releasing the bonus window always coincided with every spinner still reading FULL. Rewrote all three thresholds (`miniLow`/`miniHigh`/`full`) as the same rising-edge check — confirmed via a 10-simulated-second trace that `full` now fires exactly once per genuine wall-fill
+- [x] **1.7** Add `preventDefault` for arrows + space in `InputManager` — `keyboard.addCapture([LEFT, RIGHT, SPACE])`
+- [x] **1.8** Wire `PokiSDK.gameplayStart()` to first input + `gameplayStop()` to game over — confirmed in real console output: `gameplayStart → gameplayStop (pause) → gameplayStart (resume) → gameplayStop (round end)`, exact expected order, against the genuine Poki dev SDK (not mocked)
 
-**Exit criteria:** Game is playable. Ugly, but functional. Spinners spin, water flies, Frenzy triggers. SDK events fire correctly.
+**Exit criteria:** ✅ Met. Game is playable — ugly (monospace debug HUD, no sprites yet), but functional. Spinners spin, water flies, Frenzy triggers (and releases correctly). SDK events fire correctly and in order. Full pipeline green: `npm run lint && npm run test && npm run build && npm run budget` (1.43 MB / 8 MB budget).
+
+**Also found, documented, deliberately not fixed (out of Sprint 1 scope):** the cog dead-zone can make a cog unhittable under full auto-aim snap — not reachable today since Garden's roster has no cogs. See "Known issues" above and the comment on `COG_DEAD_ZONE_RATIO` in `src/objects/WaterParticle.ts`.
+
+**Also redone beyond the original story list:** `ComboTracker.ts` + its unit tests — CLAUDE.md §7.2 names it as a Systems file and §2 explicitly calls out "Combo decay — 2-second window" as behavioural reference to extract, but no Sprint 1-7 story ever scheduled building it. Implemented now (prototype-faithful, including its one quirk: re-hitting the same spinner holds the combo but doesn't refresh its window) since GameScene's scoring needed it anyway.
 
 ---
 
 ## Sprint 2 — Visual Design System (1 week)
 
 Apply the design system. Game looks premium and kid-friendly with procedural graphics.
+
+> **Reminder (2026-09-11):** the old prototype's UI got "buttons everywhere and too much" per direct user feedback — every addition here needs to earn its place against CLAUDE.md §6.1 ("No menus during play") and §5.8 ("Negative space matters"). Default to cutting, not adding.
 
 - [ ] **2.1** Bundle Fredoka WOFF2 locally; apply typography scale — All text uses Fredoka, sizes match CLAUDE.md §5.2
 - [ ] **2.2** Implement `src/utils/colour.ts` palette + apply across UI — No hardcoded hex outside `colour.ts`

@@ -4,28 +4,29 @@ import Phaser from 'phaser';
 
 import { BACKGROUND_COLOUR, SCALE_CONFIG } from './config';
 import * as poki from './poki';
+import { GameScene } from './scenes/GameScene';
 
-class EmptyScene extends Phaser.Scene {
-  constructor() {
-    super('EmptyScene');
-  }
-
-  create(): void {
-    // Sprint 0 placeholder — gameplay scenes land in Sprint 1.
-    // Assets-ready signal fires here for now; BootScene will own it from Sprint 1.
-    poki.gameLoadingFinished();
+declare global {
+  interface Window {
+    /** Dev-only escape hatch for manual frame-stepping in headless/hidden-tab testing. Stripped from prod builds. */
+    __gameForDebug?: Phaser.Game;
   }
 }
 
 async function boot(): Promise<void> {
   await poki.init();
 
-  new Phaser.Game({
+  // Sprint 1: GameScene boots directly — there's nothing to preload yet
+  // (procedural graphics + a placeholder Granny), so BootScene stays a
+  // stub until Sprint 3's sprite/audio assets need a real loading screen.
+  const game = new Phaser.Game({
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
     scale: SCALE_CONFIG,
-    scene: [EmptyScene],
+    scene: [GameScene],
   });
+
+  if (import.meta.env.DEV) window.__gameForDebug = game;
 }
 
 void boot();

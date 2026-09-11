@@ -679,6 +679,8 @@ npm run build && npm run budget && npm run preview
 
 ## 8. Sprite Asset Pipeline
 
+> **Correction (Sprint 1, 2026-09-11):** the user is personally creating the custom granny + gun art rather than having it generated through §8.3.1's automated Nano Banana pipeline. Sizes, filenames, the 8-angle/anchor.json convention, and the art-direction brief below still apply — they're the delivery spec either way. Treat §8.3.1 as a fallback path, not the default: don't autonomously generate final granny/gun sprites without checking in first. Everything else in this section (roster, unlock costs, why-these-N reasoning) is unchanged.
+
 ### 8.1 Grannies (3 launch, others post-launch)
 
 Each character needs:

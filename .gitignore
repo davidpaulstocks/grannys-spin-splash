@@ -48,3 +48,6 @@ tmp/
 
 # Playwright MCP scratch
 .playwright-mcp/
+
+# Claude Code local machine/session settings (permissions etc.) — .claude/launch.json IS checked in
+.claude/settings.local.json

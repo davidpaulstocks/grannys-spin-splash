@@ -12,18 +12,30 @@
  * may re-skin to the production hero palette without touching the numbers.
  */
 
-import { SpinnerState, type SpinnerDef } from '../types/spinner';
+import type { SpinnerDef } from '../types/spinner';
 
-/** Speed thresholds that drive the STOPPED → SLOW → MEDIUM → FULL state transitions. */
-export const SPINNER_STATE_THRESHOLDS: Readonly<Record<SpinnerState, number>> = {
-  [SpinnerState.STOPPED]: 0,
-  [SpinnerState.SLOW]: 40,
-  [SpinnerState.MEDIUM]: 80,
-  [SpinnerState.FULL]: 100,
-};
+/**
+ * Speed breakpoints for the STOPPED → SLOW → MEDIUM → FULL state machine,
+ * extracted from the prototype's exact comparisons: `speed <= 0` STOPPED,
+ * `< 40` SLOW, `< 80` MEDIUM, else FULL. So 40 is MEDIUM's entry point and
+ * 80 is FULL's — SLOW has no breakpoint of its own, it's just "> 0".
+ * (Sprint 0's placeholder data mislabelled these as SLOW:40/MEDIUM:80/
+ * FULL:100, shifted one state off from the real prototype — fixed here
+ * since it directly controls how fast Frenzy arrives.)
+ */
+export const SPINNER_STATE_THRESHOLDS = {
+  medium: 40,
+  full: 80,
+} as const;
+
+/** Speed is clamped to this ceiling on every hit. */
+export const MAX_SPINNER_SPEED = 100;
 
 /** Combo persistence window in milliseconds (CLAUDE.md §2; prototype `comboTimer = 2.0`). */
 export const COMBO_WINDOW_MS = 2000;
+
+/** Combo multiplier ceiling (prototype `Math.min(combo+1, 5)`). */
+export const MAX_COMBO = 5;
 
 /** Mini-frenzy + full-frenzy thresholds expressed as proportion of spinners at FULL (§2, §9.1). */
 export const FRENZY_THRESHOLDS = {
