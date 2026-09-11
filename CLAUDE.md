@@ -816,6 +816,18 @@ The soundtrack is **12 perfectly-synced musical layers** (stems). Each is a loop
 
 Every spinner adds an instrument. By Splash Frenzy you're conducting a full orchestra. Stop firing and layers fade out — soothing, satisfying, ASMR.
 
+#### 9.1.1 Refined mixing model — each spinner IS an instrument (2026-09-11)
+
+The table above triggers layers off *aggregate* population thresholds (25%/40%/55%… of spinners FULL). Refined direction, requested by the user: make the mapping **direct and continuous, per spinner** — Garden's wall happens to be exactly 12 spinners (4×3 grid, `entities/world/world.data.ts`), matching the 12 layers exactly, so this isn't a stretch:
+
+- **Layer 1 (bass + kick) stays the always-on foundation** — the rhythmic floor, not tied to any one spinner.
+- **Each of the other 12 grid cells gets one instrument layer, continuously.** Not threshold-triggered — a spinner's own `currentSpeed / MAX_SPINNER_SPEED` *is* that layer's gain, smoothed (the existing 250ms gain tween). A spinner at 0 is silent; at FULL it's at full volume. Assignment is by grid position (spinner index → layer index), fixed for the run so the same physical spot on the wall always plays the same instrument.
+- Because gain tracks speed continuously (not "crossed 55%"), the mix breathes with actual play — soak one spinner and its instrument swells in real time, let it decay and it fades back out. "Stop firing and layers fade out" (the ASMR payoff) falls out of this naturally instead of needing separate fade logic.
+- **Drop bass (was layer 11) and cinematic hit (was layer 12) stop being per-spinner layers** and become FRENZY-exclusive: drop bass sustains for the 5-second bonus window, cinematic hit is a one-shot the instant Frenzy triggers. That leaves **10 spinner-mapped instruments for 12 spinners** — round-robin two of the ten across the extra two grid cells (a musically sensible one, e.g. hi-hat or pluck, doubling up is inaudible as a "duplicate," it just reinforces that instrument). If the eventual audio source (§9.3) delivers a different stem count, this degenerates gracefully: assign `spinnerIndex % stemCount`.
+- Every other spinner-count world (post-launch, §13) reuses the same 10 spinner-mapped stems — no new audio needed per world, only per launch-content-drop character/gun/spinner variety.
+
+This is a mixing-algorithm decision, not a production one — it doesn't change what needs sourcing in §9.3, only how `AudioOrchestra.updateMix()` reads spinner state once the stems exist.
+
 ### 9.2 Implementation pattern
 
 ```typescript
@@ -823,19 +835,28 @@ class AudioOrchestra {
   private layers: { source: AudioBufferSourceNode; gain: GainNode }[] = [];
   private bpm = 96;
   private barLength = 2.5;
+  /** spinner grid index → layer index (1..N, layer 0 is the always-on foundation). See §9.1.1. */
+  private spinnerLayerAssignment: number[] = [];
 
   async init(ctx: AudioContext, buffers: AudioBuffer[]) {
-    // 1. Load all 12 stems (same length, same BPM)
+    // 1. Load all N stems (same length, same BPM)
     // 2. Start them ALL silently at the same audio context time
     // 3. Loop forever — mixing via gain.value only guarantees perfect sync
   }
 
+  /** Each spinner's own charge level drives its assigned layer's gain, continuously (§9.1.1) — not aggregate thresholds. */
   updateMix(spinners: Spinner[]) {
-    const fullCount = spinners.filter(s => s.state === FULL).length;
-    const fullPct = fullCount / spinners.length;
-    const targets = this._computeTargetVolumes(fullPct, spinners);
+    const targets = new Map<number, number>(); // layerIndex -> gain
+    spinners.forEach((s, i) => {
+      const layer = this.spinnerLayerAssignment[i];
+      targets.set(layer, s.currentSpeed / MAX_SPINNER_SPEED);
+    });
     this._smoothTo(targets, 250);  // 250ms gain tween
   }
+
+  /** Frenzy-exclusive: sustains for the bonus window + fires the one-shot hit. Not a per-spinner layer. */
+  onFrenzyStart(): void { /* fade in "drop bass", play "cinematic hit" one-shot */ }
+  onFrenzyEnd(): void { /* fade out "drop bass" */ }
 }
 ```
 

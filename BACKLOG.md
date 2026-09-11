@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Sprint 1 complete — awaiting review before Sprint 2
+**Currently working on:** Sprint 2 complete — Sprint 3 blocked on user-supplied art (ART_BRIEF.md) and Sprint 4 needs an audio source decision (CLAUDE.md §9.3); proceeding to Sprint 5 (Splash Screen + Unlocks) next in numbered order — it needs no final art (carousels can show placeholders exactly like GameScene's Granny does today) and its UnlockManager is a dependency for Sprint 6's monetization hooks anyway
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -13,10 +13,10 @@
 |---|---|---|
 | Sprint 0 | Foundation — empty scenes, working SDK, build pipeline | ✅ Done |
 | Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ✅ Done |
-| Sprint 2 | Visual Design System — premium look with procedural graphics | ⚪ Not started |
-| Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⚪ Not started |
-| Sprint 4 | ASMR Orchestra — 12-layer audio | ⚪ Not started |
-| Sprint 5 | Splash Screen + Unlocks | ⚪ Not started |
+| Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
+| Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⏳ Blocked on user art (ART_BRIEF.md) |
+| Sprint 4 | ASMR Orchestra — 12-layer audio | ⏳ Blocked on audio source decision (§9.3) |
+| Sprint 5 | Splash Screen + Unlocks | 🔵 Up next |
 | Sprint 6 | Monetization Polish | ⚪ Not started |
 | Sprint 7 | Launch Polish + Poki submission | ⚪ Not started |
 
@@ -78,16 +78,23 @@ Apply the design system. Game looks premium and kid-friendly with procedural gra
 
 > **Reminder (2026-09-11):** the old prototype's UI got "buttons everywhere and too much" per direct user feedback — every addition here needs to earn its place against CLAUDE.md §6.1 ("No menus during play") and §5.8 ("Negative space matters"). Default to cutting, not adding.
 
-- [ ] **2.1** Bundle Fredoka WOFF2 locally; apply typography scale — All text uses Fredoka, sizes match CLAUDE.md §5.2
-- [ ] **2.2** Implement `src/utils/colour.ts` palette + apply across UI — No hardcoded hex outside `colour.ts`
-- [ ] **2.3** Build `Button.ts` component with primary/secondary/tertiary variants — Used everywhere; consistent hover/press behaviour
-- [ ] **2.4** Build SVG icon sprite system + replace all emoji UI — Zero emoji in user-facing UI
-- [ ] **2.5** Strip in-play HUD to timer + water + frenzy meter — Score hidden during play, revealed at game over
-- [ ] **2.6** Build `FrenzyMeterUI` integrated into the wall background — Meter feels part of the world, not floating UI
-- [ ] **2.7** Apply 8px spacing grid + 16px radius across all UI — Visual review confirms consistency
-- [ ] **2.8** Tune spinner counts/decay so Frenzy arrives in ~50% of normal runs — Playtest confirms pacing
+- [x] **2.1** Bundle Fredoka WOFF2 locally; apply typography scale — one variable-font file (`public/fonts/fredoka.woff2`), `utils/typography.ts` implements the §5.2 scale; `main.ts` awaits `document.fonts.ready` before Phaser draws anything (canvas text doesn't re-render on a late font swap)
+- [x] **2.2** Implement `src/utils/colour.ts` palette + apply across UI — done in Sprint 1 prep, extended this sprint with `shade()` for muted variants (ground plane, spinner glow); no hardcoded hex outside it
+- [x] **2.3** Build `Button.ts` component with primary/secondary/tertiary variants — used in GameOverScene's Play Again; **found + fixed a real perf bug here** (see below)
+- [~] **2.4** Build SVG icon sprite system + replace all emoji UI — zero emoji in user-facing UI is already true (nothing ever used one), but no UI built so far actually needs an icon yet (timer/water bar/rings are pure shapes) — the sprite-sheet system itself isn't built. Revisit once real icon needs show up (Sprint 5's carousel arrows are a likely first case)
+- [x] **2.5** Strip in-play HUD to timer + water + frenzy meter — `HUDScene` (timer pill + water bar + on-wall rings) replaces Sprint 1's debug text; score is never rendered during play, only on `GameOverScene`'s reveal (built now since 2.5's acceptance needs an actual reveal moment to exist — GameOverScene wasn't scheduled anywhere either, like ComboTracker)
+- [x] **2.6** Build `FrenzyMeterUI` integrated into the wall background — per-spinner progress rings (ported from the prototype's `drawRings`, re-skinned to the hero palette) instead of a floating bar
+- [x] **2.7** Apply 8px spacing grid + 16px radius across all UI — HUD/button constants are all multiples of 8 (pills use `pillRadius()`, WaterBar's panel uses the 16px standard exactly); will get more exercise once Sprint 5 adds cards/panels
+- [x] **2.8** Tune spinner counts/decay so Frenzy arrives in ~50% of normal runs — also fixed `GunDef.streams` never being consumed (every gun fired single-stream regardless of data). Retuned gun power empirically via live simulation (see `entities/gun/gun.data.ts` header for the full reasoning) — first-pass, needs a real human playtest to confirm the "~50%" figure specifically
 
-**Exit criteria:** Game looks premium. Visually cohesive. Plays the same as Sprint 1 but feels professional.
+**Exit criteria:** ✅ Met. Game looks premium and visually cohesive — Fredoka, the hero palette, a real Garden backdrop, a minimal HUD, impact/celebration juice. Same core loop as Sprint 1, now feels considerably more professional. Full pipeline green throughout: lint, 18 tests, typecheck, build.
+
+**Critical bug found + fixed mid-sprint (story 2.3):** `Button.ts`/`TimerDial.ts` copied CLAUDE.md §5.4's CSS "999px pill" convention literally into `Graphics.fillRoundedRect` — Phaser doesn't clamp that radius to the box the way CSS `border-radius` does, so a 999 radius on a small box built a degenerate path that made every frame with `HUDScene` active take ~250-300ms (a 120-frame test went from <1s to 36.7s). Bisected live via manual frame-stepping to the exact `Graphics` object, fixed with `utils/math.ts`'s new `pillRadius()` (computes `min(width,height)/2`). Would have shipped as an unplayable-slow game the moment any pill-shaped UI rendered.
+
+**Also done, not part of the original 8 stories:**
+- Reorganized `src/` from a layer-based split (`objects/`, `data/`, per-entity `types/`) into feature/entity-based folders (`entities/spinner/`, `entities/granny/`, etc.) per explicit user request for "professional, component-based" architecture — see CLAUDE.md §7.1's re-plan note for the full rationale. Pure refactor, `git mv`-based, history preserved, zero behaviour change (verified: identical build output size).
+- Visual polish beyond the letter of the 8 stories but within CLAUDE.md §5.6/§5.7's own spec: a real Garden background (ground plane + depth shapes — there was none at all before), splash-on-impact VFX (WaterParticle.ts's own architecture doc calls this its responsibility; it was doing nothing), Granny's idle breath animation and spinner wobble-near-max (both explicitly speced in §5.6, neither had been implemented), and a bundled Frenzy celebration (banner + camera shake + flash) in `ui/Banner.ts`.
+- [ART_BRIEF.md](ART_BRIEF.md) — full Nano Banana generation brief for the user, and CLAUDE.md's C12 "Space Bubble" post-launch roadmap item — see "Blockers" and "Known issues" sections above.
 
 ---
 
@@ -116,7 +123,7 @@ The headline feature. Layered music that builds with player progress.
 
 - [ ] **4.1** Audio source decision + procure 12-layer ASMR loop pack (see CLAUDE.md §9.3) — 12 OGG files, same BPM, same length, same key
 - [ ] **4.2** Implement `AudioOrchestra.ts` mixing class — Smooth gain tweening; no clicks/pops at layer change
-- [ ] **4.3** Wire orchestra to spinner state via `FrenzyMeter` events — Layers fade in/out as spinners progress
+- [ ] **4.3** Wire orchestra to *each spinner's own* charge level, continuously — CLAUDE.md §9.1.1 (2026-09-11 refinement, requested by the user: "each spinner is an instrument"). Not `FrenzyMeter` population thresholds — a spinner's `currentSpeed / MAX_SPINNER_SPEED` directly drives its assigned layer's gain every frame, smoothed 250ms. FrenzyMeter's `full` event still drives the two Frenzy-exclusive layers (drop bass sustain + cinematic hit one-shot) — Acceptance: each grid position audibly maps to the same instrument every run; the mix breathes in real time with actual play, not just crossed thresholds
 - [ ] **4.4** Implement `AudioBus` master mute + fade on ad — Audio mutes within 100ms of `commercialBreak()`
 - [ ] **4.5** Port one-shot SFX from prototype synth code into `SFX.ts` — Hit/splash/unlock/frenzy SFX sound right
 - [ ] **4.6** Playtest: does it feel like ASMR? — 5-person test, ≥4/5 say "satisfying"
