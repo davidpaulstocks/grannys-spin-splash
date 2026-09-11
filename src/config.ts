@@ -29,6 +29,9 @@ export const GRANNY_HEIGHT = 160;
 export const GRANNY_MOVE_SPEED = 360;
 /** Vertical gap kept between the play-field edges and Granny's centre. */
 export const GRANNY_Y_FROM_BOTTOM = 96;
+/** Idle breath cycle duration, ms — one full scale-up-and-back (CLAUDE.md §5.6: "scale 1.0 ↔ 1.02"). */
+export const GRANNY_BREATH_CYCLE_MS = 2000;
+export const GRANNY_BREATH_SCALE = 1.02;
 
 /** Water particle arc physics — extracted from the reference prototype's `_spawnWater`. */
 export const WATER_PARTICLE_SPEED = 650;
@@ -47,6 +50,11 @@ export const DEFAULT_FIRE_POWER = 6;
 export const FRENZY_DURATION_MS = 5000;
 /** Bonus stars awarded the instant SPLASH FRENZY triggers (prototype `triggerFrenzy`). */
 export const FRENZY_BONUS_STARS = 25;
+/** Camera shake on Frenzy trigger — duration ms + intensity (prototype: `shake(500, 0.012)`). */
+export const FRENZY_SHAKE_DURATION_MS = 500;
+export const FRENZY_SHAKE_INTENSITY = 0.012;
+/** Screen-flash on Frenzy trigger, ms — fades from full white to transparent. */
+export const FRENZY_FLASH_DURATION_MS = 400;
 
 /** How long the water-tank pump refill takes once it runs dry, in ms (CLAUDE.md §2 — "2-second pump refill"). */
 export const PUMP_REFILL_MS = 2000;

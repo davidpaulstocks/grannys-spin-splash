@@ -7,9 +7,16 @@
 
 import Phaser from 'phaser';
 
-import { GRANNY_HEIGHT, GRANNY_MOVE_SPEED, GRANNY_WIDTH } from '../../config';
+import {
+  GRANNY_BREATH_CYCLE_MS,
+  GRANNY_BREATH_SCALE,
+  GRANNY_HEIGHT,
+  GRANNY_MOVE_SPEED,
+  GRANNY_WIDTH,
+} from '../../config';
 import { COLOUR } from '../../utils/colour';
 import { clamp } from '../../utils/math';
+import { EASE } from '../../utils/tween';
 
 export class Granny extends Phaser.GameObjects.Container {
   private readonly _body: Phaser.GameObjects.Rectangle;
@@ -20,6 +27,20 @@ export class Granny extends Phaser.GameObjects.Container {
     this._body.setStrokeStyle(4, COLOUR.ink);
     this.add(this._body);
     scene.add.existing(this);
+    this._startIdleBreath(scene);
+  }
+
+  /** Slow, continuous scale breathing while idle (CLAUDE.md §5.6) — subtle, never stops during play. */
+  private _startIdleBreath(scene: Phaser.Scene): void {
+    scene.tweens.add({
+      targets: this,
+      scaleX: GRANNY_BREATH_SCALE,
+      scaleY: GRANNY_BREATH_SCALE,
+      duration: GRANNY_BREATH_CYCLE_MS / 2,
+      ease: EASE.standardOut,
+      yoyo: true,
+      repeat: -1,
+    });
   }
 
   /** Moves left/right at a fixed speed, clamped between `minX` and `maxX`. */

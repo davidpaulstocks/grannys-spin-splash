@@ -23,9 +23,11 @@ import {
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
 import { SPINNER_DEFS } from '../entities/spinner/spinner.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
+import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { Granny } from '../entities/granny/Granny';
 import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
+import { spawnSplash } from '../entities/waterParticle/splashVFX';
 import * as poki from '../poki';
 import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
@@ -34,7 +36,7 @@ import { SaveManager } from '../systems/SaveManager';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import { SpinnerState } from '../entities/spinner/spinner.types';
-import { showBanner, hideBanner } from '../ui/Banner';
+import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { computeGridPositions } from '../utils/grid';
 import { resolveAim } from '../utils/math';
@@ -78,6 +80,7 @@ export class GameScene extends Phaser.Scene {
     this._timeRemainingMs = world.time * 1000;
     this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
 
+    drawWorldBackground(this, world.id);
     this._buildWall(world.grid.cols, world.grid.rows, world.types);
     this._granny = new Granny(this, GAME_WIDTH / 2, GAME_HEIGHT - GRANNY_Y_FROM_BOTTOM);
     this._input = new InputManager(this);
@@ -231,10 +234,13 @@ export class GameScene extends Phaser.Scene {
   private _updateWaterCollisions(): void {
     const particles = this._waterPool.getChildren() as WaterParticle[];
     for (const particle of particles) {
+      const hitX = particle.x;
+      const hitY = particle.y;
       const hitSpinner = particle.checkCollision(particle.getCandidates(this._spinners));
       if (!hitSpinner) continue;
       const landed = hitSpinner.hit(this._gun.power);
       if (landed) this._combo.registerHit(hitSpinner.id);
+      spawnSplash(this, hitX, hitY);
     }
   }
 
@@ -252,7 +258,12 @@ export class GameScene extends Phaser.Scene {
       spinner.maxOut();
       spinner.locked = true;
     }
-    this._frenzyBanner = showBanner(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, 'SPLASH FRENZY!');
+    this._frenzyBanner = playFrenzyCelebration(
+      this,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2,
+      'SPLASH FRENZY!',
+    );
   }
 
   private _updateFrenzyWindow(time: number): void {

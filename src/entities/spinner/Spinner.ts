@@ -15,6 +15,11 @@ const SPIN_ROTATION_FACTOR = 0.065;
 /** Whirligig-only: chance an incoming hit is deflected instead of landing (prototype `Math.random()<0.38`). */
 const WHIRLIGIG_DEFLECT_CHANCE = 0.38;
 
+/** Wobble near max speed (CLAUDE.md §5.6): "6% scale oscillation at 8Hz when speed > 75". */
+const WOBBLE_SPEED_THRESHOLD = 75;
+const WOBBLE_AMPLITUDE = 0.06;
+const WOBBLE_FREQUENCY_HZ = 8;
+
 let _nextId = 1;
 
 /** STOPPED < SLOW < MEDIUM < FULL — lets callers tell an upward transition from a downward (decay) one. */
@@ -81,12 +86,13 @@ export class Spinner extends Phaser.GameObjects.Container {
    * frame. Returns null unless the state just changed — see
    * {@link SpinnerUpdateResult}.
    */
-  override update(_time: number, deltaMs: number): SpinnerUpdateResult | null {
+  override update(time: number, deltaMs: number): SpinnerUpdateResult | null {
     const dt = deltaMs / 1000;
     if (!this.locked) {
       this.currentSpeed = Math.max(0, this.currentSpeed - this.def.decay * dt);
     }
     this._bladeGfx.rotation += this.currentSpeed * SPIN_ROTATION_FACTOR * dt;
+    this._updateWobble(time);
 
     const prevState = this.currentState;
     this.currentState = resolveState(this.currentSpeed);
@@ -115,5 +121,15 @@ export class Spinner extends Phaser.GameObjects.Container {
   /** Instantly maxes this spinner out (Golden Splash power-up). */
   maxOut(): void {
     this.currentSpeed = MAX_SPINNER_SPEED;
+  }
+
+  /** Near-max speed gets a subtle scale wobble (CLAUDE.md §5.6) — settles flat again below the threshold. */
+  private _updateWobble(time: number): void {
+    if (this.currentSpeed <= WOBBLE_SPEED_THRESHOLD) {
+      this.setScale(1);
+      return;
+    }
+    const phase = (time / 1000) * WOBBLE_FREQUENCY_HZ * Math.PI * 2;
+    this.setScale(1 + WOBBLE_AMPLITUDE * Math.sin(phase));
   }
 }
