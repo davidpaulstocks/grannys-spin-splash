@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Mid-Sprint-7 QA surfaced a scope decision (user asked whether the prototype's other worlds were planned) — re-planned to pull all 4 remaining worlds into v1 (CLAUDE.md §14, 2026-09-11). Workshop/Kitchen/Funfair/Disco now ship alongside Garden: a new 3rd SplashScene carousel (world select, vault-gated same as grannies/guns), obstacles (cat/umbrella/duck — previously an empty stub) fully implemented, moving targets (Funfair) and the Golden Spinner bonus spawn (Disco-frequent, all worlds) wired end-to-end. Along the way, fixed two real pre-existing gaps this surfaced: (1) locked items (grannies/guns/worlds) had no actual "spend vault stars to unlock" UI path, only a dead-end toast — now a tap attempts a real unlock; (2) the cog dead-zone-vs-auto-aim bug (previously "not reachable," now live in Workshop/Kitchen) — fixed via a teeth-ring aim nudge. Also built out mobile controls (§6.3) that were a known gap: edge hold-to-move buttons + two-finger-tap pause. Sprint 4's 12-stem orchestra remains blocked on the audio source decision (§9.3); Sprint 3 remains blocked on user-supplied art (ART_BRIEF.md). All new work verified live in Chrome (all 5 worlds, obstacles, golden spinner lifecycle, unlock purchase success/failure paths) — full pipeline (tsc/lint/test/build/budget) green. Resuming Sprint 7's QA pass next.
+**Currently working on:** Real granny/gun/world/title art landed overnight (2026-09-11) — Sprint 3 is now done. `Granny.ts` and `Gun.ts` were rewritten from placeholders to render the delivered sprites: Granny swaps `back`/`back_firing` textures on fire state, Gun snaps to the nearest of 8 pre-rotated angle sprites from live aim direction and exposes the nozzle position (from anchor.json) as the water-particle spawn origin, replacing the old generic gun-origin point. SplashScene's three carousels now show real art via `Carousel.ts`'s existing `swatchTextureKey` support, and the title area is the illustrated flourish + wordmark lockup instead of plain text. A real bug was caught in live-browser verification and fixed: the gun's hand-grip offset was computed against Granny's vertical centre instead of her feet, putting the gun up near her hair — re-derived from her feet position using a pixel-measured hand-height fraction (~58% up) from the actual art. Also live-verified crisp rendering at Poki's smallest canonical size (640×360) for both splash and gameplay. Sprint 4's 12-stem orchestra remains blocked on the audio source decision (§9.3); thumbnails (5.7) remain deferred for remaining-effort reasons, not art. Full pipeline (tsc/lint/test/build/budget) green — 6.29 MB / 8 MB. Resuming Sprint 7's QA pass next.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -14,9 +14,9 @@
 | Sprint 0 | Foundation — empty scenes, working SDK, build pipeline | ✅ Done |
 | Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ✅ Done |
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
-| Sprint 3 | Sprite Pipeline — 54 Nano Banana sprites delivered | ⏳ Blocked on user art (ART_BRIEF.md) |
+| Sprint 3 | Sprite Pipeline — real granny/gun/world art wired in | ✅ Done |
 | Sprint 4 | ASMR Orchestra — 12-layer audio | 🟡 SFX (4.4/4.5) done; 12-stem orchestra (4.1/4.2/4.3/4.6) blocked on audio source decision (§9.3) |
-| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done (5.7 thumbnails deferred — needs real art) |
+| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done (5.7 thumbnails deferred — see note) |
 | Sprint 6 | Monetization Polish | ✅ Done (mobile controls gap closed 2026-09-11 — see below) |
 | Sprint 7 | Launch Polish + Poki submission | 🟡 In progress |
 
@@ -26,8 +26,8 @@
 
 - ⏳ **Audio approach decision** — needed before Sprint 4 start (~week 4). See CLAUDE.md §9.3 for shortlist: royalty-free / Suno+Udio / commission / placeholder for v1.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
-- ⏳ **Granny + gun art** — user is creating this personally with Nano Banana. Full generation brief delivered: [ART_BRIEF.md](ART_BRIEF.md) (2026-09-11) — palette, exact filenames/paths, per-character prompt seeds, generation order. Grannies now ship 5 poses each (front/front_firing/three_quarter/side/back — a turnaround set for the splash carousel + an optional Frenzy spin, not just the original 2), guns unchanged (8 angles + anchor.json). Sprint 3 needs the delivered files before 3.1/3.2/3.3/3.6 can run; §8.3.1's Nano Banana pipeline is a fallback only, not the default path.
-- ⏳ **World background art** — user flagged (2026-09-11) that the current procedural backgrounds ("so unbelievably basic") don't deliver the immersive, illustrated feel they want. Brief delivered: [WORLD_BACKGROUND_BRIEF.md](WORLD_BACKGROUND_BRIEF.md) — 5 paintings (1536×864, one per world), same style pipeline as ART_BRIEF.md, reference-image chain locking Garden first. `worldBackgrounds.ts`'s procedural drawers stay as the fallback until these land, then get retired in favour of loaded images.
+- ✅ **Granny + gun art** — resolved 2026-09-11. Delivered as a 3-pose set per granny (front/back/back_firing — see the Sprint 3 re-plan note for why, not the original 5-pose turnaround) + 6 guns × 8 angles + anchor.json, all wired into `Granny.ts`/`Gun.ts` and verified live.
+- ✅ **World background art** — resolved 2026-09-11. All 5 illustrated world backgrounds delivered and wired via `worldBackgrounds.ts`'s `WORLD_BG_ASSETS` registry; procedural drawers remain only as the no-art fallback path.
 
 ## Known issues (non-blocking)
 
@@ -103,18 +103,21 @@ Apply the design system. Game looks premium and kid-friendly with procedural gra
 
 Replace placeholder Granny + Gun with custom Nano Banana sprite art. **Do not parallelise the reference-image chain — see CLAUDE.md §8.3.1.**
 
-- [ ] **3.1** Lock Classic Granny standing + firing as style template — 2 reference PNGs in `_reference/`, palette/outline/scale exactly right
-- [ ] **3.2** Generate remaining 2 Granny standing + firing variants from template — 4 PNGs delivered, consistency review passes
-- [ ] **3.3** Lock Drip Pistol 0° as gun style template — 1 reference PNG, outline weight matched to grannies
-- [ ] **3.4** Generate 8 angles for Drip Pistol + author `anchor.json` — 8 PNGs + correct nozzle XY per angle
-- [ ] **3.5** Build small HTML anchor-picker tool (click nozzle, copy coords) — Tool in `tools/anchor-picker.html`
-- [ ] **3.6** Generate remaining 5 guns × 8 angles + anchor data — 40 PNGs + 5 `anchor.json` files
-- [ ] **3.7** Implement `Granny.ts` sprite-based rendering — Correct sprite per selection; idle breath; firing pose swap
-- [ ] **3.8** Implement `Gun.ts` with 8-angle rotation logic — Smoothly snaps to nearest cardinal angle following aim
-- [ ] **3.9** Optimise all PNGs through pngquant — Total sprites < 1 MB
-- [ ] **3.10** Stress-test at 640×360 — sprites crisp at all three Poki canonical sizes
+> **Re-plan (2026-09-11):** delivered art landed as 3 poses per granny (`front`/`back`/`back_firing`), not the originally-speced 5-pose turnaround set (`front`/`front_firing`/`three_quarter`/`side`/`back`) — see CLAUDE.md §14's camera re-plan: the player stands behind Granny, so gameplay only ever needs a back view, and `front` alone covers the splash-carousel portrait. The turnaround set (3/4, side) was speced before that camera decision existed and is no longer needed. Guns shipped as originally speced (8 angles + anchor.json × 6 guns), but via a different pipeline than §8.3.1 describes: the user generated one locked 0° image per gun (no separate reference-lock step), and the other 7 angles were produced by mechanically rotating that single image with PIL rather than re-prompting Nano Banana per angle — more reliable than AI rotation-on-request, which was tested and found unreliable (a 45°-rotation prompt came back nearly identical to 0°).
 
-**Exit criteria:** Game looks like a finished product. All 54 launch sprites delivered.
+- [x] **3.1** Lock Classic Granny standing + firing as style template — delivered as `front`/`back`/`back_firing`, palette/outline/scale consistent across the roster (see re-plan note above)
+- [x] **3.2** Generate remaining 2 Granny standing + firing variants from template — Squirt Sister + Punk Granny delivered, same 3-pose set, consistency review passed live in-browser
+- [x] **3.3** Lock Drip Pistol 0° as gun style template — delivered, outline weight matched to grannies
+- [x] **3.4** Generate 8 angles for Drip Pistol + author `anchor.json` — 8 PNGs via mechanical PIL rotation of the locked 0° image (see re-plan note); anchor.json nozzle coordinates computed automatically (extremal-alpha-pixel-along-aim-direction, not hand-picked)
+- [x] **3.5** Build small HTML anchor-picker tool — superseded: automatic anchor computation (see 3.4) made manual picking unnecessary, no tool built
+- [x] **3.6** Generate remaining 5 guns × 8 angles + anchor data — all 6 guns × 8 angles (48 PNGs) + 6 `anchor.json` delivered and processed
+- [x] **3.7** Implement `Granny.ts` sprite-based rendering — done 2026-09-11. Swaps `back`/`back_firing` textures on fire state, idle breath tween preserved from the placeholder version, `getGunGripOrigin()` exposes the hand anchor for Gun.ts. Live-browser-verified: idle pose, firing-pose swap, and idle-breath all confirmed working for Classic Granny/Drip Pistol.
+- [x] **3.8** Implement `Gun.ts` with 8-angle rotation logic — done 2026-09-11. Snaps to nearest of the 8 pre-rotated angle sprites from live aim direction; `getNozzleWorldPosition()` (reading anchor.json) replaces the old generic gun-origin point as GameScene's water-particle spawn source. Live-verified rotating correctly across multiple aim directions and firing real water particles from the nozzle.
+  - **Bug caught + fixed during verification:** the hand-grip offset (`getGunGripOrigin()`) was originally computed against Granny's vertical *centre* rather than her feet, so the gun rendered up near her hair instead of in her hands. Re-derived from her feet position; the correct "up from feet" fraction (~58%) was pixel-measured against the real `back_firing.png` art rather than guessed, since her actual proportions (large stylised hair, short legs) don't match a generic humanoid assumption.
+- [x] **3.9** Optimise all PNGs — done via a custom pipeline (checkerboard-background removal + palette quantisation with explicit alpha preservation, `quantize_preserving_alpha()`) rather than pngquant specifically. Total sprites: 5.3 MB (grannies 1.8 MB, guns 1.8 MB, worlds 920 KB, UI 776 KB) — above the original "<1 MB" placeholder-art target, but expected once real illustrated art replaced flat-colour placeholders; full build is still 6.29 MB against the 8 MB Poki cap (1.71 MB headroom), so this isn't a budget risk.
+- [x] **3.10** Stress-test at 640×360 — live-verified 2026-09-11: both SplashScene (title lockup, all 3 carousels) and GameScene (background, spinners, Granny + Gun, HUD) render crisp and fully legible at Poki's smallest canonical size, nothing cropped or illegible.
+
+**Exit criteria:** ✅ Met. Game looks like a finished product — real sprite art carries the visual identity across splash and gameplay. 65 launch sprites delivered (9 granny poses + 48 gun angles + 6 anchor.json + 2 title images; the original "54" count assumed 5 poses/granny, superseded by the 3-pose re-plan above).
 
 ---
 
@@ -146,7 +149,7 @@ Build the new SplashScene with Granny + Gun carousel.
 - [x] **5.3** Build `SplashScene` matching CLAUDE.md §10 mockup — title, vault display, three carousels, PLAY
 - [x] **5.4** Wire unlock thresholds to vault total — locked items show a lock overlay + cost; tapping one *attempts to unlock* (spend + select on success, toast the shortfall on failure) — see the re-plan note below, this changed after 5.4 first shipped
 - [x] **5.6** World-select carousel, all 5 launch worlds (re-planned 2026-09-11 — see CLAUDE.md §14) — Garden free from run one, Workshop/Kitchen/Funfair/Disco purchasable at 500★/1,000★/1,500★/2,000★
-- [ ] **5.7** Create static + animated thumbnails — **deferred**, not skipped: a placeholder-art thumbnail isn't worth generating (it'd need regenerating the moment real sprites land). Revisit once ART_BRIEF.md's assets are in.
+- [ ] **5.7** Create static + animated thumbnails — **still deferred**, no longer for lack of art (real sprites landed 2026-09-11): a real animated WebM loop needs a render-capture pipeline (headless frame-by-frame capture + video encode) that doesn't exist yet, and it's lower-value than closing out Sprint 7's launch-readiness QA. Revisit once Sprint 7's checklist is otherwise clear — art dependency is gone, this is now pure remaining-effort deferral.
 
 **Exit criteria:** ✅ Met (except 5.7, deferred for a real reason above). Full game loop verified live end-to-end: splash → game (with the selected loadout actually passed through) → game over → splash, vault correctly shows the run's earned stars. Pipeline green throughout: lint, 35 tests, typecheck, build.
 

@@ -401,18 +401,21 @@ granny-spin-splash/
 │   ├── thumbnail-static.png           # 512×384 — Poki required
 │   ├── thumbnail-animated.webm        # 5s loop, no audio — Poki required
 │   ├── sprites/
-│   │   ├── grannies/                  # per-granny subfolder (ART_BRIEF.md, 2026-09-11) — 5 poses × 3 grannies = 15 files
+│   │   ├── grannies/                  # per-granny subfolder — delivered 2026-09-11 as 3 poses × 3 grannies = 9 files (re-plan below)
 │   │   │   ├── classic/
-│   │   │   │   ├── front.png / front_firing.png   # 256×384, gameplay tier
-│   │   │   │   └── three_quarter.png / side.png / back.png  # turnaround tier — carousel + Frenzy spin
-│   │   │   ├── squirt/  … (same 5 filenames)
-│   │   │   └── punk/    … (same 5 filenames)
+│   │   │   │   └── front.png / back.png / back_firing.png   # front = splash-carousel portrait; back/back_firing = actual gameplay sprites
+│   │   │   ├── squirt/  … (same 3 filenames)
+│   │   │   └── punk/    … (same 3 filenames)
 │   │   ├── guns/
 │   │   │   ├── pistol/
 │   │   │   │   ├── 0.png 45.png 90.png 135.png
 │   │   │   │   ├── 180.png 225.png 270.png 315.png
-│   │   │   │   └── anchor.json        # nozzle XY per angle
-│   │   │   └── … (12 guns × 8 angles = 96 files)
+│   │   │   │   └── anchor.json        # nozzle XY per angle, computed automatically (extremal alpha pixel along aim direction)
+│   │   │   └── … (6 launch guns × 8 angles = 48 files)
+│   │   ├── worlds/                    # one illustrated background per world (WORLD_BACKGROUND_BRIEF.md, delivered 2026-09-11)
+│   │   │   └── garden_bg.jpg / workshop_bg.jpg / kitchen_bg.jpg / funfair_bg.jpg / disco_bg.jpg
+│   │   ├── ui/                        # splash-screen title lockup (delivered 2026-09-11)
+│   │   │   └── wordmark.png / title_flourish.png
 │   │   └── icons/
 │   │       └── ui.svg                 # Single sprite sheet for all icons
 │   └── audio/
@@ -713,9 +716,7 @@ npm run build && npm run budget && npm run preview
 
 > **[ART_BRIEF.md](ART_BRIEF.md)** is the full, copy-paste-ready generation spec (2026-09-11) — palette table, per-pose filenames, generation order, character prompt seeds. This section stays the summary/roster source of truth; that file is what you actually work from in Nano Banana.
 
-Each character needs 5 poses (front standing/firing is what gameplay actually uses; the other 3 are a turnaround set for the splash-screen carousel and an optional Frenzy-trigger spin — left/right movement is a code-side horizontal flip, not separate art):
-- **Front standing + front firing** — 256×384 px, transparent PNG
-- **3/4 turn, side, and back — standing only** — 256×384 px, transparent PNG
+> **Re-plan (2026-09-11, delivered art):** §14's camera re-plan (player stands behind Granny, looking at the same wall she is) landed *after* ART_BRIEF.md's original 5-pose turnaround spec was written, and made most of it moot — gameplay only ever renders her from behind, so the 3/4-turn and side poses have no use. Each character ships **3 poses** instead: `front` (splash-carousel portrait only), `back` (gameplay idle), `back_firing` (gameplay firing — arms extended, gun-ready). All transparent PNGs, generated at a padded working canvas then content-tight-cropped (+4% margin) before shipping so runtime sprite-fitting (`frame.height`-based scaling in `Granny.ts`) has no dead space to account for.
 
 **Launch roster (3):**
 
@@ -1175,6 +1176,8 @@ Open scope questions are closed. Recorded here for posterity and for Claude Code
 | Timeline | Focused 8–9 weeks, priority 1 project | 2026-05-27 |
 | **World scope re-plan** | User asked ("I hope you will be building the different worlds... like in the prototype") whether to pull C1/C2/P3 into v1. Chose "add all 4 remaining worlds now": Workshop/Kitchen/Funfair/Disco ship in v1 alongside Garden, unlocked by vault stars (500★/1,000★/1,500★/2,000★) via a new 3rd SplashScene carousel. Brought obstacles (cat/umbrella/duck — previously an empty stub) and the Golden Spinner (previously spec'd but unwired) fully online as part of this, since Workshop/Kitchen need obstacles and Disco needs the Golden Spinner to mean anything. C1/C2/P3 struck from post-launch backlog accordingly. | 2026-09-11 |
 | **Unlock-purchase flow** | Found live-testing the new world carousel: `UnlockManager.unlockGranny/unlockGun` existed and were unit-tested but were never called from any UI — tapping a locked item only ever showed an "earn more" toast, so grannies/guns (and the new worlds) had no real way to be purchased with vault stars outside the 0★ starter set and the gun rewarded-ad grant. Fixed for all three carousels: a tap now attempts an unlock-and-select, spending vault stars on success. | 2026-09-11 |
+| **Granny pose re-plan** | ART_BRIEF.md's original 5-pose-per-granny spec (front/front_firing/3-quarter/side/back, a splash-carousel turnaround set) was written before §14's camera re-plan (player stands behind Granny). Delivered art ships 3 poses instead: `front` (carousel portrait only), `back`/`back_firing` (the only views gameplay ever needs, since her body never turns toward camera). See §8.1. | 2026-09-11 |
+| **Gun rotation via mechanical rotation, not re-prompting** | Tested asking Nano Banana to rotate a locked 0° gun image to 45° via text prompt — result was nearly identical to 0°, unreliable for precise angles. Switched to generating one locked 0° image per gun and mechanically rotating it through the other 7 angles with PIL (`Image.rotate`), with nozzle anchors computed automatically per angle (extremal alpha pixel along the aim direction) instead of hand-picked. Reliable and used for all 6 launch guns. | 2026-09-11 |
 
 **Remaining decisions blocking submission (not blocking dev):**
 1. Studio name — needed by Sprint 7
