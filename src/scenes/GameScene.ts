@@ -92,11 +92,43 @@ const FIRE_DENSITY_SCALE = 4;
 /** Combo tiers ≥ this shake (prototype: `if(combo>=4) shake(150, 0.005*(combo-2))`). */
 const COMBO_SHAKE_THRESHOLD = 4;
 
+/**
+ * Twin-barrel spacing, px (2026-09-12, direct user feedback: multi-stream
+ * guns needed streams "aligning to barrels of gun," not just wobble off
+ * one shared point). No gun's anchor.json actually authors a second
+ * nozzle position, so this offsets each stream a fixed distance
+ * perpendicular to the aim direction instead — a runtime approximation,
+ * not real per-barrel art, but reads as two barrels rather than one.
+ */
+const BARREL_SPACING_PX = 7;
+/** How many extra particles the opening-shot "blast surge" fires, as a multiple of the gun's own stream count. */
+const BLAST_SURGE_STREAM_MULTIPLIER = 3;
+/** Blast surge camera nudge — smaller than a combo shake, just enough to read as a kick. */
+const BLAST_SURGE_SHAKE_DURATION_MS = 90;
+const BLAST_SURGE_SHAKE_INTENSITY = 0.004;
+/** How many weak dying spurts fire the instant the tank actually runs dry (CLAUDE.md's "surprise and delight"). */
+const SPLUTTER_COUNT = 3;
+/** How far those spurts reach relative to their downward drop distance — short and weak, not a real shot. */
+const SPLUTTER_REACH_FRACTION = 0.35;
+
 /** Floating "+N ★" colour by combo multiplier tier — escalates with the combo, matching the prototype's `awardStars`. */
 function hitTextColour(multiplier: number): string {
   if (multiplier >= 4) return COLOUR_HEX.grannyPink;
   if (multiplier >= 2) return COLOUR_HEX.sunnyGold;
   return COLOUR_HEX.waterBlue;
+}
+
+/** Perpendicular unit vector to the origin->aim direction — barrel-spacing offsets ride along this. */
+function perpendicular(
+  originX: number,
+  originY: number,
+  aimX: number,
+  aimY: number,
+): { x: number; y: number } {
+  const dx = aimX - originX;
+  const dy = aimY - originY;
+  const dist = Math.max(1, Math.hypot(dx, dy));
+  return { x: -dy / dist, y: dx / dist };
 }
 
 export class GameScene extends Phaser.Scene {
@@ -122,6 +154,8 @@ export class GameScene extends Phaser.Scene {
   private _isPumping = false;
   private _pumpEndAt = 0;
   private _nextFireAt = 0;
+  /** Rising-edge detector for the opening-shot blast surge — true only the instant firing starts, not while held. */
+  private _wasFiring = false;
   private _timeRemainingMs = 0;
   private _started = false;
   private _roundOver = false;
@@ -309,6 +343,7 @@ export class GameScene extends Phaser.Scene {
     this._spinlockEndAt = 0;
     this._doubleStarsEndAt = 0;
     this._goldenSplashPending = false;
+    this._wasFiring = false;
   }
 
   /**
@@ -379,38 +414,84 @@ export class GameScene extends Phaser.Scene {
 
   /** Fires `gun.streams` pooled water particles on cadence while held and the tank isn't empty/pumping. */
   private _updateFiring(time: number, aim: ReturnType<typeof resolveAim>): void {
-    const canFire = this._input.isFiring() && !this._isPumping && this._waterTank > 0;
-    if (!canFire || time < this._nextFireAt) return;
+    const isFiringNow = this._input.isFiring();
+    const justStartedFiring = isFiringNow && !this._wasFiring;
+    this._wasFiring = isFiringNow;
 
+    const canFire = isFiringNow && !this._isPumping && this._waterTank > 0;
     const origin = this._gunSprite.getNozzleWorldPosition();
     const target = aim.target
       ? (this._activeSpinners().find((s) => s.id === aim.target?.id) ?? null)
       : null;
 
-    // Multi-stream guns (Splash Jr, Soaker 3000) fire several particles per
-    // cycle, all at the same aim point — each particle's own randomised
-    // wobble (WaterParticle.fire) is what gives them a visible spread.
-    for (let i = 0; i < this._gun.streams; i++) {
-      const particle = this._waterPool.get() as WaterParticle | null;
-      if (!particle) break;
-      particle.setAppearance(this._gun.particleColour, this._gun.sz);
-      particle.fire(origin.x, origin.y, aim.x, aim.y, target);
+    // Opening-shot blast surge (2026-09-12, direct user feedback: guns
+    // needed "an initial blast surge on press" — "surprise and delight").
+    // Fires once per press, not once per cadence tick, so holding fire
+    // doesn't repeatedly re-trigger it.
+    if (justStartedFiring && canFire) this._fireBlastSurge(origin, aim, target);
+
+    if (!canFire || time < this._nextFireAt) return;
+
+    // Multi-stream guns (Splash Jr, Soaker 3000) fire from offset barrel
+    // positions (2026-09-12: "aligning to barrels of gun," not just
+    // wobble off one shared point) — no anchor.json authors a real second
+    // nozzle, so this is a fixed perpendicular offset, not per-gun art.
+    const perp = perpendicular(origin.x, origin.y, aim.x, aim.y);
+    const streams = this._gun.streams;
+    for (let i = 0; i < streams; i++) {
+      const offset = (i - (streams - 1) / 2) * BARREL_SPACING_PX;
+      this._fireStream(
+        origin.x + perp.x * offset,
+        origin.y + perp.y * offset,
+        aim.x,
+        aim.y,
+        target,
+      );
     }
     // Super Soaker power-up: two extra angled streams alongside the main
     // one for its duration (prototype: `applyPowerup`'s `fx.soaker`).
     if (time < this._soakerEndAt) {
       for (const side of [-1, 1] as const) {
-        const extra = this._waterPool.get() as WaterParticle | null;
-        if (extra) {
-          extra.setAppearance(this._gun.particleColour, this._gun.sz);
-          extra.fire(origin.x, origin.y, aim.x, aim.y, target, side * SOAKER_EXTRA_WOBBLE);
-        }
+        this._fireStream(origin.x, origin.y, aim.x, aim.y, target, side * SOAKER_EXTRA_WOBBLE);
       }
     }
     // FIRE_DENSITY_SCALE: drain scales down with interval so the actual
     // drain-per-second is unchanged — see its own doc comment.
     this._waterTank = Math.max(0, this._waterTank - this._gun.drain / FIRE_DENSITY_SCALE);
     this._nextFireAt = time + this._gun.interval / FIRE_DENSITY_SCALE;
+  }
+
+  /** Pulls one particle from the pool, styles it to the current gun, and fires it — the one place that does both. */
+  private _fireStream(
+    originX: number,
+    originY: number,
+    aimX: number,
+    aimY: number,
+    target: Spinner | null,
+    extraWobble = 0,
+  ): void {
+    const particle = this._waterPool.get() as WaterParticle | null;
+    if (!particle) return;
+    particle.setAppearance(this._gun.particleColour, this._gun.sz);
+    particle.fire(originX, originY, aimX, aimY, target, extraWobble);
+  }
+
+  /**
+   * A one-off dense burst the instant firing starts (not on every cadence
+   * tick) — "surprise and delight," a satisfying kick rather than the
+   * stream just starting flat. Free: doesn't drain extra water beyond the
+   * regular shot that follows immediately after.
+   */
+  private _fireBlastSurge(
+    origin: { x: number; y: number },
+    aim: ReturnType<typeof resolveAim>,
+    target: Spinner | null,
+  ): void {
+    const count = this._gun.streams * BLAST_SURGE_STREAM_MULTIPLIER;
+    for (let i = 0; i < count; i++) {
+      this._fireStream(origin.x, origin.y, aim.x, aim.y, target, (Math.random() - 0.5) * 0.3);
+    }
+    this.cameras.main.shake(BLAST_SURGE_SHAKE_DURATION_MS, BLAST_SURGE_SHAKE_INTENSITY);
   }
 
   /** Starts a pump-refill once the tank hits empty, and completes it once its timer elapses. */
@@ -420,6 +501,7 @@ export class GameScene extends Phaser.Scene {
       this._pumpEndAt = time + PUMP_REFILL_MS;
       this._refillPrompt.setVisible(true);
       SFX.playPump();
+      this._fireSplutter();
     } else if (this._isPumping && time >= this._pumpEndAt) {
       this._isPumping = false;
       this._waterTank = this._gun.tank;
@@ -431,6 +513,31 @@ export class GameScene extends Phaser.Scene {
         this._granny.y - GRANNY_Y_FROM_BOTTOM,
         'REFILLED!',
         COLOUR_HEX.waterBlue,
+      );
+    }
+  }
+
+  /**
+   * A few weak dying dribbles the instant the tank actually runs dry
+   * (2026-09-12, direct user feedback — "splutter when tank empty" as
+   * part of the game's "surprise and delight"), instead of the stream
+   * just cutting off flat. Aimed short and downward, not at the
+   * crosshair — this is the gun coughing, not a real shot.
+   */
+  private _fireSplutter(): void {
+    const origin = this._gunSprite.getNozzleWorldPosition();
+    for (let i = 0; i < SPLUTTER_COUNT; i++) {
+      const particle = this._waterPool.get() as WaterParticle | null;
+      if (!particle) break;
+      particle.setAppearance(this._gun.particleColour, this._gun.sz * 0.7);
+      const spreadX = (Math.random() - 0.5) * 30;
+      const dropY = 40 + Math.random() * 30;
+      particle.fire(
+        origin.x,
+        origin.y,
+        origin.x + spreadX,
+        origin.y + dropY * SPLUTTER_REACH_FRACTION,
+        null,
       );
     }
   }
