@@ -1,11 +1,27 @@
 /**
  * GUN_DEFS — launch roster of 6 guns × 8 angles each (CLAUDE.md §8.2).
- * Tier + cost are locked by spec; tank/drain/interval/streams/sz are
- * still first-pass placeholders. `power` values were tuned in Sprint 2
- * story 2.8 against a live-simulated player (manual frame-stepping —
- * see BACKLOG.md's Sprint 2 notes) who commits to one spinner at a time
- * until it hits FULL, then moves to whichever spinner is lowest, swept
- * against Garden's 12-spinner wall.
+ * Tier + cost are locked by spec.
+ *
+ * **`tank` is sized so continuous fire lasts the whole round** (2026-09-12,
+ * direct user feedback: "the water tank empties and then everything stops...
+ * the water tank should last for the 30 seconds"). Each value is
+ * `drain / (interval/1000) × ROUND_LENGTH_SECONDS × ~1.05`. Before this the
+ * pistol ran dry after 13s of a 30s round and Inferno after **4.4s** — so the
+ * better your gun, the more the run stopped dead, which is exactly backwards,
+ * and with aim-to-fire it happened every round. Worse, it gutted the headline
+ * feature: every instrument's gain tracks its spinner's charge (§9.1.1), so a
+ * dry tank silences the orchestra mid-build.
+ *
+ * The pump is now a safety net for edge cases (a power-up burst, a very
+ * trigger-happy player) rather than a rhythm the round is built around, and
+ * the water bar becomes a second clock: it drains to nearly empty exactly as
+ * time runs out, warming Water Blue → Gold → Heat Orange on the way
+ * (`ui/WaterBar.ts`), which gives the round a visible tension curve for free.
+ *
+ * `power` was tuned against a live-simulated player (manual frame-stepping —
+ * see BACKLOG.md) who commits to one spinner at a time until it hits FULL,
+ * then moves to whichever spinner is lowest, swept against Garden's
+ * 12-spinner wall.
  *
  * The original placeholders gave pistol an effective DPS
  * (power × streams / interval) of ~27/s — confirmed live to never reach
@@ -71,7 +87,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     spriteKey: 'gun_pistol',
     tier: 1,
     cost: 0,
-    tank: 60,
+    tank: 150,
     drain: 1,
     interval: 220,
     power: 90,
@@ -91,7 +107,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     spriteKey: 'gun_squirter',
     tier: 1,
     cost: 0,
-    tank: 80,
+    tank: 160,
     drain: 1,
     interval: 200,
     power: 92,
@@ -107,7 +123,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     spriteKey: 'gun_hose',
     tier: 2,
     cost: 200,
-    tank: 100,
+    tank: 395,
     drain: 2,
     interval: 160,
     power: 83,
@@ -123,7 +139,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     spriteKey: 'gun_splashjr',
     tier: 2,
     cost: 500,
-    tank: 110,
+    tank: 420,
     drain: 2,
     interval: 150,
     power: 43,
@@ -140,7 +156,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     spriteKey: 'gun_soaker3000',
     tier: 3,
     cost: 1200,
-    tank: 140,
+    tank: 490,
     drain: 2,
     interval: 130,
     power: 40,
@@ -156,7 +172,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     spriteKey: 'gun_inferno',
     tier: 4,
     cost: 5000,
-    tank: 120,
+    tank: 865,
     drain: 3,
     interval: 110,
     power: 77,

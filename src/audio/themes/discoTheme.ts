@@ -169,6 +169,8 @@ export const DISCO_THEME: WorldTheme = {
   id: 'disco',
   beatSeconds: BEAT_SECONDS,
   barSeconds: BAR_SECONDS,
+  /** A minor — matches A2/C3/E3 above. See WorldTheme.padHz. */
+  padHz: [110, 130.81, 164.81],
   voices: {
     foundation,
     spinner0: discoBass,

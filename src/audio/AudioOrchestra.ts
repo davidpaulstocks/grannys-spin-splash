@@ -27,7 +27,13 @@
  */
 
 import { audioBus } from './AudioBus';
-import { DEFAULT_THEME_ID, resolveTheme, SPINNER_SLOTS, type VoiceSlot, type WorldTheme } from './themes';
+import {
+  DEFAULT_THEME_ID,
+  resolveTheme,
+  SPINNER_SLOTS,
+  type VoiceSlot,
+  type WorldTheme,
+} from './themes';
 
 /** How far ahead of the audio clock bars are scheduled, and how often we top that up. */
 const LOOKAHEAD_SECONDS = 0.4;
@@ -44,6 +50,73 @@ const FOUNDATION_GAIN = 0.5;
 const DROP_BASS_GAIN = 0.7;
 
 const NOISE_SECONDS = 2;
+
+/**
+ * Reverb. Every voice was previously bone dry, which is the main reason a
+ * stack of synthesised tones read as "a pile of oscillators" rather than an
+ * orchestra — dry synthesis has no space, no tail and no blend, so nine
+ * layers just crowd the same point. A generated impulse response through a
+ * ConvolverNode costs no asset bytes and is what turns the same notes into
+ * something that sounds like a room.
+ *
+ * Sent-not-inserted: each layer feeds the send in parallel with its dry
+ * path, so quiet layers stay quiet and the wet tail is shared. The send
+ * level rises with the round arc below — space opening up as the music
+ * builds is a large part of why a crescendo feels like one.
+ */
+const REVERB_SECONDS = 2.6;
+const REVERB_DECAY_POWER = 2.6;
+/** Wet level at round start → at the crescendo. */
+const REVERB_SEND_MIN = 0.18;
+const REVERB_SEND_MAX = 0.42;
+/** Pre-reverb lowpass: keeps the tail warm instead of hissy. */
+const REVERB_TONE_HZ = 3200;
+
+/**
+ * The round arc (2026-09-12, direct user request: "the soundtrack should
+ * escalate... they should reach a crescendo by the end of the 30 seconds").
+ *
+ * The mix used to be purely reactive: layer gain tracked spinner charge and
+ * nothing else, so a player holding a steady wall heard a steady, static
+ * texture for thirty seconds — no arc, no payoff. `setRoundProgress()` adds
+ * a second, independent axis: 0 at the whistle, 1 at the final second. It
+ * does NOT simply raise the volume, which would just get louder and more
+ * tiring; it opens the mix up —
+ *
+ *  - the master tone filter sweeps open, so the top end arrives gradually
+ *    and the last ten seconds sound bright rather than merely loud
+ *  - the reverb send rises, so the space grows around the same notes
+ *  - a floor is added under every spinner layer, so late in the round even
+ *    a half-charged spinner still contributes to a full-sounding wall
+ *
+ * Charge still drives which instruments you hear; the arc drives how big the
+ * room they play in feels.
+ */
+/**
+ * The always-on ambient bed. See WorldTheme.padHz for the measurement that
+ * showed it was missing: every other voice, foundation included, is rhythmic,
+ * so a sparsely-charged wall produced isolated blips over silence rather than
+ * anything that reads as music. This holds the theme's triad on persistent
+ * oscillators for the whole round — two slightly detuned saws per note
+ * through one shared lowpass, which is the cheapest way to get a warm,
+ * moving pad rather than three static sine tones.
+ *
+ * It sits under everything and rises modestly with the arc: present from the
+ * first second, never the loudest thing, and the reason the gaps are gone.
+ */
+const PAD_DETUNE_CENTS = 7;
+const PAD_GAIN_MIN = 0.1;
+const PAD_GAIN_MAX = 0.2;
+const PAD_FILTER_MIN_HZ = 420;
+const PAD_FILTER_MAX_HZ = 1500;
+/** Slow filter drift so the bed breathes instead of sitting perfectly still. */
+const PAD_LFO_HZ = 0.07;
+const PAD_LFO_DEPTH_HZ = 160;
+
+const TONE_SWEEP_MIN_HZ = 900;
+const TONE_SWEEP_MAX_HZ = 15000;
+const LAYER_FLOOR_AT_CRESCENDO = 0.3;
+const ARC_SMOOTHING_SECONDS = 0.6 / 3;
 
 /**
  * Output limiter + trim. Measured live at Frenzy in Disco (20 spinners, every
@@ -69,6 +142,15 @@ export class AudioOrchestra {
   private _noise: AudioBuffer | null = null;
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _theme: WorldTheme = resolveTheme(DEFAULT_THEME_ID);
+  private _padNodes: {
+    osc: OscillatorNode[];
+    lfo: OscillatorNode;
+    gain: GainNode;
+    filter: BiquadFilterNode;
+  } | null = null;
+  private _reverbSend: GainNode | null = null;
+  private _toneFilter: BiquadFilterNode | null = null;
+  private _roundProgress = 0;
   private _nextBarTime = 0;
   private _bar = 0;
   private _running = false;
@@ -111,17 +193,41 @@ export class AudioOrchestra {
       this._limiter.attack.value = 0.001;
       this._limiter.release.value = 0.25;
       this._limiter.connect(this._out);
+
+      // Master tone control, swept open by the round arc. Sits before the
+      // limiter so the limiter sees the same spectrum the player hears.
+      this._toneFilter = ctx.createBiquadFilter();
+      this._toneFilter.type = 'lowpass';
+      this._toneFilter.frequency.value = TONE_SWEEP_MIN_HZ;
+      this._toneFilter.Q.value = 0.0001; // no resonant peak — this is a tone tilt, not an effect
+      this._toneFilter.connect(this._limiter);
+
+      // Shared reverb send: layer -> sendGain -> damping -> convolver -> limiter.
+      const convolver = ctx.createConvolver();
+      convolver.buffer = this._createImpulse(ctx);
+      const damping = ctx.createBiquadFilter();
+      damping.type = 'lowpass';
+      damping.frequency.value = REVERB_TONE_HZ;
+      this._reverbSend = ctx.createGain();
+      this._reverbSend.gain.value = REVERB_SEND_MIN;
+      this._reverbSend.connect(damping);
+      damping.connect(convolver);
+      convolver.connect(this._limiter);
       // Slot IDs are theme-agnostic (see class doc comment) — build once,
       // reused unchanged across every world for the rest of the session.
       const slotIds: VoiceSlot[] = ['foundation', ...SPINNER_SLOTS, 'dropBass'];
       for (const id of slotIds) {
         const gain = ctx.createGain();
         gain.gain.value = 0;
-        gain.connect(this._limiter);
+        gain.connect(this._toneFilter);
+        gain.connect(this._reverbSend); // parallel wet path, see REVERB_SECONDS
         this._layers.set(id, gain);
       }
     }
     this._setGain('foundation', FOUNDATION_GAIN);
+    this._startPad(ctx);
+    this._roundProgress = 0;
+    this._applyArc(0);
     this._nextBarTime = ctx.currentTime + 0.08;
     this._bar = 0;
     this._running = true;
@@ -137,6 +243,14 @@ export class AudioOrchestra {
       this._timer = null;
     }
     for (const gain of this._layers.values()) gain.gain.value = 0;
+    if (this._padNodes) {
+      // Oscillators can't be restarted, so they're discarded rather than
+      // paused — start() builds a fresh set for the next round.
+      this._padNodes.gain.gain.value = 0;
+      for (const osc of this._padNodes.osc) osc.stop();
+      this._padNodes.lfo.stop();
+      this._padNodes = null;
+    }
   }
 
   /**
@@ -153,8 +267,14 @@ export class AudioOrchestra {
       const id = SPINNER_SLOTS[i % SPINNER_SLOTS.length];
       targets.set(id, Math.max(targets.get(id) ?? 0, Math.min(1, Math.max(0, spinner.charge))));
     });
+    // Late in the round every contributing layer keeps a floor under it, so
+    // the wall sounds full even where a spinner is only half charged — see
+    // the round-arc comment. A spinner at zero stays silent either way.
+    const floor = LAYER_FLOOR_AT_CRESCENDO * this._roundProgress * this._roundProgress;
     for (const id of SPINNER_SLOTS) {
-      this._setGain(id, (targets.get(id) ?? 0) * LAYER_HEADROOM);
+      const charge = targets.get(id) ?? 0;
+      const lifted = charge > 0.001 ? Math.min(1, charge + floor * (1 - charge)) : 0;
+      this._setGain(id, lifted * LAYER_HEADROOM);
     }
   }
 
@@ -198,6 +318,102 @@ export class AudioOrchestra {
       this._nextBarTime += this._theme.barSeconds;
       this._bar++;
     }
+  }
+
+  /**
+   * How far through the round we are, 0..1 — call once per frame. Drives the
+   * crescendo (see TONE_SWEEP_MIN_HZ's comment for what it actually changes).
+   */
+  setRoundProgress(progress: number): void {
+    const clamped = Math.min(1, Math.max(0, progress));
+    if (Math.abs(clamped - this._roundProgress) < 0.002) return;
+    this._roundProgress = clamped;
+    this._applyArc(clamped);
+  }
+
+  /**
+   * Eased so the last third of the round carries most of the change —
+   * a linear sweep spends its budget early and then flattens out exactly
+   * when the player expects it to be building.
+   */
+  private _applyArc(progress: number): void {
+    const ctx = this._ctx;
+    if (!ctx) return;
+    const eased = progress * progress;
+    const now = ctx.currentTime;
+    if (this._toneFilter) {
+      const hz = TONE_SWEEP_MIN_HZ + (TONE_SWEEP_MAX_HZ - TONE_SWEEP_MIN_HZ) * eased;
+      this._toneFilter.frequency.setTargetAtTime(hz, now, ARC_SMOOTHING_SECONDS);
+    }
+    if (this._reverbSend) {
+      const wet = REVERB_SEND_MIN + (REVERB_SEND_MAX - REVERB_SEND_MIN) * eased;
+      this._reverbSend.gain.setTargetAtTime(wet, now, ARC_SMOOTHING_SECONDS);
+    }
+    if (this._padNodes) {
+      const padGain = PAD_GAIN_MIN + (PAD_GAIN_MAX - PAD_GAIN_MIN) * eased;
+      this._padNodes.gain.gain.setTargetAtTime(padGain, now, ARC_SMOOTHING_SECONDS);
+      const padHz = PAD_FILTER_MIN_HZ + (PAD_FILTER_MAX_HZ - PAD_FILTER_MIN_HZ) * eased;
+      this._padNodes.filter.frequency.setTargetAtTime(padHz, now, ARC_SMOOTHING_SECONDS);
+    }
+  }
+
+  /** Builds and starts the continuous bed. See PAD_DETUNE_CENTS's comment. */
+  private _startPad(ctx: AudioContext): void {
+    if (this._padNodes || !this._toneFilter || !this._reverbSend) return;
+    const gain = ctx.createGain();
+    gain.gain.value = PAD_GAIN_MIN;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = PAD_FILTER_MIN_HZ;
+    filter.Q.value = 0.7;
+    filter.connect(gain);
+    gain.connect(this._toneFilter);
+    gain.connect(this._reverbSend);
+
+    const osc: OscillatorNode[] = [];
+    for (const hz of this._theme.padHz) {
+      for (const cents of [-PAD_DETUNE_CENTS, PAD_DETUNE_CENTS]) {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = hz;
+        o.detune.value = cents;
+        const voiceGain = ctx.createGain();
+        voiceGain.gain.value = 1 / (this._theme.padHz.length * 2);
+        o.connect(voiceGain);
+        voiceGain.connect(filter);
+        o.start();
+        osc.push(o);
+      }
+    }
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = PAD_LFO_HZ;
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = PAD_LFO_DEPTH_HZ;
+    lfo.connect(lfoDepth);
+    lfoDepth.connect(filter.frequency);
+    lfo.start();
+
+    this._padNodes = { osc, lfo, gain, filter };
+  }
+
+  /**
+   * A synthesised impulse response: exponentially-decaying noise, stereo,
+   * with the two channels decorrelated so the tail has width. Cheaper and
+   * smaller than shipping an IR file, and entirely adequate for a hall-ish
+   * ambience behind lo-fi voices.
+   */
+  private _createImpulse(ctx: AudioContext): AudioBuffer {
+    const length = Math.floor(ctx.sampleRate * REVERB_SECONDS);
+    const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const data = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const decay = Math.pow(1 - i / length, REVERB_DECAY_POWER);
+        data[i] = (Math.random() * 2 - 1) * decay;
+      }
+    }
+    return impulse;
   }
 
   private _createNoise(ctx: AudioContext): AudioBuffer {

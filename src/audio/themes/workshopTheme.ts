@@ -133,6 +133,8 @@ export const WORKSHOP_THEME: WorldTheme = {
   id: 'workshop',
   beatSeconds: BEAT_SECONDS,
   barSeconds: BAR_SECONDS,
+  /** D minor — matches D3/F3/A3 above. See WorldTheme.padHz. */
+  padHz: [146.83, 174.61, 220],
   voices: {
     foundation,
     spinner0: clang,

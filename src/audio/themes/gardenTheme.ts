@@ -113,6 +113,8 @@ export const GARDEN_THEME: WorldTheme = {
   id: 'garden',
   beatSeconds: BEAT_SECONDS,
   barSeconds: BAR_SECONDS,
+  /** C major — matches C3/E3/G3 above. See WorldTheme.padHz. */
+  padHz: [130.81, 164.81, 196.0],
   voices: {
     foundation,
     spinner0: birdChirp,

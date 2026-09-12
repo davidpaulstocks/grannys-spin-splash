@@ -246,6 +246,11 @@ export class GameScene extends Phaser.Scene {
     audioOrchestra.updateMix(
       this._spinners.map((s) => ({ charge: s.currentSpeed / MAX_SPINNER_SPEED })),
     );
+    // Second, independent audio axis: how far through the round we are, which
+    // drives the crescendo (AudioOrchestra.setRoundProgress). Charge decides
+    // which instruments play; this decides how big the room sounds.
+    const roundMs = this._world.time * 1000;
+    audioOrchestra.setRoundProgress(roundMs > 0 ? 1 - this._timeRemainingMs / roundMs : 0);
     const claim = this._golden.update(time, delta);
     if (claim) this._onGoldenClaimed(claim);
 

@@ -49,6 +49,17 @@ export interface WorldTheme {
   readonly beatSeconds: number;
   readonly barSeconds: number;
   readonly voices: Readonly<Record<VoiceSlot, VoiceFn>>;
+  /**
+   * The triad the always-on ambient bed holds, in Hz, low to high
+   * (2026-09-12). Measured why it was needed: sampling the orchestra's own
+   * output through an AnalyserNode across a live round gave RMS readings
+   * swinging between 0 and 0.21 two seconds apart — with only a few spinners
+   * charged, the mix is isolated blips over near-silence, because every voice
+   * including the "foundation" is rhythmic. An ASMR bed has to be
+   * *continuous*, so `AudioOrchestra` holds these three notes on persistent
+   * oscillators for the whole round and never schedules them per bar.
+   */
+  readonly padHz: readonly [number, number, number];
   /** Frenzy's one-shot cinematic hit — fired directly, not scheduled as a looping layer. Themed per world like everything else. */
   readonly cinematicHit: (ctx: AudioContext, dest: AudioNode, noise: AudioBuffer) => void;
 }

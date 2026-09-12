@@ -6,12 +6,7 @@
  * stand in for a calliope; a top carousel-bell voice completes the ride.
  */
 
-import {
-  filteredNoiseBurst,
-  filteredTone,
-  tone,
-  type VoiceContext,
-} from '../synthPrimitives';
+import { filteredNoiseBurst, filteredTone, tone, type VoiceContext } from '../synthPrimitives';
 import type { WorldTheme } from './theme.types';
 
 const BEAT_SECONDS = 60 / 108;
@@ -128,6 +123,8 @@ export const FUNFAIR_THEME: WorldTheme = {
   id: 'funfair',
   beatSeconds: BEAT_SECONDS,
   barSeconds: BAR_SECONDS,
+  /** G major — matches G3/B3/D4 above. See WorldTheme.padHz. */
+  padHz: [196.0, 246.94, 293.66],
   voices: {
     foundation,
     spinner0: calliopeStab,

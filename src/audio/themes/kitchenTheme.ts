@@ -37,7 +37,14 @@ function glassPluck(c: VoiceContext): void {
 /** Whisk-against-bowl tremolo — quick alternating high ticks, faster than any other world's hi-hat slot. */
 function whiskTremolo(c: VoiceContext): void {
   for (let i = 0; i < 12; i++) {
-    filteredNoiseBurst(c, i * (BEAT_SECONDS / 3), 0.035, i % 3 === 0 ? 0.24 : 0.13, 'highpass', 6500);
+    filteredNoiseBurst(
+      c,
+      i * (BEAT_SECONDS / 3),
+      0.035,
+      i % 3 === 0 ? 0.24 : 0.13,
+      'highpass',
+      6500,
+    );
   }
 }
 
@@ -105,6 +112,8 @@ export const KITCHEN_THEME: WorldTheme = {
   id: 'kitchen',
   beatSeconds: BEAT_SECONDS,
   barSeconds: BAR_SECONDS,
+  /** F major — matches F3/A3/C4 above. See WorldTheme.padHz. */
+  padHz: [174.61, 220, 261.63],
   voices: {
     foundation,
     spinner0: glassPluck,
