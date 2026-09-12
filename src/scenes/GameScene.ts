@@ -22,7 +22,6 @@ import {
   PUMP_REFILL_MS,
   SOAKER_EXTRA_WOBBLE,
   URGENT_COUNTDOWN_SECONDS,
-  WALL_AREA,
   WATER_BAR_Y,
   WATER_PARTICLE_MAX_POOL,
 } from '../config';
@@ -30,30 +29,21 @@ import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
 import { Obstacle } from '../entities/obstacle/Obstacle';
 import { POWERUP_DEFS, type PowerUpEffect } from '../entities/powerup/powerup.data';
 import { PowerUpSpawner } from '../entities/powerup/PowerUpSpawner';
-import {
-  MAX_SPINNER_SPEED,
-  MOUNT_RADIUS_SCALE,
-  SPINNER_DEFS,
-} from '../entities/spinner/spinner.data';
+import { MAX_SPINNER_SPEED } from '../entities/spinner/spinner.data';
 import {
   DEFAULT_WORLD_ID,
   EASTER_EGG_CHANCE,
-  GOLDEN_LIFETIME_MS,
-  GOLDEN_SPAWN_DELAY_MS,
-  MOUNT_BY_WORLD,
-  SPARKLE_WORLDS,
-  SPINNER_PALETTE_BY_WORLD,
   WORLD_EASTER_EGG,
-  WORLD_STYLE_OVERRIDE,
-  WORLD_TYPE_PALETTE,
   WORLD_DEFS,
 } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
+import { buildObstacles, buildWall, wallAreaFor } from '../entities/world/wallBuilder';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
 import { Gun } from '../entities/gun/Gun';
 import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
+import { GoldenSpinnerSpawner, type GoldenClaim } from '../entities/spinner/GoldenSpinnerSpawner';
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
 import { spawnConfetti, spawnSparks, spawnSplash } from '../entities/waterParticle/splashVFX';
 import * as poki from '../poki';
@@ -69,27 +59,17 @@ import * as SFX from '../audio/SFX';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
-import {
-  SpinnerState,
-  type SpinnerDef,
-  type SpinnerStyle,
-} from '../entities/spinner/spinner.types';
+import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { spawnFloatingText } from '../ui/FloatingText';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createRefillPrompt } from '../ui/RefillPrompt';
-import { showToast } from '../ui/Toast';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { computeGridPositions, fitScaleForGrid } from '../utils/grid';
-import { distance, resolveAim } from '../utils/math';
-import { DURATION, EASE } from '../utils/tween';
+import { resolveAim } from '../utils/math';
 import type { HUDScene } from './HUDScene';
 
 /** How close to the canvas edges a Duck obstacle may wander before bouncing back (prototype: 60px). */
 const DUCK_BOUNCE_MARGIN = 60;
-/** Funfair-only: how many spinners drift, and the drift radius (prototype: 3 spinners, 55px). */
-const MOVING_TARGET_COUNT = 3;
-const MOVING_TARGET_DRIFT_RANGE = 55;
 
 /**
  * Visual-only stream density (2026-09-12, direct user feedback: "the
@@ -180,9 +160,7 @@ export class GameScene extends Phaser.Scene {
   private _lastUrgentSecond = -1;
 
   // Bonus Golden Spinner — spawns outside the fixed grid, own lifetime, not part of `_spinners`/FrenzyMeter.
-  private _goldenSpinner: Spinner | null = null;
-  private _goldenLifetimeMs = 0;
-  private _goldenSpawnAt = 0;
+  private _golden!: GoldenSpinnerSpawner;
 
   // Power-ups (CLAUDE.md §1) — see PowerUpSpawner.ts for spawn/lifetime/collision; these are the
   // active-effect windows GameScene itself has to track to actually change gameplay.
@@ -216,10 +194,14 @@ export class GameScene extends Phaser.Scene {
     this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
 
     drawWorldBackground(this, this._world.id);
-    this._buildWall(this._world.grid.cols, this._world.grid.rows, this._world.types);
-    this._applyMovingTargets();
-    this._buildObstacles();
-    this._scheduleNextGolden();
+    this._spinners = buildWall(this, this._world);
+    this._obstacles = buildObstacles(this, this._world, this._spinners);
+    this._golden = new GoldenSpinnerSpawner(
+      this,
+      this._world.goldenFrequent === true,
+      wallAreaFor(this._world),
+      this._spinners,
+    );
     this._powerupSpawner = new PowerUpSpawner(this);
     this._granny = new Granny(
       this,
@@ -246,6 +228,7 @@ export class GameScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this._input.destroy();
+      this._golden.destroy();
       // Covers every way this scene can end — round over, quit from pause,
       // or a direct scene.stop() — so the music can never outlive the run.
       audioOrchestra.stop();
@@ -280,7 +263,8 @@ export class GameScene extends Phaser.Scene {
     audioOrchestra.updateMix(
       this._spinners.map((s) => ({ charge: s.currentSpeed / MAX_SPINNER_SPEED })),
     );
-    this._updateGolden(time, delta);
+    const claim = this._golden.update(time, delta);
+    if (claim) this._onGoldenClaimed(claim);
 
     for (const obstacle of this._obstacles) {
       obstacle.update(
@@ -355,8 +339,7 @@ export class GameScene extends Phaser.Scene {
   private _resetRoundState(): void {
     this._spinners = [];
     this._obstacles = [];
-    this._goldenSpinner = null;
-    this._goldenLifetimeMs = 0;
+
     this._score = 0;
     this._started = false;
     this._roundOver = false;
@@ -372,91 +355,10 @@ export class GameScene extends Phaser.Scene {
     this._wasFiring = false;
   }
 
-  /**
-   * Builds the spinner wall: an even grid within this world's own
-   * art-matched mounting area (see `_wallArea`), kinds cycled
-   * round-robin from the world's roster. Each spinner's colours are
-   * overridden to its world's palette (SPINNER_PALETTE_BY_WORLD) rather
-   * than the shared type's own — see that constant's doc comment for why
-   * (2026-09-12, direct user feedback: spinners needed to feel specific
-   * to the world they're in, not just to their mechanical type).
-   */
-  private _buildWall(cols: number, rows: number, kinds: readonly string[]): void {
-    const positions = computeGridPositions(
-      cols,
-      rows,
-      this._wallArea.x,
-      this._wallArea.y,
-      this._wallArea.width,
-      this._wallArea.height,
-    );
-    const palette = SPINNER_PALETTE_BY_WORLD[this._world.id];
-    const typePalettes = WORLD_TYPE_PALETTE[this._world.id];
-    const styleOverrides = WORLD_STYLE_OVERRIDE[this._world.id];
-    const sparkle = SPARKLE_WORLDS.has(this._world.id);
-    const mount = MOUNT_BY_WORLD[this._world.id];
-    // A mount plate draws wider than the spinner it backs, so it — not the
-    // blades — is what must fit inside the cell.
-    const maxRadius =
-      Math.max(...kinds.map((k) => SPINNER_DEFS.find((d) => d.type === k)?.r ?? 0)) *
-      (mount ? MOUNT_RADIUS_SCALE : 1);
-    const fit = fitScaleForGrid(cols, rows, this._wallArea.width, this._wallArea.height, maxRadius);
-    positions.forEach((pos, i) => {
-      const kind = kinds[i % kinds.length];
-      const def = SPINNER_DEFS.find((d) => d.type === kind);
-      if (!def) throw new Error(`No SPINNER_DEFS entry for kind "${kind}"`);
-      // Only visual fields are overridden — `type`/`decay`/`power`/`blades`/
-      // `deflects` stay exactly as SPINNER_DEFS defines them, so a Workshop
-      // whirligig drawn as a sawblade still deflects like any whirligig.
-      const bespokeStyle = styleOverrides?.[kind] as SpinnerStyle | undefined;
-      const colours = typePalettes?.[kind] ?? palette;
-      const themedDef: SpinnerDef = {
-        ...def,
-        r: def.r * fit,
-        ...(colours ? { colors: colours } : {}),
-        ...(bespokeStyle ? { style: bespokeStyle } : {}),
-        ...(sparkle ? { sparkle: true } : {}),
-        ...(mount ? { mount } : {}),
-      };
-      this._spinners.push(new Spinner(this, pos.x, pos.y, themedDef));
-    });
-  }
-
-  /** Funfair-only: picks a few spinners at random and sets them drifting side to side (CLAUDE.md §1). */
-  private _applyMovingTargets(): void {
-    if (!this._world.movingTargets) return;
-    const picks = Phaser.Utils.Array.Shuffle([...this._spinners]).slice(0, MOVING_TARGET_COUNT);
-    for (const spinner of picks) {
-      spinner.setDrift(MOVING_TARGET_DRIFT_RANGE, 0.4 + Math.random() * 0.4);
-    }
-  }
-
-  /** Spawns this world's cat/umbrella/duck roster (CLAUDE.md §1, §4) within the spinner wall's play field. */
-  private _buildObstacles(): void {
-    const bounds = {
-      x0: this._wallArea.x,
-      y0: this._wallArea.y,
-      x1: this._wallArea.x + this._wallArea.width,
-      y1: this._wallArea.y + this._wallArea.height,
-    };
-    this._obstacles = this._world.obstacles.map(
-      (kind) => new Obstacle(this, kind, bounds, this._spinners),
-    );
-  }
-
-  /**
-   * Where this world's spinners, obstacles and bonus spawns mount —
-   * the world's own art-matched rectangle (WorldDef.wallArea) if it has
-   * one, else config.ts's generic WALL_AREA. See WorldDef.wallArea's doc
-   * comment for why each world needed its own.
-   */
-  private get _wallArea(): { x: number; y: number; width: number; height: number } {
-    return this._world.wallArea ?? WALL_AREA;
-  }
-
   /** The fixed grid roster plus a live Golden Spinner, if one is currently spawned — for aim/fire/collision only. */
   private _activeSpinners(): readonly Spinner[] {
-    return this._goldenSpinner ? [...this._spinners, this._goldenSpinner] : this._spinners;
+    const golden = this._golden.live;
+    return golden ? [...this._spinners, golden] : this._spinners;
   }
 
   /** Resolves the crosshair position against the spinner wall and updates its visual snap feedback. */
@@ -712,11 +614,12 @@ export class GameScene extends Phaser.Scene {
 
   /** Advances every live power-up pickup and applies the effect of any just collected (CLAUDE.md §1). */
   private _updatePowerups(time: number, delta: number): void {
+    const area = wallAreaFor(this._world);
     const bounds = {
-      x0: this._wallArea.x,
-      y0: this._wallArea.y,
-      x1: this._wallArea.x + this._wallArea.width,
-      y1: this._wallArea.y + this._wallArea.height,
+      x0: area.x,
+      y0: area.y,
+      x1: area.x + area.width,
+      y1: area.y + area.height,
     };
     const particles = this._waterPool.getChildren() as WaterParticle[];
     const collected = this._powerupSpawner.update(time, delta, bounds, this._spinners, particles);
@@ -767,76 +670,17 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Ticks the live Golden Spinner (claim-on-FULL or lifetime expiry), or checks whether it's time to spawn one. */
-  private _updateGolden(time: number, delta: number): void {
-    const golden = this._goldenSpinner;
-    if (!golden) {
-      if (time >= this._goldenSpawnAt) this._spawnGolden();
-      return;
-    }
-
-    const result = golden.update(time, delta);
-    if (result?.leveledUp && result.state === SpinnerState.FULL) {
-      this._score += golden.def.stars;
-      spawnFloatingText(
-        this,
-        golden.x,
-        golden.y - golden.def.r - 12,
-        `GOLDEN! +${golden.def.stars} ★`,
-        COLOUR_HEX.sunnyGold,
-      );
-      SFX.playUpgrade(STATE_ORDINAL[SpinnerState.FULL]);
-      this._despawnGolden(false);
-      return;
-    }
-    this._goldenLifetimeMs -= delta;
-    if (this._goldenLifetimeMs <= 0) this._despawnGolden(true);
-  }
-
-  /** Spawns a bonus Golden Spinner at a random point clear of the grid (CLAUDE.md §1). */
-  private _spawnGolden(): void {
-    const def = SPINNER_DEFS.find((d) => d.type === 'golden');
-    if (!def) return;
-
-    let x = this._wallArea.x;
-    let y = this._wallArea.y;
-    for (let tries = 0; tries < 20; tries++) {
-      x = this._wallArea.x + Math.random() * this._wallArea.width;
-      y = this._wallArea.y + Math.random() * this._wallArea.height;
-      if (this._spinners.every((s) => distance(x, y, s.x, s.y) > 65)) break;
-    }
-
-    this._goldenSpinner = new Spinner(this, x, y, def);
-    this._goldenLifetimeMs = GOLDEN_LIFETIME_MS;
-    showToast(this, x, y - def.r - 20, 'Golden Spinner appeared!');
-    SFX.playGoldenAppear();
-  }
-
-  /** Removes the live Golden Spinner with a shrink-and-fade, then schedules the next one. */
-  private _despawnGolden(playExpireSfx: boolean): void {
-    const golden = this._goldenSpinner;
-    if (!golden) return;
-    this._goldenSpinner = null;
-
-    this.tweens.add({
-      targets: golden,
-      scaleX: 0,
-      scaleY: 0,
-      alpha: 0,
-      duration: DURATION.celebration,
-      ease: EASE.standardIn,
-      onComplete: () => golden.destroy(),
-    });
-    if (playExpireSfx) SFX.playGoldenExpire();
-    this._scheduleNextGolden();
-  }
-
-  /** Golden Spinner respawn window — shorter (more frequent) in Disco (CLAUDE.md §1's `goldenFrequent`). */
-  private _scheduleNextGolden(): void {
-    const range = this._world.goldenFrequent
-      ? GOLDEN_SPAWN_DELAY_MS.frequent
-      : GOLDEN_SPAWN_DELAY_MS.normal;
-    this._goldenSpawnAt = this.time.now + range.min + Math.random() * (range.max - range.min);
+  /** Pays out a Golden Spinner the player just took to FULL (CLAUDE.md §1's timed bonus spawn). */
+  private _onGoldenClaimed(claim: GoldenClaim): void {
+    this._score += claim.stars;
+    spawnFloatingText(
+      this,
+      claim.x,
+      claim.y - claim.radius - 12,
+      `GOLDEN! +${claim.stars} ★`,
+      COLOUR_HEX.sunnyGold,
+    );
+    SFX.playUpgrade(STATE_ORDINAL[SpinnerState.FULL]);
   }
 
   private _onFrenzyStart(): void {
