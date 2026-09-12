@@ -48,7 +48,7 @@ All of the above is live-verified (see individual commit messages for exact test
 
 ## Known issues (non-blocking)
 
-- ⚠️ **`GameScene.ts` is ~900 lines, against CLAUDE.md §7.3 rule 1's 300-line cap.** It genuinely is the orchestrator (spinners, Granny, gun, water, combo, Frenzy, obstacles, power-ups, golden spinner, HUD feed, ad flow), and two extractions have already come out of it — `PowerUpSpawner.ts` and `UrgencyOverlay.ts` — but firing, the wall builder and the round lifecycle are still all in one file. Splitting it is safe, mechanical, and worth doing before any further feature work lands there.
+- ⚠️ **`GameScene.ts` is 623 lines, against CLAUDE.md §7.3 rule 1's 300-line cap.** Down from 934 on 2026-09-12 by extracting `wallBuilder.ts` (WorldDef → live spinners/obstacles), `GoldenSpinnerSpawner.ts` (the bonus spawn's whole lifecycle) and `WaterCannon.ts` (fire cadence, stream geometry, tank, pump) — joining the earlier `PowerUpSpawner.ts` and `UrgencyOverlay.ts`. What's left is genuinely orchestration plus two more separable clusters: water/spinner collision resolution with combo + scoring, and power-up effect application with its four timers. Extracting both would land it near 450 — the last stretch to 300 would mean splitting the round lifecycle itself, which is the one thing a scene legitimately owns.
 
 (The cog dead-zone vs. auto-aim bug tracked here since Sprint 1 — "not reachable, Garden has no cog" — became reachable when Workshop/Kitchen shipped 2026-09-11, and was fixed the same day: see `resolveFireAimPoint()` in `src/entities/waterParticle/WaterParticle.ts`, verified live — a dead-centre-locked cog now reaches FULL in ~2s of continuous fire instead of never.)
 
