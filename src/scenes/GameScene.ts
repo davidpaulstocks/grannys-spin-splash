@@ -68,6 +68,7 @@ import { spawnFloatingText } from '../ui/FloatingText';
 import { showGhostFinger } from '../ui/GhostFinger';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createRefillPrompt } from '../ui/RefillPrompt';
+import { TutorialSequence } from '../ui/TutorialSequence';
 import { pickEncouragementPhrase } from '../ui/encouragementPhrases';
 import { showToast } from '../ui/Toast';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
@@ -112,6 +113,8 @@ export class GameScene extends Phaser.Scene {
   private _cannon!: WaterCannon;
   /** First-run onboarding gesture (CLAUDE.md §6.5) — null unless this is the player's very first run. */
   private _dismissGhostFinger: (() => void) | null = null;
+  /** The scripted-moments tutorial captions (direct user request, 2026-09-12) — null unless this is the player's very first run. */
+  private _tutorial: TutorialSequence | null = null;
   private _timeRemainingMs = 0;
   private _started = false;
   private _roundOver = false;
@@ -195,6 +198,7 @@ export class GameScene extends Phaser.Scene {
     this._frenzyMeter.on('miniHigh', () => this._onMiniFrenzy('Almost there!!'));
 
     this._maybeShowGhostFinger();
+    this._maybeStartTutorial();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this._input.destroy();
@@ -331,6 +335,7 @@ export class GameScene extends Phaser.Scene {
     this._spinlockEndAt = 0;
     this._doubleStarsEndAt = 0;
     this._goldenSplashPending = false;
+    this._tutorial = null;
   }
 
   /** The fixed grid roster plus a live Golden Spinner, if one is currently spawned — for aim/fire/collision only. */
@@ -474,7 +479,10 @@ export class GameScene extends Phaser.Scene {
         : Phaser.Display.Color.HexStringToColor(spinner.def.colors[0]).color;
     spawnSparks(this, spinner.x, spinner.y, sparkColour);
     this._maybeEasterEgg(spinner);
-    if (newState === SpinnerState.FULL) this._maybeEncourage();
+    if (newState === SpinnerState.FULL) {
+      this._maybeEncourage();
+      this._tutorial?.maybeShowPurpose(this);
+    }
   }
 
   /**
@@ -659,6 +667,19 @@ export class GameScene extends Phaser.Scene {
       distance(s.x, s.y, midX, midY) < distance(best.x, best.y, midX, midY) ? s : best,
     );
     this._dismissGhostFinger = showGhostFinger(this, target.x, target.y);
+  }
+
+  /**
+   * The scripted-moments tutorial (direct user request, 2026-09-12) — see
+   * TutorialSequence.ts. Same first-ever-run gate as the ghost finger, but
+   * a separate check: instantiating it here (rather than folding it into
+   * `_maybeShowGhostFinger`) keeps "gesture demo" and "caption sequencing"
+   * as two things this scene wires up, not one thing doing both.
+   */
+  private _maybeStartTutorial(): void {
+    if (saveManager.load().hasPlayed) return;
+    this._tutorial = new TutorialSequence();
+    this._tutorial.playHowToPlay(this);
   }
 
   /**
