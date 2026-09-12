@@ -19,24 +19,14 @@ import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
-import { Carousel, type CarouselItem } from '../ui/Carousel';
+import type { CarouselItem } from '../ui/Carousel';
+import { CompactSelector, type CompactItem } from '../ui/CompactSelector';
 import { drawStarIcon } from '../ui/icons';
+import { LoadoutStage } from '../ui/LoadoutStage';
 import { showToast } from '../ui/Toast';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { textStyle } from '../utils/typography';
 
-/** Placeholder swatch colours standing in for real sprite art (Sprint 3) — not game data, purely presentational. */
-const GRANNY_SWATCH: Readonly<Record<string, number>> = {
-  classic: COLOUR.grannyPink,
-  squirt: COLOUR.sunnyGold,
-  punk: COLOUR.softSlate,
-};
-const GUN_TIER_SWATCH: Readonly<Record<number, number>> = {
-  1: COLOUR.softSlate,
-  2: COLOUR.waterBlue,
-  3: COLOUR.heatOrange,
-  4: COLOUR.grannyPink,
-};
 /** Placeholder swatch colours standing in for real world backdrop thumbnails — one hero colour per world's vibe. */
 const WORLD_SWATCH: Readonly<Record<string, number>> = {
   garden: COLOUR.mintGreen,
@@ -46,10 +36,10 @@ const WORLD_SWATCH: Readonly<Record<string, number>> = {
   disco: COLOUR.waterBlue,
 };
 
-const CAROUSEL_Y = GAME_HEIGHT * 0.5;
-const GRANNY_CAROUSEL_X = GAME_WIDTH * 0.16;
+const CAROUSEL_Y = 405;
+const GRANNY_CAROUSEL_X = 170;
 const WORLD_CAROUSEL_X = GAME_WIDTH * 0.5;
-const GUN_CAROUSEL_X = GAME_WIDTH * 0.84;
+const GUN_CAROUSEL_X = 1110;
 /** Random-unlock reward pool cap — a random gun at or below the player's current highest tier (CLAUDE.md §11.1). */
 const REWARD_MAX_TIER = 4;
 
@@ -60,19 +50,22 @@ const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
  * Title lockup — the illustrated flourish wreath sits behind the drippy
  * wordmark, both centred at the same point (CLAUDE.md §3 rule 6 bans
  * studio splash screens, not the game's own stylised title on its own
- * menu). Sized to leave room for the vault line + carousels below —
- * see the sizing note above `_buildTitle()`.
+ * menu). Re-sized 2026-09-12 on direct user feedback: the flourish now
+ * reads as a real background element (~520px wide) instead of a small
+ * tight frame — everything below it (vault, carousels, buttons) got
+ * pushed down/enlarged to match the bigger carousel cards.
  */
-const TITLE_CENTRE_Y = 80;
-const TITLE_FLOURISH_HEIGHT = 180;
-const TITLE_WORDMARK_HEIGHT = 100;
-const VAULT_Y = 195;
+const TITLE_CENTRE_Y = 110;
+const TITLE_WORDMARK_HEIGHT = 120;
+const VAULT_Y = 205;
+const PLAY_Y = 618;
+const REWARD_Y = 676;
 
 export class SplashScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
-  private _grannyCarousel!: Carousel;
-  private _worldCarousel!: Carousel;
-  private _gunCarousel!: Carousel;
+  private _grannySelector!: CompactSelector;
+  private _loadoutStage!: LoadoutStage;
+  private _gunSelector!: CompactSelector;
   private _vaultText!: Phaser.GameObjects.Text;
   private _isStartingRun = false;
 
@@ -85,7 +78,7 @@ export class SplashScene extends Phaser.Scene {
     this._buildTitle();
     this._buildVaultDisplay();
 
-    this._grannyCarousel = new Carousel(
+    this._grannySelector = new CompactSelector(
       this,
       GRANNY_CAROUSEL_X,
       CAROUSEL_Y,
@@ -93,7 +86,7 @@ export class SplashScene extends Phaser.Scene {
       this._unlocks.getSelectedGrannyId(),
       (id) => this._onTapGranny(id),
     );
-    this._worldCarousel = new Carousel(
+    this._loadoutStage = new LoadoutStage(
       this,
       WORLD_CAROUSEL_X,
       CAROUSEL_Y,
@@ -101,7 +94,7 @@ export class SplashScene extends Phaser.Scene {
       this._unlocks.getSelectedWorldId(),
       (id) => this._onTapWorld(id),
     );
-    this._gunCarousel = new Carousel(
+    this._gunSelector = new CompactSelector(
       this,
       GUN_CAROUSEL_X,
       CAROUSEL_Y,
@@ -109,10 +102,14 @@ export class SplashScene extends Phaser.Scene {
       this._unlocks.getSelectedGunId(),
       (id) => this._onTapGun(id),
     );
+    this._loadoutStage.setGrannyTexture(
+      SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front'),
+    );
+    this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
 
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT * 0.78,
+      y: PLAY_Y,
       label: 'PLAY',
       variant: 'primary',
       minWidth: 300,
@@ -122,25 +119,21 @@ export class SplashScene extends Phaser.Scene {
     this._buildRewardButton();
   }
 
-  private _grannyItems(): CarouselItem[] {
+  private _grannyItems(): CompactItem[] {
     return GRANNY_DEFS.map((g) => ({
       id: g.id,
       label: g.name,
       unlocked: this._unlocks.isGrannyUnlocked(g.id),
       cost: g.unlockCost,
-      swatchColour: GRANNY_SWATCH[g.id] ?? COLOUR.softSlate,
-      swatchTextureKey: SPRITE_KEYS.grannyPose(g.id, 'front'),
     }));
   }
 
-  private _gunItems(): CarouselItem[] {
+  private _gunItems(): CompactItem[] {
     return GUN_DEFS.map((g) => ({
       id: g.id,
       label: g.name,
       unlocked: this._unlocks.isGunUnlocked(g.id),
       cost: g.cost,
-      swatchColour: GUN_TIER_SWATCH[g.tier] ?? COLOUR.softSlate,
-      swatchTextureKey: SPRITE_KEYS.gunAngle(g.id, 0),
     }));
   }
 
@@ -168,8 +161,13 @@ export class SplashScene extends Phaser.Scene {
       name: def.name,
       unlock: () => this._unlocks.unlockGranny(id),
       select: () => this._unlocks.selectGranny(id),
-      refresh: () => this._grannyCarousel.setItems(this._grannyItems()),
+      refresh: () => this._grannySelector.setItems(this._grannyItems()),
     });
+    // Always re-derive from the authoritative selection, not the tapped id
+    // — an unaffordable locked tap doesn't actually change what's equipped.
+    this._loadoutStage.setGrannyTexture(
+      SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front'),
+    );
   }
 
   private _onTapWorld(id: string): void {
@@ -181,7 +179,7 @@ export class SplashScene extends Phaser.Scene {
       name: def.name,
       unlock: () => this._unlocks.unlockWorld(id),
       select: () => this._unlocks.selectWorld(id),
-      refresh: () => this._worldCarousel.setItems(this._worldItems()),
+      refresh: () => this._loadoutStage.setItems(this._worldItems()),
     });
   }
 
@@ -194,8 +192,9 @@ export class SplashScene extends Phaser.Scene {
       name: def.name,
       unlock: () => this._unlocks.unlockGun(id),
       select: () => this._unlocks.selectGun(id),
-      refresh: () => this._gunCarousel.setItems(this._gunItems()),
+      refresh: () => this._gunSelector.setItems(this._gunItems()),
     });
+    this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
   }
 
   /**
@@ -227,12 +226,20 @@ export class SplashScene extends Phaser.Scene {
   }
 
   /**
-   * The flourish wreath is drawn behind, the wordmark on top, both centred
-   * on the same point — the flourish's own empty centre was composed to
-   * frame roughly a 2:1 lockup, which the wordmark's two-line ("GRANNY'S" /
-   * "SPIN SPLASH") layout matches closely (WORLD_BACKGROUND_BRIEF.md-era
-   * asset delivery, 2026-09-11). Falls back to plain styled text if either
-   * image failed to load, rather than showing nothing.
+   * The flourish wreath is the page's frame (2026-09-12 redesign, direct
+   * user feedback — "make it the framing for the entire landscape screen,
+   * everything else lives within it"): scaled to fill the whole 1280×720
+   * canvas, sitting behind every other element as one continuous decorative
+   * border. Its own painted ring occupies roughly the outer ~13-18% on each
+   * edge with a large soft-transparent centre (by design, since it was
+   * composed as a wreath) — every opaque card/button drawn on top of it
+   * (Carousel's cloud-coloured cards, the pill buttons) simply masks the
+   * art directly behind it, so legibility is never at risk; the wreath
+   * shows through only in what would otherwise be empty cream margin,
+   * which is exactly the "too much dead white space" complaint this also
+   * answers. The wordmark sits near the top, independently sized, as the
+   * actual title lockup. Falls back to plain styled text if either image
+   * failed to load, rather than showing nothing.
    */
   private _buildTitle(): void {
     const hasArt =
@@ -250,8 +257,8 @@ export class SplashScene extends Phaser.Scene {
       return;
     }
 
-    const flourish = this.add.image(GAME_WIDTH / 2, TITLE_CENTRE_Y, SPRITE_KEYS.titleFlourish);
-    flourish.setScale(TITLE_FLOURISH_HEIGHT / flourish.height);
+    const frame = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, SPRITE_KEYS.titleFlourish);
+    frame.setScale(Math.max(GAME_WIDTH / frame.width, GAME_HEIGHT / frame.height));
 
     const wordmark = this.add.image(GAME_WIDTH / 2, TITLE_CENTRE_Y, SPRITE_KEYS.titleWordmark);
     wordmark.setScale(TITLE_WORDMARK_HEIGHT / wordmark.height);
@@ -275,7 +282,7 @@ export class SplashScene extends Phaser.Scene {
   private _buildRewardButton(): void {
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT * 0.88,
+      y: REWARD_Y,
       label: 'Watch an ad for a free gun',
       variant: 'secondary',
       minWidth: 340,
@@ -286,12 +293,7 @@ export class SplashScene extends Phaser.Scene {
   private async _onWatchAdForGun(): Promise<void> {
     const reward = this._unlocks.pickRandomLockedGun(REWARD_MAX_TIER);
     if (!reward) {
-      showToast(
-        this,
-        GAME_WIDTH / 2,
-        GAME_HEIGHT * 0.88 - 50,
-        'All eligible guns already unlocked!',
-      );
+      showToast(this, GAME_WIDTH / 2, REWARD_Y - 50, 'All eligible guns already unlocked!');
       return;
     }
 
@@ -299,9 +301,9 @@ export class SplashScene extends Phaser.Scene {
     if (!watched) return;
 
     this._unlocks.grantGun(reward);
-    this._gunCarousel.setItems(this._gunItems());
+    this._gunSelector.setItems(this._gunItems());
     const unlockedName = GUN_DEFS.find((g) => g.id === reward)?.name ?? reward;
-    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.88 - 50, `Unlocked ${unlockedName}!`);
+    showToast(this, GAME_WIDTH / 2, REWARD_Y - 50, `Unlocked ${unlockedName}!`);
   }
 
   /** CLAUDE.md §11.1: a commercial break shows before every *2nd* "Play Again" — AdManager tracks the cadence. */

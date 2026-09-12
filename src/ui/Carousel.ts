@@ -26,14 +26,24 @@ export interface CarouselItem {
   readonly swatchTextureKey?: string;
 }
 
-const CARD_WIDTH = 220;
-const CARD_HEIGHT = 200;
+/**
+ * Sized generously (2026-09-12 redesign, direct user feedback — "I can
+ * barely see the world/granny/gun") so the real art actually reads at a
+ * glance instead of being a small icon lost in a big empty card. The
+ * swatch itself stays square: grannies (tall portraits), guns (wide-ish),
+ * and worlds (landscape) each aspect-fit within it, so a bigger box wins
+ * across all three rather than tuning one aspect that only suits one.
+ */
+const CARD_WIDTH = 280;
+const CARD_HEIGHT = 300;
 const CARD_RADIUS = 24;
-const SWATCH_SIZE = 96;
-const ARROW_BUTTON_SIZE = 44;
+const SWATCH_SIZE = 190;
+const ARROW_BUTTON_SIZE = 50;
 const ARROW_GAP = 32;
-const LOCK_ICON_SIZE = 20;
-const STAR_ICON_RADIUS = 10;
+const LOCK_ICON_SIZE = 26;
+const STAR_ICON_RADIUS = 13;
+const SWATCH_Y = -45;
+const LABEL_Y = 110;
 
 export class Carousel extends Phaser.GameObjects.Container {
   private _items: readonly CarouselItem[];
@@ -64,21 +74,21 @@ export class Carousel extends Phaser.GameObjects.Container {
     this._onSelect = onSelect;
 
     this._cardBg = scene.add.graphics();
-    this._swatch = scene.add.rectangle(0, -20, SWATCH_SIZE, SWATCH_SIZE, COLOUR.cloud);
+    this._swatch = scene.add.rectangle(0, SWATCH_Y, SWATCH_SIZE, SWATCH_SIZE, COLOUR.cloud);
     this._swatch.setStrokeStyle(4, COLOUR.ink);
-    this._swatchImage = scene.add.image(0, -20, '__DEFAULT').setVisible(false);
+    this._swatchImage = scene.add.image(0, SWATCH_Y, '__DEFAULT').setVisible(false);
     this._label = scene.add
-      .text(0, 60, '', textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud))
+      .text(0, LABEL_Y, '', textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud))
       .setOrigin(0.5);
 
     const lockGfx = scene.add.graphics();
     drawLockIcon(lockGfx, LOCK_ICON_SIZE, COLOUR.cloud);
-    const starGfx = scene.add.graphics().setPosition(-14, 26);
+    const starGfx = scene.add.graphics().setPosition(-18, 52);
     drawStarIcon(starGfx, STAR_ICON_RADIUS, COLOUR.sunnyGold);
     this._costText = scene.add
-      .text(4, 26, '', textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
+      .text(6, 52, '', textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
       .setOrigin(0, 0.5);
-    const lockDim = scene.add.rectangle(0, -20, SWATCH_SIZE, SWATCH_SIZE, COLOUR.ink, 0.55);
+    const lockDim = scene.add.rectangle(0, SWATCH_Y, SWATCH_SIZE, SWATCH_SIZE, COLOUR.ink, 0.55);
     this._lockOverlay = scene.add.container(0, 0, [lockDim, lockGfx, starGfx, this._costText]);
 
     this._buildArrow(scene, -(CARD_WIDTH / 2 + ARROW_GAP), -1);
@@ -88,7 +98,7 @@ export class Carousel extends Phaser.GameObjects.Container {
     scene.add.existing(this);
 
     const hitZone = scene.add
-      .zone(0, -20, SWATCH_SIZE, SWATCH_SIZE)
+      .zone(0, SWATCH_Y, SWATCH_SIZE, SWATCH_SIZE)
       .setInteractive({ useHandCursor: true });
     hitZone.on('pointerup', () => this._onTapCurrent());
     this.add(hitZone);
