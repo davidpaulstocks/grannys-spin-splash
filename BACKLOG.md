@@ -17,7 +17,7 @@ Then a third wave, again from direct user feedback — that spinners "just look 
 - **`fitScaleForGrid()`** keeps the largest spinner inside its own grid cell, fixing visible overlap in all three 4-row worlds (Kitchen/Funfair/Disco). It only ever scales down, so worlds with room to spare keep their tuned radii untouched.
 - **Per-world easter eggs:** a rare (10% of level-ups) world-specific shout + confetti burst — BLOOM! / CLANG! / SIZZLE! / TA-DA! / GROOVY!. Keyed off level-ups, not hits, so it stays a surprise instead of becoming wallpaper.
 
-All of the above is live-verified (see individual commit messages for exact test steps) and the full pipeline is green. Sprint 4's 12-stem orchestra remains blocked on the audio source decision (§9.3); thumbnails (5.7) remain deferred (no video-capture tooling here); cross-browser/real-device testing (7.2) still needs actual devices; studio name (7.0) needs the user. Everything else is unblocked and this session kept moving through it autonomously per explicit standing instruction.
+All of the above is live-verified (see individual commit messages for exact test steps) and the full pipeline is green. Sprint 4's 12-stem orchestra remains blocked on the audio source decision (§9.3); cross-browser/real-device testing (7.2) still needs actual devices; studio name (7.0) needs the user. Everything else is unblocked and this session kept moving through it autonomously per explicit standing instruction.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -33,7 +33,7 @@ All of the above is live-verified (see individual commit messages for exact test
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
 | Sprint 3 | Sprite Pipeline — real granny/gun/world art wired in | ✅ Done |
 | Sprint 4 | ASMR Orchestra — layered audio | ✅ Built (4.1–4.5) with synthesised placeholder voices; 4.6's human playtest outstanding |
-| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done (5.7 thumbnails deferred — see note) |
+| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done |
 | Sprint 6 | Monetization Polish | ✅ Done (mobile controls gap closed 2026-09-11 — see below) |
 | Sprint 7 | Launch Polish + Poki submission | 🟡 In progress |
 
@@ -166,9 +166,13 @@ Build the new SplashScene with Granny + Gun carousel.
 - [x] **5.3** Build `SplashScene` matching CLAUDE.md §10 mockup — title, vault display, three carousels, PLAY
 - [x] **5.4** Wire unlock thresholds to vault total — locked items show a lock overlay + cost; tapping one *attempts to unlock* (spend + select on success, toast the shortfall on failure) — see the re-plan note below, this changed after 5.4 first shipped
 - [x] **5.6** World-select carousel, all 5 launch worlds (re-planned 2026-09-11 — see CLAUDE.md §14) — Garden free from run one, Workshop/Kitchen/Funfair/Disco purchasable at 500★/1,000★/1,500★/2,000★
-- [ ] **5.7** Create static + animated thumbnails — **still deferred**, no longer for lack of art (real sprites landed 2026-09-11): a real animated WebM loop needs a render-capture pipeline (headless frame-by-frame capture + video encode) that doesn't exist yet, and it's lower-value than closing out Sprint 7's launch-readiness QA. Revisit once Sprint 7's checklist is otherwise clear — art dependency is gone, this is now pure remaining-effort deferral.
+- [x] **5.7** Create static + animated thumbnails — done 2026-09-12. `thumbnails/thumbnail-static.png` (512×384) and `thumbnails/thumbnail-animated.webm` (5 s, 512×384, no audio), both produced by `tools/generate-thumbnail.ts` from a live run, so they're reproducible rather than hand-made one-offs.
+  - The blocker turned out to be imaginary. No encoder is needed: `canvas.captureStream()` + `MediaRecorder` records WebM in the browser itself, and a canvas stream carries no audio track, which is exactly Poki's "no audio" rule. The game is blitted into an offscreen 512×384 canvas inside Phaser's `postrender` (the WebGL buffer isn't readable any later — the renderer has no `preserveDrawingBuffer`), so the output is the right size with no post-processing.
+  - The clip is scripted: Granny firing while the wall charges, tipping into SPLASH FRENZY at 3.1 s for the payoff. The still is grabbed at 2.6 s, deliberately *before* Frenzy — the screen flash washes the art out and the banner covers the wall, so the frame before is the better thumbnail.
+  - Both live in a top-level `thumbnails/` folder, **not** `public/`: they're Poki dashboard uploads the game never requests, and shipping them inside `dist/` spent 742 KB of the 8 MB initial-download cap for nothing. See CLAUDE.md §7.1's re-plan note.
+  - `npm run thumbnail` is still not wired: running this headlessly means taking on Playwright (plus its browser download) as a devDependency. That's a dependency call for the project owner, not one to make silently for a task that runs a handful of times before submission — so it stays a documented browser-console routine.
 
-**Exit criteria:** ✅ Met (except 5.7, deferred for a real reason above). Full game loop verified live end-to-end: splash → game (with the selected loadout actually passed through) → game over → splash, vault correctly shows the run's earned stars. Pipeline green throughout: lint, 35 tests, typecheck, build.
+**Exit criteria:** ✅ Met in full (5.7 closed out 2026-09-12). Full game loop verified live end-to-end: splash → game (with the selected loadout actually passed through) → game over → splash, vault correctly shows the run's earned stars. Pipeline green throughout: lint, 35 tests, typecheck, build.
 
 **World re-plan (2026-09-11) — what shipped beyond the original 6 stories:**
 - **5 worlds, not 1.** `entities/world/world.data.ts` now has Garden/Workshop/Kitchen/Funfair/Disco with real grid sizes, spinner-type rosters, and obstacle rosters extracted from the prototype's `WORLDS` table; unlock costs are new (worlds didn't gate in the prototype — invented to reuse the existing Vault economy rather than ship a second, inconsistent "everything free" system).
@@ -212,7 +216,7 @@ Final QA pass and submission.
 - [ ] **7.2** Cross-browser smoke test (Chrome, Firefox, Safari, iOS, Android) — needs real devices/browsers beyond this environment's Chrome-based preview; not yet run
 - [x] **7.3** Incognito mode test — live-verified 2026-09-11: patched `Storage.prototype.getItem`/`setItem` to throw `QuotaExceededError` (matching Safari private-mode/storage-denied behaviour) and called the live `SaveManager` module directly — `load()` returns clean defaults, `save()` silently no-ops, neither throws. Confirmed `SaveManager.ts` is the sole `localStorage` call site in `src/` (`grep -rn localStorage src/` outside that file returns nothing), so this coverage extends to the whole app, not just SaveManager's own unit tests.
 - [ ] **7.4** Performance pass — 60fps on mid-range mobile; profile and optimise particle pool sizes. *Partial:* ran a 5-simulated-second continuous-fire stress test (Soaker 3000, dual-stream, sweeping aim, Funfair's moving targets active) via manual frame-stepping — averaged ~9.4ms of real compute per simulated frame on this dev machine, comfortably inside a 16.6ms/60fps budget, pool stayed capped well under `WATER_PARTICLE_MAX_POOL` (14/50 used), no console errors. This is a desktop-headless proxy, not a real mid-range-mobile profile — actual device testing still needed before this can be checked off.
-- [ ] **7.5** Run full pre-submission checklist (CLAUDE.md §12) — walked all 18 items against the actual code 2026-09-11. **9 of 10 must-fix pass**, only thumbnails (#9) outstanding:
+- [ ] **7.5** Run full pre-submission checklist (CLAUDE.md §12) — walked all 18 items against the actual code 2026-09-11. **all 10 must-fix pass** as of 2026-09-12 (thumbnails, #9, were the last one outstanding):
   1. ✅ Bundle Phaser locally — npm dependency, `vite.config.ts` has `external: []`, confirmed zero external requests besides the Poki SDK script itself
   2. ✅ PokiSDK script + init + all events — script tag in `index.html`; `poki.ts` wraps all 6 (`init`/`gameLoadingFinished`/`gameplayStart`/`gameplayStop`/`commercialBreak`/`rewardedBreak`/`movePill`)
   3. ✅ `preventDefault` for arrows + space — was LEFT/RIGHT/SPACE only; extended to all 4 arrows (2026-09-11) since an unbound UP/DOWN press could still scroll the page
@@ -221,7 +225,7 @@ Final QA pass and submission.
   6. ✅ Audio mutes during ads — `AD_MUTE_HOOKS` wired into every `adManager.play*()` call site (Sprint 4)
   7. ✅ Incognito mode — see 7.3
   8. ✅ `PokiSDK.movePill(0, 24)` — called in `main.ts`'s `boot()`
-  9. ❌ Static + animated thumbnails — still not built (5.7, deferred)
+  9. ✅ Static + animated thumbnails — built 2026-09-12 via `tools/generate-thumbnail.ts`; see story 5.7
   10. ✅ No studio splash screens — boots straight from a loading bar (no logo/branding) into SplashScene
   - Should-fix: ✅ #11 (3 canonical sizes, 7.1); **#12 partial** — ESC pauses correctly, but Space is bound to auto-fire toggle per §6.2's own spec, not pause — the checklist's generic "ESC and Space pause handlers" phrasing doesn't quite match this game's deliberate accessibility design, flagging rather than silently marking pass/fail; #13 N/A (no cutscenes exist); ✅ #14 (icon-driven UI, no reading required during play, per §6.5); #15 N/A (no text input feature exists to filter)
 - [ ] **7.6** Submit to Poki for Developers — Game uploaded to Inspector, review requested

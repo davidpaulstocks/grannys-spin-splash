@@ -395,11 +395,13 @@ granny-spin-splash/
 ├── .prettierrc
 ├── index.html                         # Minimal shell, SDK script, canvas div
 │
+├── thumbnails/                        # Poki dashboard deliverables — NOT shipped in the game bundle (re-plan below)
+│   ├── thumbnail-static.png           # 512×384 — Poki required
+│   └── thumbnail-animated.webm        # 5s loop, no audio — Poki required
+│
 ├── public/                            # Static assets, copied to dist/
 │   ├── fonts/
 │   │   └── fredoka.woff2              # Bundled locally, NOT from Google
-│   ├── thumbnail-static.png           # 512×384 — Poki required
-│   ├── thumbnail-animated.webm        # 5s loop, no audio — Poki required
 │   ├── sprites/
 │   │   ├── grannies/                  # per-granny subfolder — delivered 2026-09-11 as 3 poses × 3 grannies = 9 files (re-plan below)
 │   │   │   ├── classic/
@@ -522,6 +524,16 @@ granny-spin-splash/
     └── integration/
         └── ad-flow.test.ts            # SDK event ordering
 ```
+
+> **Re-plan (2026-09-12, thumbnails):** the two Poki thumbnails originally
+> sat in `public/`, which Vite copies verbatim into `dist/` — so 742 KB of
+> files the game never requests were counted against §3 rule 2's 8 MB
+> *initial-download* cap, cutting headroom from 1.71 MB to 998 KB the moment
+> they were produced. They're uploaded to the Poki for Developers dashboard,
+> not fetched by the page, so they now live in a top-level `thumbnails/`
+> folder outside the build. `budget-check.ts` still measures all of `dist/`
+> honestly — nothing was excluded to make a number look better; the files
+> simply aren't part of the download.
 
 ### 7.2 File-by-file responsibilities
 
