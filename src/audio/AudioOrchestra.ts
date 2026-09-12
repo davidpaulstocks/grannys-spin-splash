@@ -2,14 +2,22 @@
  * The ASMR orchestra — CLAUDE.md §9, the game's headline feature. Holds one
  * GainNode per musical layer, keeps every layer scheduled on the same audio
  * clock so they can never drift apart, and mixes purely by moving those
- * gains. Instruments themselves live in orchestraVoices.ts.
+ * gains. Instruments themselves live in `src/audio/themes/*.ts` — one theme
+ * per world (2026-09-12, direct user feedback: "I also want there to be a
+ * different orchestra tune for each world" — every world used to share one
+ * fixed voice set/key/tempo).
  *
  * Mixing follows §9.1.1's refined model rather than §9.1's original
  * population thresholds: each spinner IS an instrument, and a spinner's own
  * `currentSpeed / MAX_SPINNER_SPEED` is that layer's gain, continuously.
  * Soak one spinner and its instrument swells in real time; let it decay and
  * the instrument fades back out, which is where the ASMR payoff actually
- * comes from — no separate fade logic needed.
+ * comes from — no separate fade logic needed. The layer GRAPH (11 fixed
+ * generic slots: foundation, 9 spinner slots, dropBass) never changes
+ * shape between themes — only which `WorldTheme`'s voice functions and bar
+ * length the scheduler reads from does, so switching worlds mid-session
+ * (Play Again into a different world) needs no rebuild, just a new
+ * `start(worldId)` call.
  *
  * §9.2's reference implementation loads N looping AudioBufferSourceNodes and
  * starts them all silently at one shared time. Synthesised voices reach the
@@ -19,13 +27,7 @@
  */
 
 import { audioBus } from './AudioBus';
-import {
-  BAR_SECONDS,
-  playCinematicHit,
-  SPINNER_VOICES,
-  VOICES,
-  type VoiceId,
-} from './orchestraVoices';
+import { DEFAULT_THEME_ID, resolveTheme, SPINNER_SLOTS, type VoiceSlot, type WorldTheme } from './themes';
 
 /** How far ahead of the audio clock bars are scheduled, and how often we top that up. */
 const LOOKAHEAD_SECONDS = 0.4;
@@ -63,21 +65,29 @@ export class AudioOrchestra {
   private _ctx: AudioContext | null = null;
   private _limiter: DynamicsCompressorNode | null = null;
   private _out: GainNode | null = null;
-  private _layers = new Map<VoiceId, GainNode>();
+  private _layers = new Map<VoiceSlot, GainNode>();
   private _noise: AudioBuffer | null = null;
   private _timer: ReturnType<typeof setInterval> | null = null;
+  private _theme: WorldTheme = resolveTheme(DEFAULT_THEME_ID);
   private _nextBarTime = 0;
   private _bar = 0;
   private _running = false;
 
   /**
-   * Builds the layer graph and starts the scheduler. Safe to call on every
-   * run start — a second call while already running is ignored. Requires
-   * `audioBus.init()` to have happened on a user gesture first; without a
-   * context this no-ops and the game is simply silent.
+   * Builds the layer graph (first call only) and starts the scheduler on
+   * the given world's theme. Safe to call on every run start — a second
+   * call while already running just re-arms with the (possibly new) theme.
+   * `worldId` is optional so a resume-from-pause call (PauseScene, which
+   * has no reason to know which world is live) can just re-arm whatever
+   * theme was already playing rather than needing to thread the world id
+   * through a scene that otherwise has no use for it.
+   * Requires `audioBus.init()` to have happened on a user gesture first;
+   * without a context this no-ops and the game is simply silent.
    */
-  start(): void {
+  start(worldId?: string): void {
+    if (worldId) this._theme = resolveTheme(worldId);
     if (this._running) return;
+
     audioBus.resume();
     const ctx = audioBus.context;
     const master = audioBus.master;
@@ -101,7 +111,10 @@ export class AudioOrchestra {
       this._limiter.attack.value = 0.001;
       this._limiter.release.value = 0.25;
       this._limiter.connect(this._out);
-      for (const id of Object.keys(VOICES) as VoiceId[]) {
+      // Slot IDs are theme-agnostic (see class doc comment) — build once,
+      // reused unchanged across every world for the rest of the session.
+      const slotIds: VoiceSlot[] = ['foundation', ...SPINNER_SLOTS, 'dropBass'];
+      for (const id of slotIds) {
         const gain = ctx.createGain();
         gain.gain.value = 0;
         gain.connect(this._limiter);
@@ -135,12 +148,12 @@ export class AudioOrchestra {
    */
   updateMix(spinners: readonly OrchestraSpinnerSnapshot[]): void {
     if (!this._running || spinners.length === 0) return;
-    const targets = new Map<VoiceId, number>();
+    const targets = new Map<VoiceSlot, number>();
     spinners.forEach((spinner, i) => {
-      const id = SPINNER_VOICES[i % SPINNER_VOICES.length];
+      const id = SPINNER_SLOTS[i % SPINNER_SLOTS.length];
       targets.set(id, Math.max(targets.get(id) ?? 0, Math.min(1, Math.max(0, spinner.charge))));
     });
-    for (const id of SPINNER_VOICES) {
+    for (const id of SPINNER_SLOTS) {
       this._setGain(id, (targets.get(id) ?? 0) * LAYER_HEADROOM);
     }
   }
@@ -152,14 +165,14 @@ export class AudioOrchestra {
     // Through the limiter, not the master — the hit is the loudest thing
     // in the game and lands exactly when every layer is already up.
     const dest = this._limiter ?? audioBus.master;
-    if (dest) playCinematicHit(this._ctx, dest, this._noise);
+    if (dest) this._theme.cinematicHit(this._ctx, dest, this._noise);
   }
 
   onFrenzyEnd(): void {
     this._setGain('dropBass', 0);
   }
 
-  private _setGain(id: VoiceId, value: number): void {
+  private _setGain(id: VoiceSlot, value: number): void {
     const gain = this._layers.get(id);
     if (!gain || !this._ctx) return;
     gain.gain.setTargetAtTime(value, this._ctx.currentTime, GAIN_SMOOTHING_SECONDS);
@@ -180,9 +193,9 @@ export class AudioOrchestra {
     while (this._nextBarTime < ctx.currentTime + LOOKAHEAD_SECONDS) {
       for (const [id, gain] of this._layers) {
         if (gain.gain.value < 0.001) continue;
-        VOICES[id]({ ctx, dest: gain, at: this._nextBarTime, bar: this._bar, noise });
+        this._theme.voices[id]({ ctx, dest: gain, at: this._nextBarTime, bar: this._bar, noise });
       }
-      this._nextBarTime += BAR_SECONDS;
+      this._nextBarTime += this._theme.barSeconds;
       this._bar++;
     }
   }

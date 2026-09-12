@@ -574,7 +574,7 @@ export class GameScene extends Phaser.Scene {
     // The orchestra can only start once there's an AudioContext, which is
     // this gesture — so the run's music begins on the player's first shot
     // rather than on scene load (CLAUDE.md §9).
-    audioOrchestra.start();
+    audioOrchestra.start(this._world.id);
     this._dismissGhostFinger?.();
     this._dismissGhostFinger = null;
     const save = saveManager.load();
@@ -642,6 +642,7 @@ export class GameScene extends Phaser.Scene {
         currentSpeed: s.currentSpeed,
         currentState: s.currentState,
       })),
+      score: this._score,
     };
     this._hud.refresh(data);
   }

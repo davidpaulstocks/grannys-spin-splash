@@ -20,9 +20,10 @@ import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
 import type { CarouselItem } from '../ui/Carousel';
-import { CompactSelector, type CompactItem } from '../ui/CompactSelector';
+import { createControlsLegend } from '../ui/ControlsLegend';
 import { drawStarIcon } from '../ui/icons';
 import { LoadoutStage } from '../ui/LoadoutStage';
+import { ThumbnailSelector } from '../ui/ThumbnailSelector';
 import { showToast } from '../ui/Toast';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { textStyle } from '../utils/typography';
@@ -37,9 +38,21 @@ const WORLD_SWATCH: Readonly<Record<string, number>> = {
 };
 
 const CAROUSEL_Y = 405;
-const GRANNY_CAROUSEL_X = 170;
+/**
+ * 2026-09-12, second pass: moved in from 170/1110 alongside CompactSelector
+ * and LoadoutStage switching their arrows to an inset design. With three
+ * flanking arrow-clusters, 1280px only fits them without overlap once each
+ * cluster's own footprint shrinks to its component's own width (see both
+ * components' doc comments) — these values leave a genuine ~35px gap on
+ * every seam, confirmed live via screenshot after the fix (the previous
+ * values had the Granny/Gun selectors' inner arrows physically overlapping
+ * the World stage's own arrows, hiding whichever was added to the scene
+ * first — this was the literal cause of the reported "no button to switch
+ * world").
+ */
+const GRANNY_CAROUSEL_X = 150;
 const WORLD_CAROUSEL_X = GAME_WIDTH * 0.5;
-const GUN_CAROUSEL_X = 1110;
+const GUN_CAROUSEL_X = GAME_WIDTH - 150;
 /** Random-unlock reward pool cap — a random gun at or below the player's current highest tier (CLAUDE.md §11.1). */
 const REWARD_MAX_TIER = 4;
 
@@ -73,9 +86,9 @@ const BOTTOM_ROW_Y = 676;
 
 export class SplashScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
-  private _grannySelector!: CompactSelector;
+  private _grannySelector!: ThumbnailSelector;
   private _loadoutStage!: LoadoutStage;
-  private _gunSelector!: CompactSelector;
+  private _gunSelector!: ThumbnailSelector;
   private _vaultText!: Phaser.GameObjects.Text;
   private _isStartingRun = false;
 
@@ -88,7 +101,7 @@ export class SplashScene extends Phaser.Scene {
     this._buildTitle();
     this._buildVaultDisplay();
 
-    this._grannySelector = new CompactSelector(
+    this._grannySelector = new ThumbnailSelector(
       this,
       GRANNY_CAROUSEL_X,
       CAROUSEL_Y,
@@ -104,7 +117,7 @@ export class SplashScene extends Phaser.Scene {
       this._unlocks.getSelectedWorldId(),
       (id) => this._onTapWorld(id),
     );
-    this._gunSelector = new CompactSelector(
+    this._gunSelector = new ThumbnailSelector(
       this,
       GUN_CAROUSEL_X,
       CAROUSEL_Y,
@@ -128,6 +141,8 @@ export class SplashScene extends Phaser.Scene {
 
     if (saveManager.load().hasPlayed) this._buildRewardButton();
     else this._buildFirstRunHint();
+
+    createControlsLegend(this, 24, GAME_HEIGHT - 106);
   }
 
   /**
@@ -147,21 +162,25 @@ export class SplashScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private _grannyItems(): CompactItem[] {
+  private _grannyItems(): CarouselItem[] {
     return GRANNY_DEFS.map((g) => ({
       id: g.id,
       label: g.name,
       unlocked: this._unlocks.isGrannyUnlocked(g.id),
       cost: g.unlockCost,
+      swatchColour: COLOUR.grannyPink,
+      swatchTextureKey: SPRITE_KEYS.grannyPose(g.id, 'front'),
     }));
   }
 
-  private _gunItems(): CompactItem[] {
+  private _gunItems(): CarouselItem[] {
     return GUN_DEFS.map((g) => ({
       id: g.id,
       label: g.name,
       unlocked: this._unlocks.isGunUnlocked(g.id),
       cost: g.cost,
+      swatchColour: COLOUR.waterBlue,
+      swatchTextureKey: SPRITE_KEYS.gunAngle(g.id, 0),
     }));
   }
 

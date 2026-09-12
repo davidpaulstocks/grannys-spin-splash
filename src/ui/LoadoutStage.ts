@@ -9,6 +9,15 @@
  * (its own prev/next arrows + lock/cost, same contract as `Carousel`) —
  * only the Granny/Gun textures are pushed in from outside, since those
  * carousels own their own selection state.
+ *
+ * World's own arrows sit INSET on the card (2026-09-12, second pass — live
+ * screenshot after the user reported "no buttons to switch world" showed
+ * this card's own left/right arrows floating far enough outside the card
+ * that they landed on top of the neighbouring Granny/Gun `CompactSelector`s
+ * instead, hiding one of each pair). Keeping both arrows inside the card's
+ * own footprint (a filled circle over the art, same as any media-carousel
+ * chevron) keeps this component's true width exactly `STAGE_WIDTH` — see
+ * `CompactSelector`'s matching note and `SplashScene`'s carousel-X spacing.
  */
 
 import Phaser from 'phaser';
@@ -23,13 +32,28 @@ const STAGE_WIDTH = 680;
 const STAGE_HEIGHT = 340;
 const STAGE_RADIUS = 24;
 const ART_INSET = 10;
+/**
+ * The visible art window's own local top/height, in container-relative
+ * coordinates — the world background + Granny are clipped to exactly this
+ * band (see the geometry mask below). Named and reused by the lock overlay
+ * rather than re-deriving the same arithmetic a second time: a past bug
+ * (2026-09-12, direct user report — "the dark overlay doesn't perfectly
+ * cover the world... needs to go right to the edges") was exactly this
+ * drifting out of sync when the mask's band and the lock overlay's rect
+ * were sized/positioned from two independent expressions.
+ */
+const ART_AREA_TOP = -STAGE_HEIGHT / 2 + ART_INSET;
+const ART_AREA_HEIGHT = STAGE_HEIGHT - ART_INSET * 2 - 56;
 const GRANNY_ART_HEIGHT = 300;
 const GUN_BADGE_SIZE = 96;
 const GUN_BADGE_OFFSET_X = STAGE_WIDTH / 2 - 70;
 const GUN_BADGE_OFFSET_Y = STAGE_HEIGHT / 2 - 90;
 const LABEL_Y = STAGE_HEIGHT / 2 - 28;
-const ARROW_BUTTON_SIZE = 50;
-const ARROW_GAP = 32;
+/** Bigger than the old 50px — chunkier, easier for a young child to hit (CLAUDE.md §6.1). */
+const ARROW_BUTTON_SIZE = 64;
+/** How far the arrow's own edge sits inside the card's edge — keeps this component's total footprint at exactly STAGE_WIDTH. */
+const ARROW_INSET = 10;
+const ARROW_OFFSET_X = STAGE_WIDTH / 2 - ARROW_BUTTON_SIZE / 2 - ARROW_INSET;
 const LOCK_ICON_SIZE = 26;
 const STAR_ICON_RADIUS = 13;
 
@@ -85,9 +109,9 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
     maskShape.fillStyle(0xffffff);
     maskShape.fillRect(
       x - STAGE_WIDTH / 2 + ART_INSET,
-      y - STAGE_HEIGHT / 2 + ART_INSET,
+      y + ART_AREA_TOP,
       STAGE_WIDTH - ART_INSET * 2,
-      STAGE_HEIGHT - ART_INSET * 2 - 56,
+      ART_AREA_HEIGHT,
     );
     artArea.setMask(maskShape.createGeometryMask());
 
@@ -117,18 +141,18 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
     this._costText = scene.add
       .text(6, 40, '', textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
       .setOrigin(0, 0.5);
+    // Sized and centred from the SAME ART_AREA_TOP/ART_AREA_HEIGHT constants
+    // as the art mask above, so this can't drift out of sync with the art
+    // it's meant to darken (see those constants' doc comment).
     const lockDim = scene.add.rectangle(
       0,
-      -8,
+      ART_AREA_TOP + ART_AREA_HEIGHT / 2,
       STAGE_WIDTH - ART_INSET * 2,
-      STAGE_HEIGHT - 76,
+      ART_AREA_HEIGHT,
       COLOUR.ink,
       0.55,
     );
     this._lockOverlay = scene.add.container(0, 0, [lockDim, lockGfx, starGfx, this._costText]);
-
-    this._buildArrow(scene, -(STAGE_WIDTH / 2 + ARROW_GAP), -1);
-    this._buildArrow(scene, STAGE_WIDTH / 2 + ARROW_GAP, 1);
 
     this.add([
       cardBg,
@@ -146,6 +170,16 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
       .setInteractive({ useHandCursor: true });
     hitZone.on('pointerup', () => this._onSelect(this.getSelectedId()));
     this.add(hitZone);
+
+    // Added last, and therefore on top for input: with the arrows now inset
+    // (see class doc comment), their zones geometrically overlap this big
+    // tap-to-select zone near the card's edges. Phaser's default `topOnly`
+    // input only delivers a pointer event to the frontmost hit object, so
+    // whichever is added last wins that overlap — these must win it, or the
+    // arrows would be dead and every tap near an edge would just re-select
+    // the current world instead of stepping to the next/previous one.
+    this._buildArrow(scene, -ARROW_OFFSET_X, -1);
+    this._buildArrow(scene, ARROW_OFFSET_X, 1);
 
     this._refresh();
   }
@@ -202,7 +236,7 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
   private _buildArrow(scene: Phaser.Scene, offsetX: number, direction: -1 | 1): void {
     const bg = scene.add.graphics();
     const radius = pillRadius(ARROW_BUTTON_SIZE, ARROW_BUTTON_SIZE);
-    bg.fillStyle(COLOUR.cloud, 1);
+    bg.fillStyle(COLOUR.mintGreen, 1);
     bg.fillRoundedRect(
       -ARROW_BUTTON_SIZE / 2,
       -ARROW_BUTTON_SIZE / 2,
@@ -221,11 +255,13 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
 
     const arrow = scene.add.graphics();
     arrow.fillStyle(COLOUR.ink, 1);
-    const tipX = direction * 7;
-    arrow.fillTriangle(-tipX, -9, -tipX, 9, tipX, 0);
+    const tipX = direction * 9;
+    arrow.fillTriangle(-tipX, -11, -tipX, 11, tipX, 0);
 
+    // A bit bigger than the drawn button so the tap target stays generous
+    // even though the button graphic sits inset (CLAUDE.md §6.1).
     const zone = scene.add
-      .zone(offsetX, 0, ARROW_BUTTON_SIZE, ARROW_BUTTON_SIZE)
+      .zone(offsetX, 0, ARROW_BUTTON_SIZE + 14, STAGE_HEIGHT - 76)
       .setInteractive({ useHandCursor: true });
     zone.on('pointerup', () => this._step(direction));
 

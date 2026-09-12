@@ -20,4 +20,10 @@ export interface HudRefreshData {
   readonly waterPct: number;
   readonly isPumping: boolean;
   readonly spinners: readonly HudSpinnerSnapshot[];
+  /**
+   * The run's current star total — shown live via `ScoreCounter` (2026-09-12
+   * re-plan, direct user feedback: score should be visible and exciting
+   * during play, not hidden until game over as story 2.5 originally had it).
+   */
+  readonly score: number;
 }
