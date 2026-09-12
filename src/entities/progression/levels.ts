@@ -86,3 +86,12 @@ export const GRANNY_LEVELS: readonly GrannyLevel[] = [
     isTopTier: true,
   },
 ];
+
+/** The highest rank this score reaches. Always returns one — the ladder starts at 0. */
+export function levelForScore(score: number): GrannyLevel {
+  let reached = GRANNY_LEVELS[0];
+  for (const level of GRANNY_LEVELS) {
+    if (score >= level.min) reached = level;
+  }
+  return reached;
+}
