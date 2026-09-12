@@ -19,6 +19,21 @@ import type { RewardSize } from '../poki';
 /** CLAUDE.md §11.1 — a commercial break shows on every *2nd* "Play Again", not every one. */
 const RUNS_BETWEEN_COMMERCIAL_BREAKS = 2;
 
+/**
+ * ⚠️ **MUST BE `true` BEFORE POKI SUBMISSION.** ⚠️
+ *
+ * Temporarily false (2026-09-12, direct user request: "disable all the ads
+ * for now, it's annoying while testing"). Every ad flow below becomes a
+ * no-op: commercial breaks never show, and rewarded ads resolve as
+ * "watched" so the reward still lands and the reward paths stay testable.
+ *
+ * Shipping this as `false` would fail review, not just lose revenue —
+ * CLAUDE.md §12 must-fix 5 requires `commercialBreak()` between runs and
+ * the reviewer checks the SDK events actually fire. One flag rather than
+ * commented-out call sites precisely so it is a single, obvious switch.
+ */
+const ADS_ENABLED = false;
+
 export interface AdHooks {
   readonly onAdStart?: () => void;
   readonly onAdEnd?: () => void;
@@ -26,6 +41,17 @@ export interface AdHooks {
 
 export class AdManager {
   private _runsSinceLastCommercialBreak = 0;
+  private readonly _enabled: boolean;
+
+  /**
+   * `enabled` defaults to ADS_ENABLED. It exists so the unit and ad-flow
+   * tests can keep exercising the real SDK event ordering while ads are
+   * switched off for playtesting — the tests assert the behaviour we have to
+   * ship, so they must not silently pass because of a temporary flag.
+   */
+  constructor(options: { readonly enabled?: boolean } = {}) {
+    this._enabled = options.enabled ?? ADS_ENABLED;
+  }
 
   /** Call once each time a run ends (GameScene → GameOverScene), regardless of whether an ad is about to show. */
   recordRunCompleted(): void {
@@ -34,6 +60,7 @@ export class AdManager {
 
   /** Whether the next "Play Again" tap should show a commercial break (CLAUDE.md §11.1). */
   shouldShowCommercialBreak(): boolean {
+    if (!this._enabled) return false;
     return this._runsSinceLastCommercialBreak >= RUNS_BETWEEN_COMMERCIAL_BREAKS;
   }
 
@@ -53,6 +80,7 @@ export class AdManager {
    */
   async playCommercialBreak(hooks: AdHooks = {}): Promise<void> {
     this._runsSinceLastCommercialBreak = 0;
+    if (!this._enabled) return;
     hooks.onAdStart?.();
     try {
       await poki.commercialBreak();
@@ -72,6 +100,9 @@ export class AdManager {
    * `playCommercialBreak`'s doc comment for the same failure mode).
    */
   async playRewarded(size: RewardSize, hooks: AdHooks = {}): Promise<boolean> {
+    // Grants the reward without showing anything while ads are off, so the
+    // double-score and free-gun paths stay testable — see ADS_ENABLED.
+    if (!this._enabled) return true;
     hooks.onAdStart?.();
     try {
       return await poki.rewardedBreak(size);

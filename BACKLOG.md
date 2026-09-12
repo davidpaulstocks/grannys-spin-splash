@@ -61,6 +61,30 @@ All of the above is live-verified (see individual commit messages for exact test
 - ✅ **Granny + gun art** — resolved 2026-09-11. Delivered as a 3-pose set per granny (front/back/back_firing — see the Sprint 3 re-plan note for why, not the original 5-pose turnaround) + 6 guns × 8 angles + anchor.json, all wired into `Granny.ts`/`Gun.ts` and verified live.
 - ✅ **World background art** — resolved 2026-09-11. All 5 illustrated world backgrounds delivered and wired via `worldBackgrounds.ts`'s `WORLD_BG_ASSETS` registry; procedural drawers remain only as the no-art fallback path.
 
+## ⚠️ BLOCKERS BEFORE SUBMISSION — temporary testing switches
+
+These are deliberate, temporary changes made to make playtesting bearable.
+**Both must be reverted before Poki submission** — shipping either would fail
+review, not merely lose polish.
+
+1. **Ads are disabled.** `ADS_ENABLED = false` in `src/systems/AdManager.ts`
+   (2026-09-12, user: "disable all the ads for now, it's annoying while
+   testing"). Commercial breaks no-op and rewarded ads resolve as "watched" so
+   the reward paths stay testable. CLAUDE.md §12 must-fix 5 requires
+   `commercialBreak()` between runs and the reviewer checks the SDK events
+   actually fire. The unit and ad-flow tests pass `{ enabled: true }`
+   explicitly, so they still assert the shippable behaviour and will catch a
+   regression in the real path while the flag is off.
+
+2. **No two-finger pause gesture.** Removed the same day (user: "if two
+   fingers touch the screen on touch, it pauses the game. very annoying!").
+   CLAUDE.md §6.3 specifies it. This one is arguably a permanent improvement
+   rather than a blocker — touch gets a visible pause button and desktop keeps
+   ESC, and the gesture was the direct cause of the run-soft-locking critical
+   bug — but §6.3 needs updating to match either way.
+
+---
+
 ## Known issues (non-blocking)
 
 - ⚠️ **`GameScene.ts` is 711 lines, against CLAUDE.md §7.3 rule 1's 300-line cap.** Was 623 after 2026-09-12's extraction of `wallBuilder.ts`, `GoldenSpinnerSpawner.ts` and `WaterCannon.ts` (joining the earlier `PowerUpSpawner.ts`/`UrgencyOverlay.ts`); grew back up the same session with several small, individually-justified additions (mini-frenzy payoff, Frenzy bonus floating text, the ad-in-flight pause guard, the occasional encouragement toast) that didn't each warrant their own extraction. The two remaining separable clusters are unchanged: water/spinner collision resolution with combo + scoring, and power-up effect application with its four timers — extracting both would land it near 500. Not attempted this session given how much else already changed in this file; a dedicated pass is lower-risk once nothing else is mid-flight here.

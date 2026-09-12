@@ -6,12 +6,12 @@ import { AdManager } from '../../src/systems/AdManager';
 
 describe('AdManager', () => {
   it('does not want a commercial break before any runs complete', () => {
-    const ads = new AdManager();
+    const ads = new AdManager({ enabled: true });
     expect(ads.shouldShowCommercialBreak()).toBe(false);
   });
 
   it('wants a commercial break only on every 2nd completed run (CLAUDE.md §11.1)', () => {
-    const ads = new AdManager();
+    const ads = new AdManager({ enabled: true });
     ads.recordRunCompleted();
     expect(ads.shouldShowCommercialBreak()).toBe(false);
 
@@ -20,7 +20,7 @@ describe('AdManager', () => {
   });
 
   it('playCommercialBreak() resets the run counter', async () => {
-    const ads = new AdManager();
+    const ads = new AdManager({ enabled: true });
     ads.recordRunCompleted();
     ads.recordRunCompleted();
     expect(ads.shouldShowCommercialBreak()).toBe(true);
@@ -30,7 +30,7 @@ describe('AdManager', () => {
   });
 
   it('playCommercialBreak() calls onAdStart before the break and onAdEnd after', async () => {
-    const ads = new AdManager();
+    const ads = new AdManager({ enabled: true });
     const calls: string[] = [];
     await ads.playCommercialBreak({
       onAdStart: () => calls.push('start'),
@@ -40,12 +40,12 @@ describe('AdManager', () => {
   });
 
   it('playCommercialBreak() works with no hooks supplied', async () => {
-    const ads = new AdManager();
+    const ads = new AdManager({ enabled: true });
     await expect(ads.playCommercialBreak()).resolves.toBeUndefined();
   });
 
   it('playRewarded() calls hooks around the ad and returns the SDK result', async () => {
-    const ads = new AdManager();
+    const ads = new AdManager({ enabled: true });
     const calls: string[] = [];
     const result = await ads.playRewarded('medium', {
       onAdStart: () => calls.push('start'),

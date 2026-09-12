@@ -12,8 +12,14 @@
  * critical input bugs the spec audit found. Arrow keys are still captured so
  * they can't scroll the page (§3 rule 10), they just don't drive anything.
  *
- * Two-finger tap-to-pause is tracked here: a second simultaneous pointer both
- * emits 'pause' and suppresses that touch from being read as an aim/fire input.
+ * There is no two-finger pause gesture (removed 2026-09-12, direct user
+ * feedback: "if two fingers touch the screen on touch, it pauses the game.
+ * very annoying! There should be a pause button instead"). CLAUDE.md §6.3
+ * specced it, but an invisible gesture that hijacks an ordinary second touch
+ * is hostile on a device a child holds in two hands — and it was the direct
+ * cause of the worst bug in the game (one accidental two-finger contact
+ * permanently soft-locked the run; see resetPointerState). Touch devices get
+ * a visible pause button instead (`ui/PauseButton.ts`); desktop keeps ESC.
  */
 
 import Phaser from 'phaser';
@@ -41,7 +47,6 @@ export class InputManager extends EventEmitter {
   private _pointerDown = false;
   private _autoFire = false;
   private _hasFiredFirstInput = false;
-  private readonly _activePointerIds = new Set<number>();
   /**
    * Pointer ids held down on an on-screen control (the pause button). The
    * scene-wide listeners below treat EVERY touch as aim/fire input regardless
@@ -103,13 +108,6 @@ export class InputManager extends EventEmitter {
       // real gameplay input for "has the player started," but must never
       // register as aim/fire or count toward the two-finger pause gesture.
       if (this._excludedPointerIds.has(pointer.id)) return;
-      this._activePointerIds.add(pointer.id);
-      if (this._activePointerIds.size >= 2) {
-        // A second simultaneous touch is the pause gesture (§6.3), not aim/fire.
-        this._pointerDown = false;
-        this.emit('pause');
-        return;
-      }
       this._pointerDown = true;
       this._firingPointerId = pointer.id;
       this._pointerX = pointer.x;
@@ -125,7 +123,6 @@ export class InputManager extends EventEmitter {
       // button's finger would then wrongly clear `_pointerDown` for
       // whatever OTHER finger is genuinely holding fire. Confirmed live.
       if (this._excludedPointerIds.delete(pointer.id)) return;
-      this._activePointerIds.delete(pointer.id);
       // Only the finger that STARTED the fire can stop it. Clearing on any
       // pointerup meant a left thumb that drifted off a move button and
       // lifted killed the right thumb's held fire mid-spray.
@@ -142,14 +139,13 @@ export class InputManager extends EventEmitter {
    * it, and a paused Phaser scene receives NO input at all (InputPlugin.update
    * bails while `canInput()` is false, and events are dispatched live with no
    * queue or replay). So the touchends that end the two-finger pause gesture
-   * are discarded outright and `_activePointerIds` keeps both ids forever —
-   * after resume the next tap re-reaches size 2 and re-emits 'pause', over and
-   * over, with the cannon permanently dead for the rest of the run. The
-   * mirror case leaves `_pointerDown` stuck true so the cannon fires by itself.
-   * Both were found by spec audit, 2026-09-12.
+   * are discarded outright, leaving held state stuck: `_pointerDown` true so
+   * the cannon fires by itself on resume, or an excluded id never released so
+   * that finger is deadened for the rest of the round. Found by spec audit,
+   * 2026-09-12 — the two-finger gesture that made this catastrophic is gone
+   * now, but a pause can still land mid-touch via the button or ESC.
    */
   resetPointerState(): void {
-    this._activePointerIds.clear();
     this._excludedPointerIds.clear();
     this._firingPointerId = null;
     this._pointerDown = false;
@@ -192,7 +188,6 @@ export class InputManager extends EventEmitter {
     this._scene.input.off('pointermove');
     this._scene.input.off('pointerdown');
     this._scene.input.off('pointerup');
-    this._activePointerIds.clear();
     this._excludedPointerIds.clear();
     this.removeAllListeners();
   }
