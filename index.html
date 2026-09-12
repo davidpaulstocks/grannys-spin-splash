@@ -13,7 +13,8 @@
       /* Fredoka, bundled locally — Google Fonts is blocked by Poki (CLAUDE.md §5.2). Variable font: one file, all weights. */
       @font-face {
         font-family: 'Fredoka';
-        src: url('/fonts/fredoka.woff2') format('woff2');
+        /* Relative, not '/fonts/...' — see vite.config.ts's `base`. */
+        src: url('fonts/fredoka.woff2') format('woff2');
         font-weight: 400 700;
         font-display: block;
       }

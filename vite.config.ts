@@ -11,6 +11,13 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  /**
+   * Relative asset URLs. Required for GitHub Pages, which serves a project
+   * site from `/<repo>/` rather than the domain root, and correct for the
+   * real target too: Poki serves games from its own CDN path, so nothing
+   * should assume it lives at `/`.
+   */
+  base: './',
   server: { port: 5173, strictPort: false },
   test: {
     // jsdom gives Systems/ tests (e.g. SaveManager) a real `localStorage` global.
