@@ -41,6 +41,16 @@ export class InputManager extends EventEmitter {
   private _mobileLeftDown = false;
   private _mobileRightDown = false;
   private readonly _activePointerIds = new Set<number>();
+  /**
+   * Pointer ids currently held down on a `MobileMoveButtons` zone (CLAUDE.md
+   * §6.3). Confirmed live: without this, the scene-wide pointerdown/up
+   * listeners below treat EVERY touch as aim/fire input regardless of what
+   * it actually landed on, so pressing a move button also fired the water
+   * cannon, and holding one finger to fire while pressing a move button
+   * with the other was read as the two-finger PAUSE gesture. A pointer id
+   * in this set is excluded from both.
+   */
+  private readonly _excludedPointerIds = new Set<number>();
 
   constructor(scene: Phaser.Scene) {
     super();
@@ -80,8 +90,12 @@ export class InputManager extends EventEmitter {
       this._pointerY = pointer.y;
     });
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this._activePointerIds.add(pointer.id);
       this._registerFirstInput();
+      // A touch already claimed by a move button (see `claimPointer`) is
+      // real gameplay input for "has the player started," but must never
+      // register as aim/fire or count toward the two-finger pause gesture.
+      if (this._excludedPointerIds.has(pointer.id)) return;
+      this._activePointerIds.add(pointer.id);
       if (this._activePointerIds.size >= 2) {
         // A second simultaneous touch is the pause gesture (§6.3), not aim/fire.
         this._pointerDown = false;
@@ -93,6 +107,15 @@ export class InputManager extends EventEmitter {
       this._pointerY = pointer.y;
     });
     scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      // Checked AND cleared here, atomically, rather than by
+      // `MobileMoveButtons.ts` calling `releasePointer` from its own
+      // zone-level handler: that handler fires before this scene-wide one
+      // for the same native event (same ordering the claim on pointerdown
+      // relies on), so releasing there first would make this id look
+      // un-excluded by the time this check runs — and releasing a move
+      // button's finger would then wrongly clear `_pointerDown` for
+      // whatever OTHER finger is genuinely holding fire. Confirmed live.
+      if (this._excludedPointerIds.delete(pointer.id)) return;
       this._activePointerIds.delete(pointer.id);
       this._pointerDown = false;
     });
@@ -102,6 +125,28 @@ export class InputManager extends EventEmitter {
   setMobileMove(direction: -1 | 1, down: boolean): void {
     if (direction === -1) this._mobileLeftDown = down;
     else this._mobileRightDown = down;
+  }
+
+  /**
+   * Marks a touch as belonging to a move button, not aim/fire — called by
+   * `MobileMoveButtons.ts` on its own zone's `pointerdown`. Phaser fires an
+   * interactive object's own listener before the scene-wide one below for
+   * the same native event, so this always lands in time to suppress it.
+   */
+  claimPointer(pointerId: number): void {
+    this._excludedPointerIds.add(pointerId);
+  }
+
+  /**
+   * Releases a pointer claimed by `claimPointer` — call ONLY from that same
+   * button's `pointerout` (finger dragged off the button without lifting).
+   * Never call this from a `pointerup` handler: the scene-wide `pointerup`
+   * listener above must be the one to observe and clear the exclusion for
+   * a lifted pointer, or its own check races against an early release (see
+   * that handler's comment).
+   */
+  releasePointer(pointerId: number): void {
+    this._excludedPointerIds.delete(pointerId);
   }
 
   /** Raw pointer/touch position, pre-snap — pass through resolveAim() before using. */
@@ -128,6 +173,7 @@ export class InputManager extends EventEmitter {
     this._scene.input.off('pointerdown');
     this._scene.input.off('pointerup');
     this._activePointerIds.clear();
+    this._excludedPointerIds.clear();
     this.removeAllListeners();
   }
 

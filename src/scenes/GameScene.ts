@@ -299,7 +299,7 @@ export class GameScene extends Phaser.Scene {
       WATER_BAR_Y,
       () => void this._onWatchAdForRefill(),
     );
-    createMobileMoveButtons(this, (direction, down) => this._input.setMobileMove(direction, down));
+    createMobileMoveButtons(this, this._input);
   }
 
   /** Resets every field a fresh round needs — covers first boot and a GameOverScene "Play Again" restart alike. */
