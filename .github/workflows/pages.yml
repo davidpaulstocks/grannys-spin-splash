@@ -24,7 +24,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 24 to match local, and because `npm run budget` runs a .ts file
+          # directly — Node only strips types natively from 22.6 onward, and
+          # on 20 it fails with ERR_UNKNOWN_FILE_EXTENSION.
+          node-version: '24'
           cache: npm
       - run: npm ci
       # Same gates that run locally — a red build should never reach Pages.
