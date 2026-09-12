@@ -21,8 +21,24 @@ export type SpinnerKind =
   | 'disco'
   | 'golden';
 
-/** Visual variant — for v1 this always matches `type` (1:1, unlike the prototype). */
-export type SpinnerStyle = SpinnerKind;
+/**
+ * Visual variant. Matches `type` 1:1 by default (as in v1's original
+ * design), but `style` and `type` are deliberately separate fields — as
+ * of 2026-09-12 (direct user feedback: spinners needed to be "entertaining
+ * original objects from each world," not generic shared shapes) GameScene
+ * overrides `style` per world for a handful of (world, type) combinations
+ * that get a genuinely different bespoke shape, while `type` stays the
+ * mechanical kind driving decay/power/hit-testing untouched. See
+ * `WORLD_STYLE_OVERRIDE` in world.data.ts for exactly which ones.
+ */
+export type SpinnerStyle =
+  | SpinnerKind
+  | 'whisk'
+  | 'sawblade'
+  | 'candyswirl'
+  | 'daisy'
+  | 'record'
+  | 'citrus';
 
 export interface SpinnerDef {
   readonly type: SpinnerKind;
@@ -47,4 +63,16 @@ export interface SpinnerDef {
    * Spawn-timer behaviour is not yet wired (tracked as a Sprint 2+ addition).
    */
   readonly isGolden?: boolean;
+  /** Disco-world-only: adds a glitter overlay on top of whatever shape this spinner already draws. */
+  readonly sparkle?: boolean;
+  /**
+   * Decorative backing plate drawn *behind* the spinner. Funfair's tent
+   * canvas is a high-contrast stripe pattern at roughly the same spatial
+   * frequency as a spinner's blades, so spinners visually dissolved into
+   * it. A shooting-gallery target board fixes the legibility and is the
+   * single most on-theme object a fairground could mount a spinner on —
+   * unlike the old flat cream scrim, which read as a UI panel pasted over
+   * the art.
+   */
+  readonly mount?: 'target';
 }

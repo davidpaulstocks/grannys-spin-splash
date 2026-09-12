@@ -33,6 +33,8 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     obstacles: [],
     time: ROUND_LENGTH_SECONDS,
     unlockThreshold: 0,
+    // The fence panel itself, between the framing posts and above the grass.
+    wallArea: { x: 110, y: 130, width: 1060, height: 360 },
   },
   {
     id: 'workshop',
@@ -43,6 +45,8 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     obstacles: ['cat', 'umbrella', 'umbrella', 'duck'],
     time: ROUND_LENGTH_SECONDS,
     unlockThreshold: 500,
+    // The pegboard — tools already hang here, so spinners read as hung too.
+    wallArea: { x: 265, y: 130, width: 800, height: 320 },
   },
   {
     id: 'kitchen',
@@ -53,6 +57,8 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     obstacles: ['cat', 'cat', 'umbrella'],
     time: ROUND_LENGTH_SECONDS,
     unlockThreshold: 1000,
+    // Lower shelf + tiled backsplash, clear of the pink side walls and counter.
+    wallArea: { x: 165, y: 120, width: 950, height: 390 },
   },
   {
     id: 'funfair',
@@ -64,6 +70,8 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     time: ROUND_LENGTH_SECONDS,
     unlockThreshold: 1500,
     movingTargets: true,
+    // Tent canvas between the poles, above the sawdust floor.
+    wallArea: { x: 120, y: 190, width: 1040, height: 350 },
   },
   {
     id: 'disco',
@@ -75,6 +83,8 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     time: ROUND_LENGTH_SECONDS,
     unlockThreshold: 2000,
     goldenFrequent: true,
+    // Back wall in the light pools — below the mirror ball, above the dance floor.
+    wallArea: { x: 165, y: 165, width: 950, height: 370 },
   },
 ];
 
@@ -105,6 +115,92 @@ export const SPINNER_PALETTE_BY_WORLD: Readonly<Record<string, readonly string[]
   // Disco: neon glam.
   disco: ['#FF6BA8', '#4DB3E5', '#FFC93C', '#6B6F8C'],
 };
+
+/**
+ * Bespoke per-world shape swaps — pushing past a colour-only reskin
+ * (2026-09-12, direct user feedback: "push harder into more bespoke
+ * spinner objects... entertaining original objects from each world").
+ * Keyed `worldId -> mechanicalType -> bespoke SpinnerStyle`: only the
+ * *visual* dispatch changes (spinnerRenderers.ts's `drawSpinner` switches
+ * on `style`), the mechanical `type`/`decay`/`power`/`blades`/`deflects`
+ * stay exactly as SPINNER_DEFS defines them — a Workshop whirligig drawn
+ * as a `sawblade` still deflects 38% of hits like every other whirligig.
+ * A type/world combination not listed here just keeps its default shared
+ * shape (e.g. Garden's pinwheel/fan/windmill are left as the baseline).
+ */
+export const WORLD_STYLE_OVERRIDE: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  // A flower head instead of a grey extractor-fan blade.
+  garden: { fan: 'daisy' },
+  // A stand-mixer whisk and a citrus slice instead of generic blades.
+  kitchen: { fan: 'whisk', whirligig: 'citrus' },
+  // A toothed circular-saw blade instead of whirligig's rounded blades.
+  workshop: { whirligig: 'sawblade' },
+  // A striped candy-cane spiral instead of a propeller blade.
+  funfair: { propeller: 'candyswirl' },
+  // A spinning 7" vinyl instead of a child's pinwheel.
+  disco: { pinwheel: 'record' },
+};
+
+/**
+ * Narrower than SPINNER_PALETTE_BY_WORLD: recolours a *single* type within
+ * a world, layered on top of (and winning over) the world palette. Needed
+ * because the bespoke shapes above want colours their world's general
+ * palette doesn't carry — Garden's daisy wants petal colours while Garden's
+ * windmill should stay weathered wood, Disco's record label wants neon
+ * while its mirror ball stays silver.
+ */
+export const WORLD_TYPE_PALETTE: Readonly<
+  Record<string, Readonly<Record<string, readonly string[]>>>
+> = {
+  garden: { fan: ['#FF6BA8', '#FFC93C', '#F5F2E8', '#FF8A3D', '#7FD9A8'] },
+  // Brushed-steel whisk wires with a blue handle collar — cream would
+  // disappear straight into the kitchen's own pale backsplash.
+  kitchen: {
+    fan: ['#B9C4D4', '#8899AA', '#CDD6E2', '#4DB3E5', '#A3AFC1'],
+    // Rind, then two alternating flesh tones.
+    whirligig: ['#FFC93C', '#FF8A3D', '#F5F2E8'],
+  },
+  disco: { pinwheel: ['#FF6BA8', '#4DB3E5', '#FFC93C', '#7FD9A8'] },
+};
+
+/** Disco spinners get a glitter overlay on top of whatever shape they already draw (SpinnerDef.sparkle). */
+export const SPARKLE_WORLDS: ReadonlySet<string> = new Set(['disco']);
+
+/** Funfair spinners mount on shooting-gallery target boards (SpinnerDef.mount) — see that field for why. */
+export const MOUNT_BY_WORLD: Readonly<Record<string, 'target'>> = {
+  funfair: 'target',
+};
+
+/**
+ * Per-world easter egg — a rare surprise reaction when a spinner levels
+ * up (2026-09-12, direct user feedback: "wow factor and unexpected
+ * creativity per world"). Deliberately keyed off level-ups rather than
+ * every hit: level-ups are already the game's reward beat, and firing
+ * this on every hit would make it wallpaper instead of a surprise. Each
+ * world gets its own shout + confetti palette so the moment is instantly
+ * recognisable as "that's the Kitchen one". Text, not emoji — CLAUDE.md
+ * §7.3 rule 8 bans emoji in user-facing UI.
+ */
+export interface WorldEasterEgg {
+  readonly text: string;
+  readonly textColour: string;
+  readonly confetti: readonly number[];
+}
+
+export const WORLD_EASTER_EGG: Readonly<Record<string, WorldEasterEgg>> = {
+  garden: { text: 'BLOOM!', textColour: '#7FD9A8', confetti: [0x7fd9a8, 0xff6ba8, 0xffc93c] },
+  workshop: { text: 'CLANG!', textColour: '#CC8844', confetti: [0xcc8844, 0x8899aa, 0xffc93c] },
+  kitchen: { text: 'SIZZLE!', textColour: '#FF6BA8', confetti: [0xf5f2e8, 0xffc93c, 0xff6ba8] },
+  funfair: {
+    text: 'TA-DA!',
+    textColour: '#FFC93C',
+    confetti: [0xff6ba8, 0xffc93c, 0x4db3e5, 0x7fd9a8],
+  },
+  disco: { text: 'GROOVY!', textColour: '#4DB3E5', confetti: [0xff6ba8, 0x4db3e5, 0xffc93c] },
+};
+
+/** How often a level-up triggers its world's easter egg — rare enough to stay a surprise. */
+export const EASTER_EGG_CHANCE = 0.1;
 
 /** Golden Spinner respawn window in ms — shorter (more frequent) in `goldenFrequent` worlds. */
 export const GOLDEN_SPAWN_DELAY_MS = {

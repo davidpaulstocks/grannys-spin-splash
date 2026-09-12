@@ -22,4 +22,21 @@ export interface WorldDef {
   readonly movingTargets?: boolean;
   /** Bonus Golden Spinner spawns more often (every 12-20s instead of 25-40s) — Disco. */
   readonly goldenFrequent?: boolean;
+  /**
+   * Where this world's spinners actually mount, in logical 1280×720 space
+   * (2026-09-12, direct user feedback: spinners had to sit "in natural
+   * positions like they fit in naturally eg on the fence or the disco
+   * ball"). Measured off each delivered background's own art — Garden's
+   * fence panel, Workshop's pegboard, Kitchen's shelf + tiled backsplash,
+   * Funfair's tent canvas, Disco's back wall under the ball — instead of
+   * one generic WALL_AREA rectangle for every world, which left spinners
+   * floating over sky, shelves and floor depending on the scene. Falls
+   * back to config.ts's WALL_AREA when a world doesn't specify one.
+   */
+  readonly wallArea?: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
 }

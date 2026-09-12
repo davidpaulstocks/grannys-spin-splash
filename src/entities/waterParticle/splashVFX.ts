@@ -22,6 +22,14 @@ const SPARK_COUNT = 10;
 const SPARK_LENGTH = 10;
 const SPARK_BURST_DISTANCE = 34;
 
+const CONFETTI_COUNT = 16;
+const CONFETTI_SIZE = 9;
+const CONFETTI_MIN_SPEED = 60;
+const CONFETTI_SPEED_RANGE = 90;
+/** How far below the spawn point the flakes settle — the "fall" half of the arc. */
+const CONFETTI_FALL = 90;
+const CONFETTI_DURATION_MS = 900;
+
 /** Spawns a small radial water-droplet burst centred on (x, y), tinted `colour` (defaults to Water Blue). */
 export function spawnSplash(
   scene: Phaser.Scene,
@@ -44,6 +52,42 @@ export function spawnSplash(
       duration: DURATION.stateChange,
       ease: EASE.standardOut,
       onComplete: () => droplet.destroy(),
+    });
+  }
+}
+
+/**
+ * A celebratory multi-colour confetti burst that arcs outward and falls —
+ * the payoff VFX for a world's rare easter-egg moment (2026-09-12, direct
+ * user feedback asking for "wow factor and unexpected creativity per
+ * world"). Distinct from both the splash (round, fast, single-colour) and
+ * the sparks (thin, radial, no gravity): these tumble and drop, so the
+ * moment reads as a *celebration*, not just another hit reaction.
+ */
+export function spawnConfetti(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  colours: readonly number[],
+): void {
+  for (let i = 0; i < CONFETTI_COUNT; i++) {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1;
+    const speed = CONFETTI_MIN_SPEED + Math.random() * CONFETTI_SPEED_RANGE;
+    const colour = colours[i % colours.length];
+
+    const flake = scene.add.rectangle(x, y, CONFETTI_SIZE, CONFETTI_SIZE * 0.55, colour, 1);
+    flake.setRotation(Math.random() * Math.PI);
+    scene.tweens.add({
+      targets: flake,
+      x: x + Math.cos(angle) * speed,
+      // Positive Y is down, so the burst rises then the tween's own ease
+      // settles it lower than it started — a cheap arc without physics.
+      y: y + Math.sin(angle) * speed * 0.6 + CONFETTI_FALL,
+      rotation: flake.rotation + (Math.random() - 0.5) * 6,
+      alpha: 0,
+      duration: CONFETTI_DURATION_MS,
+      ease: EASE.standardIn,
+      onComplete: () => flake.destroy(),
     });
   }
 }

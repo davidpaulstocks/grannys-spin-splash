@@ -44,6 +44,9 @@ export const FRENZY_THRESHOLDS = {
   full: 1.0,
 } as const;
 
+/** How much wider than the spinner itself a `mount` backing plate draws (SpinnerDef.mount). */
+export const MOUNT_RADIUS_SCALE = 1.15;
+
 export const SPINNER_DEFS: readonly SpinnerDef[] = [
   {
     type: 'pinwheel',

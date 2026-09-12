@@ -7,34 +7,20 @@
 
 import Phaser from 'phaser';
 
-import { GAME_HEIGHT, GAME_WIDTH, WALL_AREA } from '../../config';
+import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
 import { COLOUR, shade } from '../../utils/colour';
 
-/**
- * Illustrated backgrounds are richly detailed by design (WORLD_BACKGROUND_
- * BRIEF.md) — but live-tested against a real spinner wall (2026-09-11,
- * Garden's first delivered image), busy mid-frame detail (flowers, roof
- * tiles) competed directly with the spinners rendered on top, especially
- * at STOPPED/dim state where a spinner's own colour is already muted. A
- * soft light scrim over the wall band recovers contrast without needing
- * every future background to fight this in the art itself — spinners stay
- * legible, the illustration stays visible (veiled, not hidden) around and
- * through it.
+/*
+ * Removed 2026-09-12: a soft cream scrim used to be painted over the wall
+ * band to keep dim spinners legible against busy illustrated art. It
+ * worked, but it read as exactly what it was — a lighter rectangle pasted
+ * over the painting, with visible straight edges cutting through the
+ * scene. Direct user feedback ("match scene style carefully so they feel
+ * native not add on") made that trade the wrong way round. Legibility now
+ * comes from the spinners themselves instead: thick Ink outlines and a
+ * contact shadow per spinner (spinnerRenderers.ts), which is how the
+ * backgrounds' own hand-drawn objects hold up against their backdrops.
  */
-const WALL_SCRIM_MARGIN = 32;
-const WALL_SCRIM_OPACITY = 0.38;
-
-function drawWallScrim(scene: Phaser.Scene): void {
-  const g = scene.add.graphics().setDepth(-99);
-  g.fillStyle(COLOUR.cloud, WALL_SCRIM_OPACITY);
-  g.fillRoundedRect(
-    WALL_AREA.x - WALL_SCRIM_MARGIN,
-    WALL_AREA.y - WALL_SCRIM_MARGIN,
-    WALL_AREA.width + WALL_SCRIM_MARGIN * 2,
-    WALL_AREA.height + WALL_SCRIM_MARGIN * 2,
-    32,
-  );
-}
 
 /**
  * worldId → texture key + file path, for worlds with delivered
@@ -201,7 +187,6 @@ function drawIllustratedBackground(scene: Phaser.Scene, textureKey: string): voi
   const image = scene.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, textureKey).setDepth(-100);
   const scale = Math.max(GAME_WIDTH / image.width, GAME_HEIGHT / image.height);
   image.setScale(scale);
-  drawWallScrim(scene);
 }
 
 /** Renders the named world's backdrop — real illustrated art if it's loaded, else the procedural placeholder. */
