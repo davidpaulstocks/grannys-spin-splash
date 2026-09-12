@@ -5,12 +5,15 @@
  * moment the player does anything at all — GameScene wires that straight
  * to PokiSDK.gameplayStart() (§3 SDK integration, never on scene load).
  *
- * Mobile move (§6.3) comes through `setMobileMove()`, called by the edge
- * hold-buttons in `ui/MobileMoveButtons.ts` — merged into `getMoveDir()`
- * alongside the keyboard so GameScene never needs to know which source is
- * active. Two-finger tap-to-pause is tracked here too: a second
- * simultaneous pointer both emits 'pause' and suppresses that touch from
- * being read as an aim/fire input.
+ * Granny does not walk (2026-09-12): aim is the only input. Nothing in the
+ * game could ever *require* repositioning — the umbrella opens and closes on
+ * a timer, the cat is shooed by aiming near it, the duck paddles — and the
+ * two-thumb grip walking forced was the direct cause of two of the three
+ * critical input bugs the spec audit found. Arrow keys are still captured so
+ * they can't scroll the page (§3 rule 10), they just don't drive anything.
+ *
+ * Two-finger tap-to-pause is tracked here: a second simultaneous pointer both
+ * emits 'pause' and suppresses that touch from being read as an aim/fire input.
  */
 
 import Phaser from 'phaser';
@@ -38,17 +41,13 @@ export class InputManager extends EventEmitter {
   private _pointerDown = false;
   private _autoFire = false;
   private _hasFiredFirstInput = false;
-  private _mobileLeftDown = false;
-  private _mobileRightDown = false;
   private readonly _activePointerIds = new Set<number>();
   /**
-   * Pointer ids currently held down on a `MobileMoveButtons` zone (CLAUDE.md
-   * §6.3). Confirmed live: without this, the scene-wide pointerdown/up
-   * listeners below treat EVERY touch as aim/fire input regardless of what
-   * it actually landed on, so pressing a move button also fired the water
-   * cannon, and holding one finger to fire while pressing a move button
-   * with the other was read as the two-finger PAUSE gesture. A pointer id
-   * in this set is excluded from both.
+   * Pointer ids held down on an on-screen control (the pause button). The
+   * scene-wide listeners below treat EVERY touch as aim/fire input regardless
+   * of what it landed on, so without this, tapping a button also fired the
+   * water cannon and counted toward the two-finger PAUSE gesture. A pointer
+   * id in this set is excluded from both.
    */
   private readonly _excludedPointerIds = new Set<number>();
   /** Which pointer started the current fire — only it may end it (see the pointerup handler). */
@@ -118,7 +117,7 @@ export class InputManager extends EventEmitter {
     });
     scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       // Checked AND cleared here, atomically, rather than by
-      // `MobileMoveButtons.ts` calling `releasePointer` from its own
+      // a button calling `releasePointer` from its own
       // zone-level handler: that handler fires before this scene-wide one
       // for the same native event (same ordering the claim on pointerdown
       // relies on), so releasing there first would make this id look
@@ -154,19 +153,11 @@ export class InputManager extends EventEmitter {
     this._excludedPointerIds.clear();
     this._firingPointerId = null;
     this._pointerDown = false;
-    this._mobileLeftDown = false;
-    this._mobileRightDown = false;
-  }
-
-  /** Held state for the on-screen edge buttons (`ui/MobileMoveButtons.ts`) — merged into `getMoveDir()`. */
-  setMobileMove(direction: -1 | 1, down: boolean): void {
-    if (direction === -1) this._mobileLeftDown = down;
-    else this._mobileRightDown = down;
   }
 
   /**
    * Marks a touch as belonging to a move button, not aim/fire — called by
-   * `MobileMoveButtons.ts` on its own zone's `pointerdown`. Phaser fires an
+   * an on-screen control on its own zone's `pointerdown`. Phaser fires an
    * interactive object's own listener before the scene-wide one below for
    * the same native event, so this always lands in time to suppress it.
    */
@@ -194,14 +185,6 @@ export class InputManager extends EventEmitter {
   /** True while the gun should be firing — held pointer/touch, or auto-fire toggled on (§6.2). */
   isFiring(): boolean {
     return this._pointerDown || this._autoFire;
-  }
-
-  /** -1 (left) / 1 (right) / 0 — both or neither held cancels out to a stop. Merges keyboard + mobile buttons. */
-  getMoveDir(): -1 | 0 | 1 {
-    const left = this._keys.left.isDown || this._keys.a.isDown || this._mobileLeftDown;
-    const right = this._keys.right.isDown || this._keys.d.isDown || this._mobileRightDown;
-    if (left === right) return 0;
-    return left ? -1 : 1;
   }
 
   /** Detaches every listener — call from the owning scene's shutdown handler. */

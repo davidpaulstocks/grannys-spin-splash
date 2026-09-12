@@ -17,7 +17,6 @@ import {
   FRENZY_DURATION_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
-  GRANNY_X_MARGIN,
   GRANNY_Y_FROM_BOTTOM,
   URGENT_COUNTDOWN_SECONDS,
   WATER_PARTICLE_MAX_POOL,
@@ -66,7 +65,6 @@ import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { spawnFloatingText } from '../ui/FloatingText';
 import { showGhostFinger } from '../ui/GhostFinger';
-import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createPauseButton } from '../ui/PauseButton';
 import { TutorialSequence } from '../ui/TutorialSequence';
 import { pickEncouragementPhrase } from '../ui/encouragementPhrases';
@@ -229,14 +227,8 @@ export class GameScene extends Phaser.Scene {
     // for a paused scene (this.scene.pause(), called from _pauseGame()).
     if (this._roundOver) return;
 
-    // Frozen mid-turn: she must not walk or fire while facing the camera.
+    // Frozen mid-turn: she must not fire while still facing the camera.
     const introPlaying = this._intro?.isPlaying() === true;
-    this._granny.move(
-      introPlaying ? 0 : this._input.getMoveDir(),
-      delta / 1000,
-      GRANNY_X_MARGIN,
-      GAME_WIDTH - GRANNY_X_MARGIN,
-    );
 
     for (const spinner of this._spinners) {
       const result = spinner.update(time, delta);
@@ -338,7 +330,6 @@ export class GameScene extends Phaser.Scene {
     this._crosshair = this.add
       .circle(0, 0, 10, COLOUR.softSlate, 0)
       .setStrokeStyle(3, COLOUR.softSlate);
-    createMobileMoveButtons(this, this._input);
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
     createPauseButton(this, this._input, () => this._pauseGame());
   }

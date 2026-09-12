@@ -10,14 +10,8 @@
 
 import Phaser from 'phaser';
 
-import {
-  GRANNY_BREATH_CYCLE_MS,
-  GRANNY_BREATH_SCALE,
-  GRANNY_HEIGHT,
-  GRANNY_MOVE_SPEED,
-} from '../../config';
+import { GRANNY_BREATH_CYCLE_MS, GRANNY_BREATH_SCALE, GRANNY_HEIGHT } from '../../config';
 import { SPRITE_KEYS } from '../../assets/keys';
-import { clamp } from '../../utils/math';
 import { EASE } from '../../utils/tween';
 
 /** See getGunGripOrigin()'s doc comment for how this was measured. */
@@ -107,12 +101,6 @@ export class Granny extends Phaser.GameObjects.Container {
       yoyo: true,
       repeat: -1,
     });
-  }
-
-  /** Moves left/right at a fixed speed, clamped between `minX` and `maxX`. */
-  move(dir: -1 | 0 | 1, deltaSeconds: number, minX: number, maxX: number): void {
-    if (dir === 0) return;
-    this.x = clamp(this.x + dir * GRANNY_MOVE_SPEED * deltaSeconds, minX, maxX);
   }
 
   /**

@@ -25,9 +25,19 @@
         background: #1f2138;
         overflow: hidden;
       }
+      /*
+        `100vh` on a phone means the viewport as if the browser chrome were
+        hidden, so in landscape the canvas was sized taller than the visible
+        area and its bottom — the water tank and the pause button — sat under
+        the URL bar (direct user report, 2026-09-12). `100dvh` is the dynamic
+        viewport height, which tracks the chrome as it shows and hides. The
+        `100vh` line stays first as the fallback for browsers without `dvh`;
+        the reference prototype used exactly this pair.
+      */
       #game {
         width: 100vw;
         height: 100vh;
+        height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -61,6 +71,7 @@
           gap: 24px;
           width: 100vw;
           height: 100vh;
+          height: 100dvh;
           color: #f5f2e8;
           font-family: 'Fredoka', system-ui, sans-serif;
           text-align: center;

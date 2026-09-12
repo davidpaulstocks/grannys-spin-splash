@@ -22,17 +22,16 @@ const PANEL_RADIUS = 16;
 const LINE_GAP = 6;
 
 /**
- * Deliberately shorter than the full §6.2 binding list (direct user
- * feedback, 2026-09-12: "just tell them to use the arrows rather than other
- * keys for direction"). A/D still work and always will — they just don't
- * need saying. A controls key that lists every alias is a spec sheet; one
- * that names the single obvious key for each job is an instruction a
- * seven-year-old can act on. Space (auto-fire toggle) is likewise omitted
- * now that aiming fires on its own — see InputManager's aim-to-fire note.
+ * Two lines, because there are only two things to know (2026-09-12, direct
+ * user feedback: "keep it simple for kids"). Granny no longer walks and
+ * firing is automatic while you're aiming at a spinner, so the whole game is
+ * "point at what you want to soak". Space still toggles permanent auto-fire
+ * and the arrow keys are still captured so they can't scroll the page — but
+ * a controls key that lists every binding is a spec sheet, not an
+ * instruction a seven-year-old can act on.
  */
 const CONTROLS: readonly { readonly key: string; readonly action: string }[] = [
-  { key: 'Mouse', action: 'Aim' },
-  { key: '← →', action: 'Move' },
+  { key: 'Mouse', action: 'Aim — water follows' },
   { key: 'Esc', action: 'Pause' },
 ];
 

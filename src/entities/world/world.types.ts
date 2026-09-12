@@ -39,4 +39,19 @@ export interface WorldDef {
     readonly width: number;
     readonly height: number;
   };
+  /**
+   * One extra spinner placed on a specific painted feature of the
+   * background, outside the grid (2026-09-12, direct user feedback: "in the
+   * disco world, surely the disco ball should be a spinner too!"). The
+   * position is measured off the delivered art, so it lands ON the thing it
+   * depicts rather than near it. It is a normal wall spinner in every other
+   * respect — it decays, scores, and counts toward Splash Frenzy.
+   */
+  readonly featureSpinner?: {
+    readonly type: SpinnerKind;
+    readonly x: number;
+    readonly y: number;
+    /** Radius in logical px, matched to the painted feature rather than the type's default. */
+    readonly r: number;
+  };
 }

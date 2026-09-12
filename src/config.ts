@@ -41,13 +41,13 @@ export const GRANNY_WIDTH = 96;
  * what the feedback was actually asking for.
  *
  * She is drawn in front of the spinner wall and will overlap its bottom row
- * in the centre column on some worlds. That matches the reference
- * prototype, where the same overlap exists, and she is narrow (~111px) on a
- * 1060px-wide wall and moves left/right, so she never parks over a target.
+ * in the centre column on some worlds. That matches the reference prototype,
+ * where the same overlap exists, and she is narrow (~111px) against a
+ * 1060px-wide wall. Since she no longer walks, the overlap is fixed rather
+ * than transient — worth a look if a bottom-centre spinner ever reads as
+ * hard to see, though auto-aim snaps to it regardless.
  */
 export const GRANNY_HEIGHT = 216;
-/** The prototype's 320 px/s, rescaled into this game's 4/3-larger canvas — see WATER_PARTICLE_SPEED. */
-export const GRANNY_MOVE_SPEED = 427;
 /**
  * Vertical gap between the bottom edge and Granny's centre. Chosen so her
  * FEET (centre + GRANNY_HEIGHT/2) land just above the water bar's top edge
@@ -142,13 +142,10 @@ export const WALL_AREA = {
   height: GAME_HEIGHT * 0.56,
 } as const;
 
-/** Horizontal margin kept between Granny's edges and the canvas edges while moving. */
-export const GRANNY_X_MARGIN = 48;
-
 /**
- * Water bar layout (CLAUDE.md §5.8's bottom-8% HUD strip) — lives here,
- * not inside HUDScene.ts, because GameScene also needs WATER_BAR_Y to
- * position the mid-run refill prompt (story 6.3) directly above it.
+ * Water bar layout (CLAUDE.md §5.8's bottom-8% HUD strip) — lives here
+ * rather than inside HUDScene.ts so Granny's standing position can be
+ * derived against it (GRANNY_Y_FROM_BOTTOM keeps her feet clear of the bar).
  */
 export const WATER_BAR_MARGIN_X = 96;
 /**

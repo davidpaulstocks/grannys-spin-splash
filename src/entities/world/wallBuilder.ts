@@ -91,6 +91,26 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef): Spinner[] {
     return new Spinner(scene, pos.x, pos.y, themedDef);
   });
 
+  // The background's own painted centrepiece, if this world has one (Disco's
+  // mirror ball). Deliberately built after the grid and from the unscaled
+  // def: its size comes from the art it sits on, not from the grid fit.
+  const feature = world.featureSpinner;
+  if (feature) {
+    const def = SPINNER_DEFS.find((d) => d.type === feature.type);
+    if (!def) throw new Error(`No SPINNER_DEFS entry for featureSpinner "${feature.type}"`);
+    // Keeps the TYPE's own colours rather than the world palette: the disco
+    // def is already silver/grey, which is what a mirror ball looks like and
+    // what the background painted. The world palette would tint it pink and
+    // it would stop reading as the ball it is sitting on.
+    spinners.push(
+      new Spinner(scene, feature.x, feature.y, {
+        ...def,
+        r: feature.r,
+        ...(sparkle ? { sparkle: true } : {}),
+      }),
+    );
+  }
+
   if (world.movingTargets) {
     for (const spinner of Phaser.Utils.Array.Shuffle([...spinners]).slice(0, MOVING_TARGET_COUNT)) {
       spinner.setDrift(MOVING_TARGET_DRIFT_RANGE, 0.4 + Math.random() * 0.4);
