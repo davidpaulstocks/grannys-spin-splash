@@ -13,10 +13,19 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { COLOUR } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 
-const BUTTON_SIZE = 72;
-const MARGIN_X = 48;
-const MARGIN_BOTTOM = 96;
-const BUTTON_ALPHA = 0.55;
+/**
+ * Sized in logical 1280x720 space, so what matters is what it becomes on a
+ * real phone: 96 logical px lands at ~50 CSS px across a 667-wide viewport,
+ * clearing both Apple's 44 pt and Android's 48 dp minimum touch target. 72
+ * came out at ~37 px — reachable with a thumb, but under both. The bottom
+ * margin keeps them clear of the water bar at WATER_BAR_Y, and the alpha is
+ * high enough to read over a busy illustrated background without the button
+ * competing with the spinners for attention.
+ */
+const BUTTON_SIZE = 96;
+const MARGIN_X = 40;
+const MARGIN_BOTTOM = 120;
+const BUTTON_ALPHA = 0.7;
 
 function buildButton(
   scene: Phaser.Scene,
@@ -33,9 +42,9 @@ function buildButton(
   bg.strokeRoundedRect(-BUTTON_SIZE / 2, -BUTTON_SIZE / 2, BUTTON_SIZE, BUTTON_SIZE, radius);
 
   const arrow = scene.add.graphics();
-  arrow.fillStyle(COLOUR.ink, BUTTON_ALPHA + 0.3);
-  const tipX = direction * 10;
-  arrow.fillTriangle(-tipX, -14, -tipX, 14, tipX, 0);
+  arrow.fillStyle(COLOUR.ink, Math.min(1, BUTTON_ALPHA + 0.3));
+  const tipX = direction * 13;
+  arrow.fillTriangle(-tipX, -18, -tipX, 18, tipX, 0);
 
   scene.add.container(x, y, [bg, arrow]);
 
