@@ -14,6 +14,13 @@ export interface SaveData {
   selectedGunId: string;
   selectedWorldId: string;
   highScore: number;
+  /**
+   * False until the player fires for the first time. Drives the one-time
+   * onboarding in CLAUDE.md §6.5 (splash hint + in-game ghost finger) and
+   * nothing else, so it never needs to be accurate about anything beyond
+   * "has this person ever played".
+   */
+  hasPlayed: boolean;
 }
 
 export interface SaveMigration<From, To> {

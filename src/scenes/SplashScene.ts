@@ -59,7 +59,17 @@ const TITLE_CENTRE_Y = 110;
 const TITLE_WORDMARK_HEIGHT = 120;
 const VAULT_Y = 205;
 const PLAY_Y = 618;
-const REWARD_Y = 676;
+/**
+ * The row under PLAY holds exactly one thing. For a first-time player it's
+ * CLAUDE.md §6.5's hint; for everyone after, the rewarded-ad offer. They
+ * swap rather than stack because there is no free band left between the
+ * loadout card (ends at 575) and the bottom edge — squeezing both in put the
+ * hint on top of PLAY's own edge and pushed the ad row flush against the
+ * canvas edge. Swapping also makes the first impression a line telling a
+ * new player what to do, rather than an ad offer for a gun they have no
+ * context for yet.
+ */
+const BOTTOM_ROW_Y = 676;
 
 export class SplashScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
@@ -116,7 +126,25 @@ export class SplashScene extends Phaser.Scene {
       onClick: () => void this._onPlay(),
     });
 
-    this._buildRewardButton();
+    if (saveManager.load().hasPlayed) this._buildRewardButton();
+    else this._buildFirstRunHint();
+  }
+
+  /**
+   * CLAUDE.md §6.5: no tutorial screen — a first-time player gets one line
+   * naming the verb, and nothing after that. Shown only while the save says
+   * they've never fired a shot, so it's replaced by the rewarded-ad row for
+   * good after their first run rather than nagging a returning player.
+   */
+  private _buildFirstRunHint(): void {
+    this.add
+      .text(
+        GAME_WIDTH / 2,
+        BOTTOM_ROW_Y,
+        'Tap the wall to soak the spinners!',
+        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0.5);
   }
 
   private _grannyItems(): CompactItem[] {
@@ -282,7 +310,7 @@ export class SplashScene extends Phaser.Scene {
   private _buildRewardButton(): void {
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: REWARD_Y,
+      y: BOTTOM_ROW_Y,
       label: 'Watch an ad for a free gun',
       variant: 'secondary',
       minWidth: 340,
@@ -293,7 +321,7 @@ export class SplashScene extends Phaser.Scene {
   private async _onWatchAdForGun(): Promise<void> {
     const reward = this._unlocks.pickRandomLockedGun(REWARD_MAX_TIER);
     if (!reward) {
-      showToast(this, GAME_WIDTH / 2, REWARD_Y - 50, 'All eligible guns already unlocked!');
+      showToast(this, GAME_WIDTH / 2, BOTTOM_ROW_Y - 50, 'All eligible guns already unlocked!');
       return;
     }
 
@@ -303,7 +331,7 @@ export class SplashScene extends Phaser.Scene {
     this._unlocks.grantGun(reward);
     this._gunSelector.setItems(this._gunItems());
     const unlockedName = GUN_DEFS.find((g) => g.id === reward)?.name ?? reward;
-    showToast(this, GAME_WIDTH / 2, REWARD_Y - 50, `Unlocked ${unlockedName}!`);
+    showToast(this, GAME_WIDTH / 2, BOTTOM_ROW_Y - 50, `Unlocked ${unlockedName}!`);
   }
 
   /** CLAUDE.md §11.1: a commercial break shows before every *2nd* "Play Again" — AdManager tracks the cadence. */

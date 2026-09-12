@@ -65,10 +65,11 @@ import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { spawnFloatingText } from '../ui/FloatingText';
+import { showGhostFinger } from '../ui/GhostFinger';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createRefillPrompt } from '../ui/RefillPrompt';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { resolveAim } from '../utils/math';
+import { distance, resolveAim } from '../utils/math';
 import type { HUDScene } from './HUDScene';
 
 /** How close to the canvas edges a Duck obstacle may wander before bouncing back (prototype: 60px). */
@@ -104,7 +105,8 @@ export class GameScene extends Phaser.Scene {
 
   private _score = 0;
   private _cannon!: WaterCannon;
-  /** Rising-edge detector for the opening-shot blast surge — true only the instant firing starts, not while held. */
+  /** First-run onboarding gesture (CLAUDE.md §6.5) — null unless this is the player's very first run. */
+  private _dismissGhostFinger: (() => void) | null = null;
   private _timeRemainingMs = 0;
   private _started = false;
   private _roundOver = false;
@@ -179,6 +181,8 @@ export class GameScene extends Phaser.Scene {
     this._input.on('first-input', () => this._onFirstInput());
     this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._onFrenzyStart());
+
+    this._maybeShowGhostFinger();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this._input.destroy();
@@ -571,7 +575,28 @@ export class GameScene extends Phaser.Scene {
     // this gesture — so the run's music begins on the player's first shot
     // rather than on scene load (CLAUDE.md §9).
     audioOrchestra.start();
+    this._dismissGhostFinger?.();
+    this._dismissGhostFinger = null;
+    const save = saveManager.load();
+    if (!save.hasPlayed) saveManager.save({ ...save, hasPlayed: true });
     poki.gameplayStart();
+  }
+
+  /**
+   * CLAUDE.md §6.5's tutorial, which is deliberately not a tutorial: on a
+   * first-ever run a ghost finger taps a spinner on a loop until the player
+   * fires. Aimed at the spinner nearest the middle of the wall so the
+   * gesture points at the thing they're meant to hit, not at empty space.
+   */
+  private _maybeShowGhostFinger(): void {
+    if (saveManager.load().hasPlayed || this._spinners.length === 0) return;
+    const area = wallAreaFor(this._world);
+    const midX = area.x + area.width / 2;
+    const midY = area.y + area.height / 2;
+    const target = this._spinners.reduce((best, s) =>
+      distance(s.x, s.y, midX, midY) < distance(best.x, best.y, midX, midY) ? s : best,
+    );
+    this._dismissGhostFinger = showGhostFinger(this, target.x, target.y);
   }
 
   /**

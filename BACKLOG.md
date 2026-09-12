@@ -35,7 +35,8 @@ All of the above is live-verified (see individual commit messages for exact test
 | Sprint 4 | ASMR Orchestra — layered audio | ✅ Built (4.1–4.5) with synthesised placeholder voices; 4.6's human playtest outstanding |
 | Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done |
 | Sprint 6 | Monetization Polish | ✅ Done (mobile controls gap closed 2026-09-11 — see below) |
-| Sprint 7 | Launch Polish + Poki submission | 🟡 In progress |
+| Sprint 7 | Launch Polish + Poki submission | 🟡 In progress — all 10 §12 must-fix now pass; blocked only on studio name, real devices, submission |
+| Sprint 8 | First-run onboarding (§6.5) + launch assets | ✅ Done (added 2026-09-12, not in the original plan) |
 
 ---
 
@@ -204,6 +205,19 @@ Get the ads right. Poki rejects games that get this wrong.
 - [x] **6.7** *(added 2026-09-11)* Mobile edge move buttons — `ui/MobileMoveButtons.ts`, hold-to-move ◀/▶ pinned to the bottom screen edges, only created on `device.input.touch`. Merged into `InputManager.getMoveDir()` alongside keyboard so `Granny.move()` doesn't need to know the input source. Closes the other half of CLAUDE.md §6.3's mobile control spec (there was previously no way to move Granny on a touch device at all).
 
 **Exit criteria:** ✅ Met, including the mobile control gap that was previously flagged as open — full desktop + mobile control parity now (§6.2/§6.3 both fully built). All ad flows work correctly per Poki rules, verified live in Chrome via direct state inspection, not just screenshots. Game is technically submission-ready pending Sprints 3/4's blockers and Sprint 7.
+
+---
+
+## Sprint 8 — First-run onboarding + launch assets (2026-09-12)
+
+Not in CLAUDE.md §13's original sprint plan — these are §6.5 and §12 items that were speced but never built, found by reading the spec back against the code.
+
+- [x] **8.1** Implement CLAUDE.md §6.5's tutorial-that-isn't — done. `§6.5` had been written but never built: there was no first-run hint, no ghost finger, and no save flag to hang either on. Now `SaveData.hasPlayed` (defaults false; existing saves pick it up through `SaveManager`'s default-merge, so no migration) drives two things and nothing else — one line on the splash naming the verb, and a looping ghost-finger tap on the spinner nearest the middle of the wall, dismissed the instant the player fires.
+  - The splash hint and the rewarded-ad row **swap** rather than stack: there's no free vertical band between the loadout card (ends at y 575) and the bottom edge, and squeezing both in put the hint over PLAY's own top edge and pushed the ad row flush to the canvas edge. Swapping also means a brand-new player's first impression is a line telling them what to do rather than an ad offer for a gun they have no context for.
+  - The hand went through two rejected drawings before it read: at ~40 px over illustrated fence art a small tilted hand looked like two floating white pills. It's now upright, larger, with the palm clearly wider than the finger — and a Mint Green ring contracts onto the target as it comes down, which is the part that actually reads at this size.
+  - **Bug found and fixed by live-testing rather than by the type checker:** dismissing destroyed the rings while their radius tweens were still running, so the tween wrote to a dead Arc and threw inside `TweenManager.step` — taking every other tween in the scene down with it, including the hand's own fade-out, leaving the hint frozen on screen after the player had already fired. Rings are now tracked and their tweens killed before destruction. Verified: 0 leftover objects, no console errors, flag persists.
+- [x] **8.2** Mobile move buttons met the minimum touch target — 72 logical px is ~37 CSS px on a 667-wide phone, under both Apple's 44 pt and Android's 48 dp. Now 96 (~50 px), higher contrast, clear of the water bar. Verified at 667×375 with touch reported.
+- [x] **8.3** Performance re-check after the orchestra landed — worst case (Disco: 20 spinners, Soaker 3000 dual-stream, continuous fire, all 10 audio layers up, real Frenzy) measured with the orchestra on vs off: median frame delta 16.6 ms vs 16.7 ms, p95 18.9 ms vs 19.4 ms. The audio costs nothing measurable; scheduling runs off `setInterval` on the audio clock, not the render loop.
 
 ---
 

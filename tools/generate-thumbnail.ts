@@ -95,9 +95,7 @@ function croppedCanvas(game: DebugGame): {
 }
 
 /** Starts a fresh run with every other scene stopped, and returns it mid-play with auto-fire on. */
-async function startClipRun(
-  game: DebugGame,
-): Promise<{
+async function startClipRun(game: DebugGame): Promise<{
   spinners: { x: number; y: number; currentSpeed: number; maxOut(): void }[];
   setAim(x: number, y: number): void;
 }> {
