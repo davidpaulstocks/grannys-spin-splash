@@ -40,6 +40,46 @@ export class Granny extends Phaser.GameObjects.Container {
     this._startIdleBreath(scene);
   }
 
+  /**
+   * Faces her toward the camera (the splash-carousel `front` portrait) —
+   * used only by the round-opening turn (`playRoundIntro`). Gameplay never
+   * shows this pose, since the player stands behind her (§14's camera
+   * re-plan).
+   */
+  faceCamera(): void {
+    this._firing = false;
+    this._sprite.setTexture(SPRITE_KEYS.grannyPose(this._grannyId, 'front'));
+    this._fitSprite();
+  }
+
+  /**
+   * Faces her at the wall (the gameplay idle pose), unconditionally.
+   * `setFiring(false)` cannot be used for this: it early-returns when the
+   * firing flag already matches, and `faceCamera()` leaves it false — so the
+   * turn silently kept the `front` texture and she never turned around.
+   */
+  faceWall(): void {
+    this._firing = false;
+    this._sprite.setTexture(SPRITE_KEYS.grannyPose(this._grannyId, 'back'));
+    this._fitSprite();
+  }
+
+  /**
+   * Horizontal squash used to sell the turn, 1 = full width, 0 = edge-on.
+   * The pivot swaps the texture at the pinch, which is the classic 2D
+   * turnaround trick — see `playRoundIntro` for why there is no in-between
+   * pose to interpolate through.
+   */
+  setTurnSquash(factor: number): void {
+    const base = GRANNY_HEIGHT / this._sprite.frame.height;
+    this._sprite.setScale(base * factor, base);
+  }
+
+  /** Restores the normal scale after a turn. */
+  clearTurnSquash(): void {
+    this._fitSprite();
+  }
+
   /** Swaps between the idle and firing body pose — no-op if already in that state. */
   setFiring(firing: boolean): void {
     if (firing === this._firing) return;

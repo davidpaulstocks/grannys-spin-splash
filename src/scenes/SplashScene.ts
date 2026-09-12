@@ -107,6 +107,15 @@ export class SplashScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Phaser REUSES the scene instance, so every `private _x = ...` field
+    // initialiser runs once at construction and never again — `create()` is
+    // the only per-visit reset. Without this line `_isStartingRun` stayed
+    // true after the first run for the lifetime of the page, and PLAY did
+    // nothing at all from the second visit onward: the game was a one-round
+    // game (direct user report, 2026-09-12: "the play button after having
+    // played once does not work").
+    this._isStartingRun = false;
+
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud).setOrigin(0);
     this._buildTitle();
     this._buildVaultDisplay();

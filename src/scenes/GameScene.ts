@@ -20,7 +20,6 @@ import {
   GRANNY_X_MARGIN,
   GRANNY_Y_FROM_BOTTOM,
   URGENT_COUNTDOWN_SECONDS,
-  WATER_BAR_Y,
   WATER_PARTICLE_MAX_POOL,
 } from '../config';
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
@@ -39,6 +38,7 @@ import { buildObstacles, buildWall, wallAreaFor } from '../entities/world/wallBu
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
+import { playRoundIntro, type RoundIntro } from '../entities/granny/roundIntro';
 import { Gun } from '../entities/gun/Gun';
 import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
 import { GoldenSpinnerSpawner, type GoldenClaim } from '../entities/spinner/GoldenSpinnerSpawner';
@@ -56,7 +56,7 @@ import { InputManager } from '../systems/InputManager';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
-import { audioBus, AD_MUTE_HOOKS } from '../audio/AudioBus';
+import { audioBus } from '../audio/AudioBus';
 import { audioOrchestra } from '../audio/AudioOrchestra';
 import * as SFX from '../audio/SFX';
 import type { GunDef } from '../entities/gun/gun.types';
@@ -68,7 +68,6 @@ import { spawnFloatingText } from '../ui/FloatingText';
 import { showGhostFinger } from '../ui/GhostFinger';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createPauseButton } from '../ui/PauseButton';
-import { createRefillPrompt } from '../ui/RefillPrompt';
 import { TutorialSequence } from '../ui/TutorialSequence';
 import { pickEncouragementPhrase } from '../ui/encouragementPhrases';
 import { showToast } from '../ui/Toast';
@@ -108,12 +107,13 @@ export class GameScene extends Phaser.Scene {
   private _crosshair!: Phaser.GameObjects.Arc;
   private _hud!: HUDScene;
   private _frenzyBanner: Phaser.GameObjects.Text | null = null;
-  private _refillPrompt!: Phaser.GameObjects.Container;
 
   private _score = 0;
   private _cannon!: WaterCannon;
   /** First-run onboarding gesture (CLAUDE.md §6.5) — null unless this is the player's very first run. */
   private _dismissGhostFinger: (() => void) | null = null;
+  /** The round-opening turn (see roundIntro.ts) — null once it has finished or been skipped. */
+  private _intro: RoundIntro | null = null;
   /** The scripted-moments tutorial captions (direct user request, 2026-09-12) — null unless this is the player's very first run. */
   private _tutorial: TutorialSequence | null = null;
   private _timeRemainingMs = 0;
@@ -198,6 +198,13 @@ export class GameScene extends Phaser.Scene {
     this._frenzyMeter.on('miniLow', () => this._onMiniFrenzy("You're on fire!"));
     this._frenzyMeter.on('miniHigh', () => this._onMiniFrenzy('Almost there!!'));
 
+    // A brief turn-to-face-the-wall before play, skipped by any input. The
+    // round clock doesn't start until first input, so this costs the player
+    // no time (CLAUDE.md §12 item 13: all cutscenes skippable).
+    this._intro = playRoundIntro(this, this._granny, this._gunSprite, () => {
+      this._intro = null;
+    });
+
     this._maybeShowGhostFinger();
     this._maybeStartTutorial();
 
@@ -222,8 +229,10 @@ export class GameScene extends Phaser.Scene {
     // for a paused scene (this.scene.pause(), called from _pauseGame()).
     if (this._roundOver) return;
 
+    // Frozen mid-turn: she must not walk or fire while facing the camera.
+    const introPlaying = this._intro?.isPlaying() === true;
     this._granny.move(
-      this._input.getMoveDir(),
+      introPlaying ? 0 : this._input.getMoveDir(),
       delta / 1000,
       GRANNY_X_MARGIN,
       GAME_WIDTH - GRANNY_X_MARGIN,
@@ -261,9 +270,21 @@ export class GameScene extends Phaser.Scene {
     const aim = this._updateAim();
     const grip = this._granny.getGunGripOrigin();
     this._gunSprite.updateAim(grip.x, grip.y, aim.x, aim.y);
-    this._granny.setFiring(this._input.isFiring());
+    // Aim-to-fire (2026-09-12, direct user request: "if that's best, remove
+    // the need to shoot and just have aim via mouse or trackpad"). Water
+    // flows whenever the crosshair is snapped to a spinner, so the player
+    // only ever steers. Holding click still fires — including at empty space
+    // — so nothing is taken away, and Space's auto-fire toggle is unchanged.
+    //
+    // Snapped-only rather than always-on: pointing at bare wall stops the
+    // stream, which means no tank is wasted on nothing and the pump stays a
+    // consequence of play rather than a metronome. Gated on `_started` so the
+    // round clock and PokiSDK.gameplayStart() still begin on a real first
+    // input (§3) rather than on an idle mouse drifting over the wall.
+    const firing = !introPlaying && this._started && (this._input.isFiring() || aim.snapped);
+    this._granny.setFiring(firing);
     this._cannon.update(time, {
-      firing: this._input.isFiring(),
+      firing,
       origin: this._gunSprite.getNozzleWorldPosition(),
       aimX: aim.x,
       aimY: aim.y,
@@ -317,13 +338,6 @@ export class GameScene extends Phaser.Scene {
     this._crosshair = this.add
       .circle(0, 0, 10, COLOUR.softSlate, 0)
       .setStrokeStyle(3, COLOUR.softSlate);
-    this._refillPrompt = createRefillPrompt(
-      this,
-      GAME_WIDTH / 2,
-      WATER_BAR_Y,
-      () => void this._onWatchAdForRefill(),
-      this._input,
-    );
     createMobileMoveButtons(this, this._input);
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
     createPauseButton(this, this._input, () => this._pauseGame());
@@ -367,11 +381,21 @@ export class GameScene extends Phaser.Scene {
     return aim;
   }
 
-  /** Drives the refill prompt + REFILLED! flourish off the cannon's own pump cycle. */
+  /**
+   * The REFILLED! flourish, off the cannon's own pump cycle.
+   *
+   * The mid-run "watch an ad to refill now" prompt that used to ride along
+   * here was removed 2026-09-12 on direct user feedback ("annoying, very
+   * interruptive"). CLAUDE.md §11.1 lists it as a placement, but the pump
+   * only takes PUMP_REFILL_MS (2s): it offered a full-screen rewarded ad to
+   * skip a two-second wait, roughly twice per 30-second round. That is a bad
+   * trade for a seven-year-old and barely monetises. The other three §11.1
+   * placements — the between-runs commercial break, double-score at game
+   * over, and the free-gun offer on the splash — are all at natural breaks
+   * and are untouched.
+   */
   private _onPumpEvent(event: PumpEvent): void {
-    if (event === 'started') this._refillPrompt.setVisible(true);
     if (event === 'completed') {
-      this._refillPrompt.setVisible(false);
       spawnFloatingText(
         this,
         this._granny.x,
@@ -380,31 +404,6 @@ export class GameScene extends Phaser.Scene {
         COLOUR_HEX.waterBlue,
       );
     }
-  }
-
-  /**
-   * CLAUDE.md story 6.3: player-initiated only, shown solely while pumping
-   * — watching completes the refill instantly.
-   *
-   * Pauses the scene for the ad's duration (2026-09-12, found by spec
-   * audit): without this, GameScene's `update()` kept advancing the whole
-   * time the ad promise was pending — the round timer could run out and
-   * `_endRound()` could navigate to GameOverScene mid-ad, so the eventual
-   * `await` continuation below would then run against a scene that had
-   * already been torn down (or, on "Play Again," against an unrelated NEW
-   * round reusing this same scene instance). `scene.pause()` is the exact
-   * mechanism `_pauseGame()` already uses — reused here without launching
-   * PauseScene, since an ad needs the round frozen, not a menu.
-   */
-  private async _onWatchAdForRefill(): Promise<void> {
-    if (!this._cannon.isPumping) return;
-    this.scene.pause();
-    const watched = await adManager.playRewarded('small', AD_MUTE_HOOKS);
-    this.scene.resume();
-    if (!watched || !this._cannon.isPumping) return;
-
-    this._cannon.refillInstantly();
-    this._refillPrompt.setVisible(false);
   }
 
   /** Tests every pooled particle against obstacles first, then its candidate spinner(s); applies hits/combo/score. */
@@ -569,7 +568,6 @@ export class GameScene extends Phaser.Scene {
         return;
       case 'turbo':
         this._cannon.refillInstantly();
-        this._refillPrompt.setVisible(false);
         return;
       case 'spinlock':
         this._spinlockEndAt = time + def.duration * 1000;
@@ -656,6 +654,8 @@ export class GameScene extends Phaser.Scene {
     // this gesture — so the run's music begins on the player's first shot
     // rather than on scene load (CLAUDE.md §9).
     audioOrchestra.start(this._world.id);
+    this._intro?.skip();
+    this._intro = null;
     this._dismissGhostFinger?.();
     this._dismissGhostFinger = null;
     const save = saveManager.load();

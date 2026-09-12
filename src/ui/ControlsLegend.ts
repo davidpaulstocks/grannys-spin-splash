@@ -21,9 +21,18 @@ const PANEL_PADDING_Y = 14;
 const PANEL_RADIUS = 16;
 const LINE_GAP = 6;
 
+/**
+ * Deliberately shorter than the full §6.2 binding list (direct user
+ * feedback, 2026-09-12: "just tell them to use the arrows rather than other
+ * keys for direction"). A/D still work and always will — they just don't
+ * need saying. A controls key that lists every alias is a spec sheet; one
+ * that names the single obvious key for each job is an instruction a
+ * seven-year-old can act on. Space (auto-fire toggle) is likewise omitted
+ * now that aiming fires on its own — see InputManager's aim-to-fire note.
+ */
 const CONTROLS: readonly { readonly key: string; readonly action: string }[] = [
-  { key: 'Mouse', action: 'Aim & Fire' },
-  { key: 'A/D or ← →', action: 'Move' },
+  { key: 'Mouse', action: 'Aim' },
+  { key: '← →', action: 'Move' },
   { key: 'Esc', action: 'Pause' },
 ];
 
@@ -32,7 +41,12 @@ export function createControlsLegend(scene: Phaser.Scene, x: number, y: number):
   if (scene.sys.game.device.input.touch) return;
 
   const rows = CONTROLS.map(({ key, action }) =>
-    scene.add.text(0, 0, `${key}  —  ${action}`, textStyle('bodyM', COLOUR_HEX.ink, COLOUR_HEX.cloud)),
+    scene.add.text(
+      0,
+      0,
+      `${key}  —  ${action}`,
+      textStyle('bodyM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+    ),
   );
 
   let rowY = PANEL_PADDING_Y;
