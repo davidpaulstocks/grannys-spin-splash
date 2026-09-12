@@ -8,6 +8,15 @@
 - **Gun visual differentiation:** `GunDef.type`/`sz` were dead fields nothing read — every gun fired an identical blue dot. Added `particleColour` (escalating through the existing palette) and wired both fields into `WaterParticle`/`spawnSplash`, so Inferno now visibly shoots fire-orange and Splash Jr pink.
 - **Spinner juice + per-world theming:** a spark burst (`spawnSparks()`) on every level-up, and `SPINNER_PALETTE_BY_WORLD` — spinner types are shared/reused across worlds, so a per-world recolour (wood/brass Workshop, pastel Kitchen, carnival Funfair, neon Disco) is what actually makes them feel specific to the world they're in.
 
+Then a third wave, again from direct user feedback — that spinners "just look like generic shapes" and had to sit "in natural positions like they fit in naturally eg on the fence or the disco ball," matching each scene's style so they "feel native not add on":
+
+- **Gun feel, beyond colour:** multi-stream guns now offset their streams to real barrel positions (`BARREL_SPACING_PX`) rather than wobbling off one shared point, an opening **blast surge** fires on the rising edge of every press (3× streams + a small camera kick), and the tank running dry ends in a weak **splutter** of three short dying spurts instead of silence. Per-gun particle radius/colour escalate through the tier ladder.
+- **Bespoke per-world spinner objects:** Garden daisy, Workshop saw blade, Kitchen whisk + citrus slice, Funfair candy swirl, Disco vinyl record — `SpinnerDef.style` is now genuinely separate from `SpinnerDef.type`, so only the drawing changes and every mechanical value (decay/power/blades/deflects) stays exactly as tuned. `WORLD_TYPE_PALETTE` recolours one type inside one world where the world-wide palette doesn't carry the right colours.
+- **Native integration, which was the actual complaint:** every shape fills-and-outlines in Ink and drops a contact shadow to match the backgrounds' own thick-outline illustration style; the cream wall scrim is gone entirely (it *was* the pasted-on look) and `DIM_BY_STATE`'s floor rose 0.38 → 0.6 so idle spinners stay coloured against full-vibrancy art; and each world mounts its wall on its own art via `WorldDef.wallArea` — Garden's fence panel, Workshop's pegboard, Kitchen's shelf + backsplash, Funfair's tent canvas, Disco's back wall — instead of one generic rectangle that left spinners floating over sky, shelves and floor depending on the scene.
+- **Funfair needed more than that:** its tent stripes run at the same spatial frequency as a spinner's blades and swallowed them whole, so Funfair spinners mount on shooting-gallery **target boards** — the one backing that reads as a fairground object rather than a UI panel.
+- **`fitScaleForGrid()`** keeps the largest spinner inside its own grid cell, fixing visible overlap in all three 4-row worlds (Kitchen/Funfair/Disco). It only ever scales down, so worlds with room to spare keep their tuned radii untouched.
+- **Per-world easter eggs:** a rare (10% of level-ups) world-specific shout + confetti burst — BLOOM! / CLANG! / SIZZLE! / TA-DA! / GROOVY!. Keyed off level-ups, not hits, so it stays a surprise instead of becoming wallpaper.
+
 All of the above is live-verified (see individual commit messages for exact test steps) and the full pipeline is green. Sprint 4's 12-stem orchestra remains blocked on the audio source decision (§9.3); thumbnails (5.7) remain deferred (no video-capture tooling here); cross-browser/real-device testing (7.2) still needs actual devices; studio name (7.0) needs the user. Everything else is unblocked and this session kept moving through it autonomously per explicit standing instruction.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
@@ -39,7 +48,9 @@ All of the above is live-verified (see individual commit messages for exact test
 
 ## Known issues (non-blocking)
 
-None currently open. (The cog dead-zone vs. auto-aim bug tracked here since Sprint 1 — "not reachable, Garden has no cog" — became reachable when Workshop/Kitchen shipped 2026-09-11, and was fixed the same day: see `resolveFireAimPoint()` in `src/entities/waterParticle/WaterParticle.ts`, verified live — a dead-centre-locked cog now reaches FULL in ~2s of continuous fire instead of never.)
+- ⚠️ **`GameScene.ts` is ~900 lines, against CLAUDE.md §7.3 rule 1's 300-line cap.** It genuinely is the orchestrator (spinners, Granny, gun, water, combo, Frenzy, obstacles, power-ups, golden spinner, HUD feed, ad flow), and two extractions have already come out of it — `PowerUpSpawner.ts` and `UrgencyOverlay.ts` — but firing, the wall builder and the round lifecycle are still all in one file. Splitting it is safe, mechanical, and worth doing before any further feature work lands there.
+
+(The cog dead-zone vs. auto-aim bug tracked here since Sprint 1 — "not reachable, Garden has no cog" — became reachable when Workshop/Kitchen shipped 2026-09-11, and was fixed the same day: see `resolveFireAimPoint()` in `src/entities/waterParticle/WaterParticle.ts`, verified live — a dead-centre-locked cog now reaches FULL in ~2s of continuous fire instead of never.)
 
 ---
 
@@ -225,8 +236,8 @@ Final QA pass and submission.
 
 ### First content drop (v1.1) — content cut from launch scope
 
-- [ ] **C1** Workshop world (unlocks at 500★)
-- [ ] **C2** Disco world (unlocks at 2,000★)
+- [x] ~~**C1** Workshop world~~ — pulled into v1 launch scope 2026-09-11 (CLAUDE.md §14 world-scope re-plan); shipped, unlocks at 500★
+- [x] ~~**C2** Disco world~~ — pulled into v1 launch scope 2026-09-11; shipped, unlocks at 2,000★
 - [ ] **C3** Beach Granny (1,500★)
 - [ ] **C4** Ninja Granny (4,000★)
 - [ ] **C5** GOLDEN GRANNY (10,000★ hero unlock)
@@ -242,7 +253,7 @@ Final QA pass and submission.
 
 - [ ] **P1** Daily challenges (drives DAU)
 - [ ] **P2** Cloud save via Poki Accounts SDK (cross-device)
-- [ ] **P3** Funfair + Kitchen worlds (expand world pool beyond C1/C2)
+- [x] ~~**P3** Funfair + Kitchen worlds~~ — pulled into v1 launch scope 2026-09-11 alongside C1/C2; both shipped (1,500★ / 1,000★)
 - [ ] **P4** Localisation (FR, ES, DE, PT, NL, BR) — after web-fit test passes
 - [ ] **P5** Seasonal Granny variants (Halloween, Christmas)
 - [ ] **P6** Speedrun leaderboards (Poki Accounts)
