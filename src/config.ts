@@ -25,20 +25,68 @@ export const AIM_SNAP_RADIUS = 96;
 
 /** Granny's on-screen size (CLAUDE.md §8.1 sprite art, wired Sprint 3). */
 export const GRANNY_WIDTH = 96;
-export const GRANNY_HEIGHT = 160;
-export const GRANNY_MOVE_SPEED = 360;
-/** Vertical gap kept between the play-field edges and Granny's centre. */
-export const GRANNY_Y_FROM_BOTTOM = 96;
+/**
+ * How tall Granny stands, in logical px (her sprite is scaled to exactly
+ * this — `Granny._fitToHeight`). 216 is 30% of the 720 canvas, above §5.8's
+ * "~12% of vertical real estate", which was written before any art existed
+ * and reads far too small once she is an illustrated character rather than
+ * a placeholder rectangle (direct user feedback, 2026-09-12: "she just
+ * looks really small").
+ *
+ * Raised 160 → 216 together with GRANNY_Y_FROM_BOTTOM below. The two
+ * compound: at 160 tall sitting at y 624 her feet landed at 704, which is
+ * 56px BELOW the water bar's top edge — a third of her was hidden behind
+ * the HUD, so she only ever read as ~104px. Un-hiding her and scaling up
+ * together roughly doubles her on-screen presence (104 → 216), which is
+ * what the feedback was actually asking for.
+ *
+ * She is drawn in front of the spinner wall and will overlap its bottom row
+ * in the centre column on some worlds. That matches the reference
+ * prototype, where the same overlap exists, and she is narrow (~111px) on a
+ * 1060px-wide wall and moves left/right, so she never parks over a target.
+ */
+export const GRANNY_HEIGHT = 216;
+/** The prototype's 320 px/s, rescaled into this game's 4/3-larger canvas — see WATER_PARTICLE_SPEED. */
+export const GRANNY_MOVE_SPEED = 427;
+/**
+ * Vertical gap between the bottom edge and Granny's centre. Chosen so her
+ * FEET (centre + GRANNY_HEIGHT/2) land just above the water bar's top edge
+ * rather than 56px behind it — see GRANNY_HEIGHT. 184 puts her feet at 644
+ * against a bar top of 648.
+ */
+export const GRANNY_Y_FROM_BOTTOM = 184;
 /** Idle breath cycle duration, ms — one full scale-up-and-back (CLAUDE.md §5.6: "scale 1.0 ↔ 1.02"). */
 export const GRANNY_BREATH_CYCLE_MS = 2000;
 export const GRANNY_BREATH_SCALE = 1.02;
 
-/** Gun's longest on-screen dimension, px — its 8 angle sprites all target roughly this same apparent size. */
-export const GUN_LENGTH_PX = 110;
+/**
+ * Gun's longest on-screen dimension, px — its 8 angle sprites all target
+ * roughly this same apparent size. Scaled with GRANNY_HEIGHT (160 → 216) by
+ * the same 1.35x so the gun stays in proportion to the hands holding it.
+ */
+export const GUN_LENGTH_PX = 148;
 
-/** Water particle arc physics — extracted from the reference prototype's `_spawnWater`. */
-export const WATER_PARTICLE_SPEED = 650;
-export const WATER_PARTICLE_GRAVITY = 90;
+/**
+ * Water particle arc physics — from the reference prototype's `_spawnWater`,
+ * **rescaled into this game's larger coordinate space** (2026-09-12).
+ *
+ * The prototype runs on a 960x540 canvas; this game runs on 1280x720, which
+ * is 4/3 larger in both axes (§3 rule 1). Its speed (650) and gravity (90)
+ * were originally copied across verbatim, so water crossed a 33% wider wall
+ * at the prototype's speed while every spinner decay rate stayed byte-for-byte
+ * identical — silently making the whole game harder than the version that was
+ * actually playtested, and measurably contributing to Splash Frenzy being
+ * unreachable (see BACKLOG.md's balance note). A bot firing continuously for a
+ * full round could hold only 4 of Garden's 12 spinners at FULL at once.
+ *
+ * Scaling both by 4/3 restores the prototype's *geometry*: for a trajectory to
+ * stay the same shape when positions scale by k, velocity and acceleration
+ * both scale by k, and flight duration is unchanged. Particle lifetime derives
+ * from speed (`WaterParticle._lifeSeconds`), so it follows automatically.
+ */
+const PROTOTYPE_SCALE = 4 / 3;
+export const WATER_PARTICLE_SPEED = Math.round(650 * PROTOTYPE_SCALE);
+export const WATER_PARTICLE_GRAVITY = Math.round(90 * PROTOTYPE_SCALE);
 export const WATER_PARTICLE_RADIUS = 5;
 export const WATER_PARTICLE_MAX_POOL = 50;
 /** Random horizontal wobble added to each shot's direction, in radians. */

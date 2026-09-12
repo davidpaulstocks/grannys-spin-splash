@@ -31,6 +31,10 @@ export const SPRITE_KEYS = {
     `ui_move_${direction}${pressed ? '_pressed' : ''}`,
   moveButtonPath: (direction: MoveButtonDirection, pressed: boolean): string =>
     `sprites/ui/buttons/move_${direction}${pressed ? '_pressed' : ''}.png`,
+
+  /** public/sprites/ui/buttons/pause.png — the touch-only pause control. */
+  pauseButton: 'ui_pause',
+  pauseButtonPath: 'sprites/ui/buttons/pause.png',
 } as const;
 
 export type MoveButtonDirection = 'left' | 'right';

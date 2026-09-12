@@ -14,18 +14,51 @@
  * once, back-to-back, zero decay" arithmetic minimum) still only reached
  * 1 spinner FULL at round end — the arithmetic minimum badly undersells
  * the real problem, which is maintaining earlier spinners while sweeping
- * the rest (they keep decaying the whole time you're elsewhere). Pushed
- * further and re-measured empirically until the simulated sweep showed
- * real convergence (4 of 12 FULL, zero STOPPED, at ~136/s) — that's the
- * number pistol now uses. The other 5 guns scale from it by the same
- * factor, keeping the original tier-cost ordering (effective DPS: 136 →
- * 185 → 294 → 493 → 662 → 754, pistol through Inferno).
+ * the rest (they keep decaying the whole time you're elsewhere). A second
+ * pass reached ~136/s and 4 of 12 FULL, which was where it was left.
  *
- * Still a first pass, not a final balance pass: this measures one
- * synthetic "commits and doesn't miss" strategy, not real human variance
- * (aim misses, distraction, exploring the wall) — needs a real playtest
- * to confirm "~50% of runs" specifically, not just "convergence is
- * possible for a disciplined player."
+ * **Third pass (2026-09-12), measured against the prototype rather than
+ * against itself.** A clean bot round (Phaser's own rAF stopped so only
+ * stepped frames advance the clock — without that, throttled rAF injects
+ * ~1s-delta frames that decay the whole wall and silently invalidate every
+ * reading) reproduced ~136/s exactly: 4 of 12 FULL, no Frenzy, in a full
+ * 30s round. Two things were then found by reading the prototype:
+ *
+ * 1. It fires a particle every **28 ms** and each hit adds the SPINNER's
+ *    own `power` (pinwheel 28, fan 32) — roughly **1000 units/s**, against
+ *    a Garden wall that decays at 108/s total. Nearly 10x headroom. Ours
+ *    had 1.26x, and only ~44/s actually landed once pipeline overflow is
+ *    counted (~0.6 s of water is always in flight, so every target switch
+ *    dumps charge onto a spinner that is already full).
+ * 2. The prototype canvas is 960x540 against this game's 1280x720 — see
+ *    WATER_PARTICLE_SPEED in config.ts for the 4/3 rescale that fixes the
+ *    travel-time half of the same regression.
+ *
+ * Powers now target a monotonic effective DPS of 409 → 460 → 519 → 573 →
+ * 615 → 700 (pistol through Inferno). Measured with an in-flight-aware bot
+ * (it counts water already committed to a spinner instead of waiting to
+ * *see* FULL, which is what a human sweeping the wall actually does):
+ * pistol at 409/s reaches Frenzy twice in a 30s Garden round, and the
+ * identical bot at the old 136/s reaches it zero times with only 4 of 12
+ * ever FULL — so the ladder, not the bot, is what unlocks the mechanic.
+ *
+ * **Why the top end is compressed to 1.7x rather than the ~2.5x spread a
+ * straight power-scaling suggested.** At 846/s a mid-tier gun hit Frenzy
+ * 8 times in one Disco round and Inferno at 1018/s hit it 12 times in
+ * Garden — legitimately re-earned each time (FrenzyMeter's rising edge is
+ * sound), but a wall that is permanently full flatlines the thing the game
+ * is actually built around: §9.1.1 drives every instrument's gain from its
+ * own spinner's charge, so the ASMR build-and-release only exists while the
+ * wall still breathes. Frenzy also stops reading as a payoff if it is the
+ * default state. The remaining guns still feel distinct through tank size,
+ * fire interval, stream count and particle colour — DPS is not the only
+ * axis, and it is the one that most directly trades against the audio.
+ *
+ * Still not a substitute for a real playtest: the bot has perfect aim and
+ * never gets distracted, and it uses no power-ups (Spin Lock suspends decay
+ * outright, which is close to a free Frenzy). Expect a real seven-year-old
+ * to land well under the bot's rate — confirm "~50% of runs" with a person,
+ * ideally the original 6-year-old.
  */
 
 import { COLOUR, shade } from '../../utils/colour';
@@ -41,7 +74,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 60,
     drain: 1,
     interval: 220,
-    power: 30,
+    power: 90,
     streams: 1,
     sz: 6,
     type: 'water',
@@ -61,7 +94,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 80,
     drain: 1,
     interval: 200,
-    power: 37,
+    power: 92,
     streams: 1,
     sz: 8,
     type: 'water',
@@ -77,7 +110,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 100,
     drain: 2,
     interval: 160,
-    power: 47,
+    power: 83,
     streams: 1,
     sz: 10,
     type: 'water',
@@ -93,7 +126,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 110,
     drain: 2,
     interval: 150,
-    power: 37,
+    power: 43,
     streams: 2,
     sz: 8,
     type: 'water',
@@ -110,7 +143,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 140,
     drain: 2,
     interval: 130,
-    power: 43,
+    power: 40,
     streams: 2,
     sz: 10,
     type: 'water',
@@ -126,7 +159,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 120,
     drain: 3,
     interval: 110,
-    power: 83,
+    power: 77,
     streams: 1,
     sz: 12,
     type: 'fire',

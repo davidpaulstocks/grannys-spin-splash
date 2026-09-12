@@ -67,6 +67,7 @@ import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { spawnFloatingText } from '../ui/FloatingText';
 import { showGhostFinger } from '../ui/GhostFinger';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
+import { createPauseButton } from '../ui/PauseButton';
 import { createRefillPrompt } from '../ui/RefillPrompt';
 import { TutorialSequence } from '../ui/TutorialSequence';
 import { pickEncouragementPhrase } from '../ui/encouragementPhrases';
@@ -316,6 +317,8 @@ export class GameScene extends Phaser.Scene {
       () => void this._onWatchAdForRefill(),
     );
     createMobileMoveButtons(this, this._input);
+    // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
+    createPauseButton(this, this._input, () => this._pauseGame());
   }
 
   /** Resets every field a fresh round needs — covers first boot and a GameOverScene "Play Again" restart alike. */

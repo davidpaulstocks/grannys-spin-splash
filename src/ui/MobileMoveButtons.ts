@@ -33,6 +33,7 @@ import Phaser from 'phaser';
 import { SPRITE_KEYS, type MoveButtonDirection } from '../assets/keys';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { InputManager } from '../systems/InputManager';
+import { usesTouchControls } from './touchControls';
 
 /**
  * Sized in logical 1280x720 space, so what matters is what it becomes on a
@@ -121,21 +122,11 @@ function buildButton(
 }
 
 /**
- * Whether this device gets the on-screen move buttons at all. Exported so
- * BootScene can gate *preloading* their art on the identical condition —
- * two independent copies of this check would eventually drift and leave a
- * touch device rendering missing-texture boxes.
- */
-export function usesTouchMoveButtons(game: Phaser.Game): boolean {
-  return game.device.input.touch;
-}
-
-/**
  * Adds the two edge move buttons to `scene`, wired to `input`, but only on
  * a device that reports touch support.
  */
 export function createMobileMoveButtons(scene: Phaser.Scene, input: InputManager): void {
-  if (!usesTouchMoveButtons(scene.sys.game)) return;
+  if (!usesTouchControls(scene.sys.game)) return;
 
   const y = GAME_HEIGHT - MARGIN_BOTTOM;
   buildButton(scene, input, MARGIN_X + BUTTON_SIZE / 2, y, -1);
