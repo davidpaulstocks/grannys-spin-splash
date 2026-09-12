@@ -275,17 +275,23 @@ export class GameScene extends Phaser.Scene {
     const grip = this._granny.getGunGripOrigin();
     this._gunSprite.updateAim(grip.x, grip.y, aim.x, aim.y);
     // Aim-to-fire (2026-09-12, direct user request: "if that's best, remove
-    // the need to shoot and just have aim via mouse or trackpad"). Water
-    // flows whenever the crosshair is snapped to a spinner, so the player
-    // only ever steers. Holding click still fires — including at empty space
-    // — so nothing is taken away, and Space's auto-fire toggle is unchanged.
+    // the need to shoot and just have aim via mouse or trackpad"). The player
+    // only ever steers; the water is always on once the round has started.
     //
-    // Snapped-only rather than always-on: pointing at bare wall stops the
-    // stream, which means no tank is wasted on nothing and the pump stays a
-    // consequence of play rather than a metronome. Gated on `_started` so the
-    // round clock and PokiSDK.gameplayStart() still begin on a real first
-    // input (§3) rather than on an idle mouse drifting over the wall.
-    const firing = !introPlaying && this._started && (this._input.isFiring() || aim.snapped);
+    // It fires unconditionally rather than only when the crosshair is snapped
+    // to a spinner. The snapped-only version was gated to avoid wasting tank
+    // on bare wall — but that reason died when the tank was resized to last
+    // the whole round (gun.data.ts), and measuring the geometry showed what
+    // it actually cost: only 67% of Garden's wall is inside the 96px snap
+    // radius, with 73px-wide dead columns between spinner columns, so roughly
+    // a third of the time a player was sweeping the wall the cannon silently
+    // produced nothing at all. That is a large part of why Splash Frenzy felt
+    // out of reach (direct user feedback: "I seem to be nowhere near getting
+    // a splash frenzy going... it feels like I don't have the power").
+    //
+    // Still gated on `_started` so the round clock and gameplayStart() begin
+    // on a real first input (§3), not on an idle mouse drifting over the wall.
+    const firing = !introPlaying && this._started;
     this._granny.setFiring(firing);
     this._cannon.update(time, {
       firing,

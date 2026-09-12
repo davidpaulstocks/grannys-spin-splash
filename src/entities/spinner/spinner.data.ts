@@ -31,6 +31,26 @@ export const SPINNER_STATE_THRESHOLDS = {
 /** Speed is clamped to this ceiling on every hit. */
 export const MAX_SPINNER_SPEED = 100;
 
+/**
+ * How long a spinner holds at maximum before it starts decaying again, in ms
+ * (2026-09-12, direct user feedback: "I seem to be nowhere near getting a
+ * splash frenzy going... it feels like I don't have the power").
+ *
+ * Power was not actually the binding constraint. Splash Frenzy needs every
+ * spinner at FULL *simultaneously*, and the FULL band is only 20 wide
+ * (SPINNER_STATE_THRESHOLDS.full 80 → MAX 100). Against a fan's decay of 15/s
+ * that is a 1.33-second window, while a real player sweeping twelve spinners
+ * takes several seconds per pass — so the spinners charged first had always
+ * dropped out again before the last one was reached, no matter how fast the
+ * gun charged each one. The wall was mathematically un-completable by hand.
+ *
+ * This grace period is the fix, and it is deliberately a *reward* rather
+ * than a difficulty reduction: topping a spinner right to the top buys you
+ * time on it, so filling the wall becomes a sequence of locked-in wins
+ * instead of a losing race against decay. Partial hits get nothing.
+ */
+export const MAX_SPEED_HOLD_MS = 2600;
+
 /** Combo persistence window in milliseconds (CLAUDE.md §2; prototype `comboTimer = 2.0`). */
 export const COMBO_WINDOW_MS = 2000;
 

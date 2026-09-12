@@ -6,7 +6,7 @@
 
 import Phaser from 'phaser';
 
-import { MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
+import { MAX_SPEED_HOLD_MS, MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
 import { SpinnerState, type SpinnerDef } from './spinner.types';
 import { drawSpinner } from './spinnerRenderers';
 
@@ -64,6 +64,8 @@ export class Spinner extends Phaser.GameObjects.Container {
   currentState: SpinnerState = SpinnerState.STOPPED;
   /** While true (SPLASH FRENZY's bonus window), decay is suspended. */
   locked = false;
+  /** Remaining decay-free grace after being topped right up, ms — see MAX_SPEED_HOLD_MS. */
+  private _holdUntilMs = 0;
 
   private readonly _bladeGfx: Phaser.GameObjects.Graphics;
   private readonly _glowGfx: Phaser.GameObjects.Graphics;
@@ -95,7 +97,9 @@ export class Spinner extends Phaser.GameObjects.Container {
    */
   override update(time: number, deltaMs: number): SpinnerUpdateResult | null {
     const dt = deltaMs / 1000;
-    if (!this.locked) {
+    if (this._holdUntilMs > 0) {
+      this._holdUntilMs = Math.max(0, this._holdUntilMs - deltaMs);
+    } else if (!this.locked) {
       this.currentSpeed = Math.max(0, this.currentSpeed - this.def.decay * dt);
     }
     this._bladeGfx.rotation += this.currentSpeed * SPIN_ROTATION_FACTOR * dt;
@@ -123,6 +127,9 @@ export class Spinner extends Phaser.GameObjects.Container {
       return false;
     }
     this.currentSpeed = Math.min(MAX_SPINNER_SPEED, this.currentSpeed + power);
+    // Reaching the very top buys a decay-free grace period — see
+    // MAX_SPEED_HOLD_MS for why the wall was otherwise un-completable by hand.
+    if (this.currentSpeed >= MAX_SPINNER_SPEED) this._holdUntilMs = MAX_SPEED_HOLD_MS;
     return true;
   }
 
