@@ -166,8 +166,8 @@ function bell(c: VoiceContext): void {
 
 function pad(c: VoiceContext): void {
   for (const freq of [A2, C3, E3]) {
-    filteredTone(c, 'sawtooth', freq, 0, BAR_SECONDS, 0.2, 700, 0.7);
-    filteredTone(c, 'sawtooth', freq, 0, BAR_SECONDS, 0.2, 700, 0.7, 7);
+    filteredTone(c, 'sawtooth', freq, 0, BAR_SECONDS, 0.12, 700, 0.7);
+    filteredTone(c, 'sawtooth', freq, 0, BAR_SECONDS, 0.12, 700, 0.7, 7);
   }
 }
 
@@ -238,7 +238,7 @@ function brass(c: VoiceContext): void {
 function choir(c: VoiceContext): void {
   for (const freq of [A4, C5, E5]) {
     for (const detune of [-9, 0, 9]) {
-      filteredTone(c, 'triangle', freq, 0, BAR_SECONDS, 0.1, 2200, 1.0, detune);
+      filteredTone(c, 'triangle', freq, 0, BAR_SECONDS, 0.07, 2200, 1.0, detune);
     }
   }
 }

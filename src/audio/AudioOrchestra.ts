@@ -43,6 +43,17 @@ const DROP_BASS_GAIN = 0.7;
 
 const NOISE_SECONDS = 2;
 
+/**
+ * Output limiter + trim. Measured live at Frenzy in Disco (20 spinners, every
+ * layer up, cinematic hit landing): the limiter alone still let peaks reach
+ * 1.12 on the master, because a compressor's 3 ms attack passes the hit's
+ * initial transient and the master's own 0.65 gain is applied after it. A
+ * fixed trim after the limiter is what actually guarantees headroom.
+ */
+const LIMITER_THRESHOLD_DB = -14;
+const LIMITER_RATIO = 20;
+const ORCHESTRA_TRIM = 0.7;
+
 export interface OrchestraSpinnerSnapshot {
   /** 0..1 — this spinner's charge as a fraction of MAX_SPINNER_SPEED. */
   readonly charge: number;
@@ -50,6 +61,8 @@ export interface OrchestraSpinnerSnapshot {
 
 export class AudioOrchestra {
   private _ctx: AudioContext | null = null;
+  private _limiter: DynamicsCompressorNode | null = null;
+  private _out: GainNode | null = null;
   private _layers = new Map<VoiceId, GainNode>();
   private _noise: AudioBuffer | null = null;
   private _timer: ReturnType<typeof setInterval> | null = null;
@@ -73,10 +86,25 @@ export class AudioOrchestra {
     this._ctx = ctx;
     this._noise ??= this._createNoise(ctx);
     if (this._layers.size === 0) {
+      // Every layer meets the master bus through one limiter. At Frenzy all
+      // nine spinner layers plus the foundation and drop bass sound at once
+      // and their peaks can sum past unity; without this, that exact moment
+      // — the one the whole game builds to — is where it would distort.
+      // SFX stay off this node so a hit never ducks the music.
+      this._out = ctx.createGain();
+      this._out.gain.value = ORCHESTRA_TRIM;
+      this._out.connect(master);
+      this._limiter = ctx.createDynamicsCompressor();
+      this._limiter.threshold.value = LIMITER_THRESHOLD_DB;
+      this._limiter.knee.value = 6;
+      this._limiter.ratio.value = LIMITER_RATIO;
+      this._limiter.attack.value = 0.001;
+      this._limiter.release.value = 0.25;
+      this._limiter.connect(this._out);
       for (const id of Object.keys(VOICES) as VoiceId[]) {
         const gain = ctx.createGain();
         gain.gain.value = 0;
-        gain.connect(master);
+        gain.connect(this._limiter);
         this._layers.set(id, gain);
       }
     }
@@ -121,8 +149,10 @@ export class AudioOrchestra {
   onFrenzyStart(): void {
     if (!this._running || !this._ctx || !this._noise) return;
     this._setGain('dropBass', DROP_BASS_GAIN);
-    const master = audioBus.master;
-    if (master) playCinematicHit(this._ctx, master, this._noise);
+    // Through the limiter, not the master — the hit is the loudest thing
+    // in the game and lands exactly when every layer is already up.
+    const dest = this._limiter ?? audioBus.master;
+    if (dest) playCinematicHit(this._ctx, dest, this._noise);
   }
 
   onFrenzyEnd(): void {
