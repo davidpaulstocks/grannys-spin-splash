@@ -2,14 +2,16 @@
 
 import Phaser from 'phaser';
 
+import { URGENT_COUNTDOWN_SECONDS } from '../config';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 import { textStyle } from '../utils/typography';
 
 const PILL_WIDTH = 96;
 const PILL_HEIGHT = 56;
-/** Below this many seconds remaining, the dial switches to Heat Orange (CLAUDE.md §5.1 — "urgency"). */
-const URGENT_THRESHOLD_SECONDS = 10;
+/** Sine-pulse scale amplitude for the final countdown (prototype: `1+sin(t*0.025)*0.18`). */
+const PULSE_AMPLITUDE = 0.18;
+const PULSE_SPEED = 0.025;
 
 export class TimerDial {
   private readonly _text: Phaser.GameObjects.Text;
@@ -41,10 +43,17 @@ export class TimerDial {
       this._lastRenderedSeconds = seconds;
     }
 
-    const urgent = seconds <= URGENT_THRESHOLD_SECONDS;
+    const urgent = seconds <= URGENT_COUNTDOWN_SECONDS;
     if (urgent !== this._wasUrgent) {
       this._text.setColor(urgent ? COLOUR_HEX.heatOrange : COLOUR_HEX.ink);
       this._wasUrgent = urgent;
     }
+
+    // Scale-pulse only in the final stretch — restored from the prototype's
+    // own countdown drama, kept out of the calm 20-10s zone so it reads as
+    // an escalation, not a constant twitch throughout the whole run.
+    this._text.setScale(
+      urgent ? 1 + Math.sin(this._text.scene.time.now * PULSE_SPEED) * PULSE_AMPLITUDE : 1,
+    );
   }
 }

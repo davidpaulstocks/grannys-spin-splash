@@ -164,3 +164,12 @@ export function playGoldenAppear(): void {
 export function playGoldenExpire(): void {
   playTone('sine', 440, 0.5, 0.12, 220);
 }
+
+/**
+ * Countdown tick — one per second in the final 10s of a round (CLAUDE.md
+ * §2's "urgency" reference, restored 2026-09-12 from the prototype's own
+ * `playTick`: sine 660Hz normally, 880Hz for the final 3 seconds).
+ */
+export function playTick(urgent: boolean): void {
+  playTone('sine', urgent ? 880 : 660, urgent ? 0.12 : 0.07, 0.1);
+}

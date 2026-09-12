@@ -10,6 +10,9 @@ import Phaser from 'phaser';
 
 import {
   AIM_SNAP_RADIUS,
+  COUNTDOWN_TICK_SHAKE_DURATION_MS,
+  COUNTDOWN_TICK_SHAKE_INTENSITY,
+  FINAL_COUNTDOWN_SECONDS,
   FRENZY_BONUS_STARS,
   FRENZY_DURATION_MS,
   GAME_HEIGHT,
@@ -17,6 +20,7 @@ import {
   GRANNY_X_MARGIN,
   GRANNY_Y_FROM_BOTTOM,
   PUMP_REFILL_MS,
+  URGENT_COUNTDOWN_SECONDS,
   WALL_AREA,
   WATER_BAR_Y,
   WATER_PARTICLE_MAX_POOL,
@@ -52,10 +56,11 @@ import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
+import { spawnFloatingText } from '../ui/FloatingText';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createRefillPrompt } from '../ui/RefillPrompt';
 import { showToast } from '../ui/Toast';
-import { COLOUR } from '../utils/colour';
+import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { computeGridPositions } from '../utils/grid';
 import { distance, resolveAim } from '../utils/math';
 import { DURATION, EASE } from '../utils/tween';
@@ -66,6 +71,29 @@ const DUCK_BOUNCE_MARGIN = 60;
 /** Funfair-only: how many spinners drift, and the drift radius (prototype: 3 spinners, 55px). */
 const MOVING_TARGET_COUNT = 3;
 const MOVING_TARGET_DRIFT_RANGE = 55;
+
+/**
+ * Visual-only stream density (2026-09-12, direct user feedback: "the
+ * water guns felt much stronger... like they were blasting strongly" —
+ * the prototype fires every 28ms, ~8x denser than this game's tuned
+ * 110-220ms gun intervals). Rather than touch the simulated/tuned
+ * interval-power-drain balance in gun.data.ts, both the fire cadence and
+ * the per-particle power/drain are scaled by the same factor here, so
+ * total DPS and tank-drain-per-second are mathematically unchanged —
+ * only the granularity gets finer, which is what actually reads as "a
+ * dense continuous stream" instead of discrete pulses.
+ */
+const FIRE_DENSITY_SCALE = 4;
+
+/** Combo tiers ≥ this shake (prototype: `if(combo>=4) shake(150, 0.005*(combo-2))`). */
+const COMBO_SHAKE_THRESHOLD = 4;
+
+/** Floating "+N ★" colour by combo multiplier tier — escalates with the combo, matching the prototype's `awardStars`. */
+function hitTextColour(multiplier: number): string {
+  if (multiplier >= 4) return COLOUR_HEX.grannyPink;
+  if (multiplier >= 2) return COLOUR_HEX.sunnyGold;
+  return COLOUR_HEX.waterBlue;
+}
 
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];
@@ -95,6 +123,8 @@ export class GameScene extends Phaser.Scene {
   private _roundOver = false;
   private _frenzyActive = false;
   private _frenzyEndAt = 0;
+  /** Last whole second the final-countdown tick/shake fired for — guards against re-firing every frame within the same second. */
+  private _lastUrgentSecond = -1;
 
   // Bonus Golden Spinner — spawns outside the fixed grid, own lifetime, not part of `_spinners`/FrenzyMeter.
   private _goldenSpinner: Spinner | null = null;
@@ -200,6 +230,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this._started) {
       this._timeRemainingMs = Math.max(0, this._timeRemainingMs - delta);
+      this._updateCountdownUrgency();
       if (this._timeRemainingMs <= 0) {
         this._endRound();
         return;
@@ -207,6 +238,29 @@ export class GameScene extends Phaser.Scene {
     }
 
     this._refreshHud();
+  }
+
+  /**
+   * Final-countdown tick + shake (2026-09-12, restored from the
+   * prototype — direct user feedback: "urgency building as the clock
+   * counts down" was missing). The matching vignette/big-number visuals
+   * live in HUDScene's `UrgencyOverlay`, independently keyed off the same
+   * `secondsRemaining` value every frame — no cross-scene event needed,
+   * since both derive from the same number in the same tick. This method
+   * owns only what only GameScene *can* own: the world camera shake and
+   * the SFX trigger (CLAUDE.md §7.1 — HUDScene stays a pure visual leaf).
+   */
+  private _updateCountdownUrgency(): void {
+    const seconds = Math.ceil(this._timeRemainingMs / 1000);
+    if (seconds > URGENT_COUNTDOWN_SECONDS || seconds === this._lastUrgentSecond) return;
+    this._lastUrgentSecond = seconds;
+
+    const final = seconds <= FINAL_COUNTDOWN_SECONDS;
+    SFX.playTick(final);
+    this.cameras.main.shake(
+      final ? COUNTDOWN_TICK_SHAKE_DURATION_MS.final : COUNTDOWN_TICK_SHAKE_DURATION_MS.normal,
+      final ? COUNTDOWN_TICK_SHAKE_INTENSITY.final : COUNTDOWN_TICK_SHAKE_INTENSITY.normal,
+    );
   }
 
   /** Creates the GameScene-owned visual overlays that aren't part of HUDScene: the aim crosshair and the refill prompt. */
@@ -236,6 +290,7 @@ export class GameScene extends Phaser.Scene {
     this._frenzyBanner = null;
     this._frenzyMeter.reset();
     this._combo.reset();
+    this._lastUrgentSecond = -1;
   }
 
   /** Builds the spinner wall: an even grid within WALL_AREA, kinds cycled round-robin from the world's roster. */
@@ -313,8 +368,10 @@ export class GameScene extends Phaser.Scene {
       if (!particle) break;
       particle.fire(origin.x, origin.y, aim.x, aim.y, target);
     }
-    this._waterTank = Math.max(0, this._waterTank - this._gun.drain);
-    this._nextFireAt = time + this._gun.interval;
+    // FIRE_DENSITY_SCALE: drain scales down with interval so the actual
+    // drain-per-second is unchanged — see its own doc comment.
+    this._waterTank = Math.max(0, this._waterTank - this._gun.drain / FIRE_DENSITY_SCALE);
+    this._nextFireAt = time + this._gun.interval / FIRE_DENSITY_SCALE;
   }
 
   /** Starts a pump-refill once the tank hits empty, and completes it once its timer elapses. */
@@ -329,6 +386,13 @@ export class GameScene extends Phaser.Scene {
       this._waterTank = this._gun.tank;
       this._refillPrompt.setVisible(false);
       SFX.playRefill();
+      spawnFloatingText(
+        this,
+        this._granny.x,
+        this._granny.y - GRANNY_Y_FROM_BOTTOM,
+        'REFILLED!',
+        COLOUR_HEX.waterBlue,
+      );
     }
   }
 
@@ -356,7 +420,10 @@ export class GameScene extends Phaser.Scene {
       const hitSpinner = particle.checkCollision(particle.getCandidates(activeSpinners));
       if (!hitSpinner) continue;
 
-      const landed = hitSpinner.hit(this._gun.power);
+      // FIRE_DENSITY_SCALE: each of the N denser particles carries 1/N the
+      // power, so a shot that lands all of them still delivers the exact
+      // total the tuned balance expects — see the constant's doc comment.
+      const landed = hitSpinner.hit(this._gun.power / FIRE_DENSITY_SCALE);
       spawnSplash(this, hitX, hitY);
       if (!landed) {
         SFX.playDeflect(); // whirligig
@@ -366,15 +433,37 @@ export class GameScene extends Phaser.Scene {
       SFX.playHit(hitSpinner.currentSpeed);
       const comboBefore = this._combo.combo;
       const comboAfter = this._combo.registerHit(hitSpinner.id);
-      if (comboAfter !== comboBefore) SFX.playCombo(comboAfter);
+      if (comboAfter !== comboBefore) {
+        SFX.playCombo(comboAfter);
+        // Escalating shake on a hot streak (prototype: combo>=4) — never on
+        // every single hit, only when the combo itself actually climbs.
+        if (comboAfter >= COMBO_SHAKE_THRESHOLD) {
+          this.cameras.main.shake(150, 0.005 * (comboAfter - 2));
+        }
+      }
     }
   }
 
   /** Stars are awarded only on an upward state transition (CLAUDE.md §2) — never per-hit, never on decay. */
   private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState): void {
     const levelBonus = Math.max(0, STATE_ORDINAL[newState] - 1);
-    this._score += (spinner.def.stars + levelBonus) * this._combo.multiplier;
+    const multiplier = this._combo.multiplier;
+    const total = (spinner.def.stars + levelBonus) * multiplier;
+    this._score += total;
     SFX.playUpgrade(STATE_ORDINAL[newState]);
+    // Restored 2026-09-12 from the prototype's `awardStars` — direct user
+    // feedback that per-hit feedback ("toasts when the player hit
+    // targets") was part of what made hits feel rewarding. The permanent
+    // score number stays hidden during play either way (CLAUDE.md story
+    // 2.5) — this is transient combat text, not a persistent HUD readout.
+    const label = multiplier > 1 ? `+${total} ★ ×${multiplier}` : `+${total} ★`;
+    spawnFloatingText(
+      this,
+      spinner.x,
+      spinner.y - spinner.def.r - 12,
+      label,
+      hitTextColour(multiplier),
+    );
   }
 
   /** Ticks the live Golden Spinner (claim-on-FULL or lifetime expiry), or checks whether it's time to spawn one. */
@@ -388,7 +477,13 @@ export class GameScene extends Phaser.Scene {
     const result = golden.update(time, delta);
     if (result?.leveledUp && result.state === SpinnerState.FULL) {
       this._score += golden.def.stars;
-      showToast(this, golden.x, golden.y - golden.def.r - 20, 'Golden Spinner! Bonus stars!');
+      spawnFloatingText(
+        this,
+        golden.x,
+        golden.y - golden.def.r - 12,
+        `GOLDEN! +${golden.def.stars} ★`,
+        COLOUR_HEX.sunnyGold,
+      );
       SFX.playUpgrade(STATE_ORDINAL[SpinnerState.FULL]);
       this._despawnGolden(false);
       return;

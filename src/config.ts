@@ -63,6 +63,23 @@ export const FRENZY_FLASH_DURATION_MS = 400;
 export const PUMP_REFILL_MS = 2000;
 
 /**
+ * Final-countdown urgency (restored 2026-09-12 from the prototype's own
+ * `updateTimer` — direct user feedback that the game had lost the
+ * "urgency building as the clock counts down" the prototype had). Below
+ * this many seconds remaining: a pulsing red vignette, a scale-pulsing
+ * red timer, a per-second tick sound + camera shake, and a big popping
+ * countdown number. `TWENTY_SECOND_CALLOUT_AT` is a one-time "20 SECONDS!"
+ * heads-up shown exactly once per round, matching the prototype's own
+ * single early warning before the real urgency phase begins.
+ */
+export const URGENT_COUNTDOWN_SECONDS = 10;
+export const TWENTY_SECOND_CALLOUT_AT = 20;
+/** The final 3 seconds get the loudest tick + biggest shake + reddest number (prototype: `secs<=3`). */
+export const FINAL_COUNTDOWN_SECONDS = 3;
+export const COUNTDOWN_TICK_SHAKE_DURATION_MS = { normal: 150, final: 300 } as const;
+export const COUNTDOWN_TICK_SHAKE_INTENSITY = { normal: 0.006, final: 0.012 } as const;
+
+/**
  * The spinner wall's play-field rectangle — spinners cover ~60% of the
  * visible area, Granny + HUD take the rest (CLAUDE.md §5.8). Sprint 2's
  * FrenzyMeterUI/HUDScene may recompute this more carefully; Sprint 1 just

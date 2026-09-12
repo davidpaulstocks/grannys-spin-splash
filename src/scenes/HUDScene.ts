@@ -20,6 +20,7 @@ import {
 import type { HudRefreshData } from '../types/hud';
 import { FrenzyMeterUI } from '../ui/FrenzyMeterUI';
 import { TimerDial } from '../ui/TimerDial';
+import { UrgencyOverlay } from '../ui/UrgencyOverlay';
 import { WaterBar } from '../ui/WaterBar';
 
 /** Top 8% of the canvas (CLAUDE.md §5.8) — where the timer dial sits. */
@@ -29,6 +30,7 @@ export class HUDScene extends Phaser.Scene {
   private _timerDial!: TimerDial;
   private _waterBar!: WaterBar;
   private _frenzyMeterUI!: FrenzyMeterUI;
+  private _urgencyOverlay!: UrgencyOverlay;
 
   constructor() {
     super('HUDScene');
@@ -44,6 +46,7 @@ export class HUDScene extends Phaser.Scene {
       WATER_BAR_HEIGHT,
     );
     this._frenzyMeterUI = new FrenzyMeterUI(this);
+    this._urgencyOverlay = new UrgencyOverlay(this, GAME_WIDTH, GAME_HEIGHT);
   }
 
   /** GameScene's single per-frame call into this scene. */
@@ -51,5 +54,6 @@ export class HUDScene extends Phaser.Scene {
     this._timerDial.update(data.secondsRemaining);
     this._waterBar.update(data.waterPct, data.isPumping);
     this._frenzyMeterUI.update(data.spinners);
+    this._urgencyOverlay.update(data.secondsRemaining);
   }
 }
