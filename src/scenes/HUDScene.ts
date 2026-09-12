@@ -26,16 +26,21 @@ import { FrenzyMeterUI } from '../ui/FrenzyMeterUI';
 import { ScoreCounter } from '../ui/ScoreCounter';
 import { TimerDial } from '../ui/TimerDial';
 import { UrgencyOverlay } from '../ui/UrgencyOverlay';
+import { SpinnerState } from '../entities/spinner/spinner.types';
+import { FrenzyProgress } from '../ui/FrenzyProgress';
 import { WaterBar } from '../ui/WaterBar';
 
 /** Top 8% of the canvas (CLAUDE.md §5.8) — where the timer dial sits. */
 const TIMER_Y = GAME_HEIGHT * 0.04;
 /** Same top band as the timer, offset to its left so the two pills read as one HUD row, not a collision. */
 const SCORE_X = 150;
+/** Under the timer/score pills, clear of every world's wall top (lowest is Garden's 96). */
+const FRENZY_PROGRESS_Y = 74;
 
 export class HUDScene extends Phaser.Scene {
   private _timerDial!: TimerDial;
   private _waterBar!: WaterBar;
+  private _frenzyProgress!: FrenzyProgress;
   private _frenzyMeterUI!: FrenzyMeterUI;
   private _urgencyOverlay!: UrgencyOverlay;
   private _scoreCounter!: ScoreCounter;
@@ -48,6 +53,9 @@ export class HUDScene extends Phaser.Scene {
   create(): void {
     this._timerDial = new TimerDial(this, GAME_WIDTH / 2, TIMER_Y);
     this._scoreCounter = new ScoreCounter(this, SCORE_X, TIMER_Y);
+    // Below the top pill band and above the wall — see FrenzyProgress's own
+    // doc comment for why the game's objective needed stating outright.
+    this._frenzyProgress = new FrenzyProgress(this, GAME_WIDTH / 2, FRENZY_PROGRESS_Y);
     this._waterBar = new WaterBar(
       this,
       WATER_BAR_MARGIN_X,
@@ -69,6 +77,10 @@ export class HUDScene extends Phaser.Scene {
     this._timerDial.update(data.secondsRemaining);
     this._scoreCounter.update(data.score, deltaMs);
     this._waterBar.update(data.waterPct, data.isPumping);
+    this._frenzyProgress.update(
+      data.spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
+      data.spinners.length,
+    );
     this._frenzyMeterUI.update(data.spinners);
     this._urgencyOverlay.update(data.secondsRemaining);
   }

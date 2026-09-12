@@ -36,6 +36,10 @@ const TITLE_Y = GAME_HEIGHT * 0.16;
 const SCORE_Y = GAME_HEIGHT * 0.31;
 const RANK_Y = GAME_HEIGHT * 0.45;
 const RANK_DESC_Y = GAME_HEIGHT * 0.53;
+/** Between the score and the rank — the run's stake, so it sits with the number it's comparing. */
+const BEST_Y = GAME_HEIGHT * 0.385;
+/** "How close were you" — the Frenzy read, directly above Play Again. */
+const FRENZY_LINE_Y = GAME_HEIGHT * 0.655;
 const VAULT_Y = GAME_HEIGHT * 0.6;
 const PLAY_AGAIN_Y = GAME_HEIGHT * 0.73;
 const DOUBLE_SCORE_Y = GAME_HEIGHT * 0.86;
@@ -114,8 +118,71 @@ export class GameOverScene extends Phaser.Scene {
       onClick: () => this.scene.start('SplashScene'),
     });
 
+    this._buildBestLine(data);
+    this._buildFrenzyLine(data);
     this._buildDoubleScoreButton(data.score);
     this._countUpTo(data.score);
+  }
+
+  /**
+   * The run's stake. There is no fail state by design, so a personal best is
+   * what makes an individual run matter without ever punishing a child —
+   * you can only not-beat-it-yet (see SaveData.bestByWorld).
+   */
+  private _buildBestLine(data: GameOverData): void {
+    if (data.isNewBest && data.previousBest > 0) {
+      const label = this.add
+        .text(
+          GAME_WIDTH / 2,
+          BEST_Y,
+          `NEW BEST!  beat ${data.previousBest}`,
+          textStyle('displayM', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
+        )
+        .setOrigin(0.5)
+        .setScale(0.7);
+      this.tweens.add({
+        targets: label,
+        scale: 1,
+        duration: DURATION.celebration,
+        ease: EASE.bouncy,
+        delay: COUNT_UP_MS,
+      });
+      return;
+    }
+    // A first-ever run on this world has nothing to beat, so it says so
+    // rather than showing "beat 0", which reads like a bug.
+    const text = data.isNewBest
+      ? "First run on this world — that's the score to beat!"
+      : `Best here: ${data.previousBest}`;
+    this.add
+      .text(
+        GAME_WIDTH / 2,
+        BEST_Y,
+        text,
+        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0.5);
+  }
+
+  /**
+   * How close the wall got to all-spinning. CLAUDE.md §15's North Star is
+   * Splash Frenzy, but nothing on the end screen ever mentioned it — so the
+   * thing the game is *about* was invisible at the exact moment the player
+   * reflects on the run.
+   */
+  private _buildFrenzyLine(data: GameOverData): void {
+    const reached = data.reachedFrenzy;
+    const text = reached
+      ? 'SPLASH FRENZY! You got the whole wall spinning'
+      : `${data.peakFullSpinners} of ${data.totalSpinners} spinning at once — get them all for SPLASH FRENZY`;
+    this.add
+      .text(
+        GAME_WIDTH / 2,
+        FRENZY_LINE_Y,
+        text,
+        textStyle('bodyL', reached ? COLOUR_HEX.sunnyGold : COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0.5);
   }
 
   /**

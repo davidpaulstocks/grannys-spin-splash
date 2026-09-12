@@ -19,8 +19,13 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { showTutorialCaption } from './TutorialCaption';
 
-/** Above the encouragement/mini-frenzy toast bands (0.24/0.30) so a coincidental overlap never stacks text. */
-const CAPTION_Y = GAME_HEIGHT * 0.16;
+/**
+ * Below the permanent Frenzy readout (whose label sits at ~y 99) and above
+ * the encouragement/mini-frenzy toast bands (0.30/0.36), so nothing ever
+ * stacks on anything else. Found by screenshot: at 0.16 the caption panel
+ * sat straight across the "N of 12 spinning" label.
+ */
+const CAPTION_Y = GAME_HEIGHT * 0.23;
 
 export class TutorialSequence {
   private _shownPurpose = false;

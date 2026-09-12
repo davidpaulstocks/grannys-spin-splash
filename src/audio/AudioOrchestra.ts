@@ -119,15 +119,25 @@ const LAYER_FLOOR_AT_CRESCENDO = 0.3;
 const ARC_SMOOTHING_SECONDS = 0.6 / 3;
 
 /**
- * Output limiter + trim. Measured live at Frenzy in Disco (20 spinners, every
+ * Output limiter + trim. **Relaxed 2026-09-12 from -14dB/ratio 20 to
+ * -6dB/ratio 6, and the trim raised 0.7 -> 0.92.** Running the Web Audio
+ * static curve on the old settings: reduction began at -17 dBFS and an input
+ * range of -6..+6 dBFS mapped to 0.60 dB of output — so the orchestra was
+ * pinned near -13.4 dBFS no matter how many layers were up, which is to say
+ * the crescendo could not get louder however much was playing. Worse, with a
+ * 1ms attack and 0.25s release against a kick every 0.5s, the limiter
+ * gain-modulated the whole bed at the kick rate: that was the pumping. It is
+ * still a safety net for the Frenzy peak, just no longer the main gain stage.
+ *
+ * Originally measured live at Frenzy in Disco (20 spinners, every
  * layer up, cinematic hit landing): the limiter alone still let peaks reach
  * 1.12 on the master, because a compressor's 3 ms attack passes the hit's
  * initial transient and the master's own 0.65 gain is applied after it. A
  * fixed trim after the limiter is what actually guarantees headroom.
  */
-const LIMITER_THRESHOLD_DB = -14;
-const LIMITER_RATIO = 20;
-const ORCHESTRA_TRIM = 0.7;
+const LIMITER_THRESHOLD_DB = -6;
+const LIMITER_RATIO = 6;
+const ORCHESTRA_TRIM = 0.92;
 
 export interface OrchestraSpinnerSnapshot {
   /** 0..1 — this spinner's charge as a fraction of MAX_SPINNER_SPEED. */

@@ -132,6 +132,9 @@ export class GameScene extends Phaser.Scene {
   private _spinlockEndAt = 0;
   private _doubleStarsEndAt = 0;
   private _goldenSplashPending = false;
+  /** Peak simultaneous FULL spinners this round, and whether Frenzy ever fired — the end screen's "how close were you". */
+  private _peakFullSpinners = 0;
+  private _reachedFrenzy = false;
 
   constructor() {
     super('GameScene');
@@ -240,6 +243,10 @@ export class GameScene extends Phaser.Scene {
     // deliberately excluded (own array, see class field comment) — a
     // temporary bonus spawn shouldn't distort Frenzy's "% of wall at FULL".
     this._frenzyMeter.update(this._spinners.map((s) => ({ state: s.currentState })));
+    this._peakFullSpinners = Math.max(
+      this._peakFullSpinners,
+      this._spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
+    );
     // Each spinner's own charge drives its assigned instrument, continuously
     // (CLAUDE.md §9.1.1) — same list, same frame, same exclusion of the
     // Golden Spinner as the Frenzy meter above.
@@ -356,6 +363,8 @@ export class GameScene extends Phaser.Scene {
     this._spinlockEndAt = 0;
     this._doubleStarsEndAt = 0;
     this._goldenSplashPending = false;
+    this._peakFullSpinners = 0;
+    this._reachedFrenzy = false;
     this._tutorial = null;
   }
 
@@ -504,7 +513,7 @@ export class GameScene extends Phaser.Scene {
    */
   private _maybeEncourage(): void {
     if (Math.random() >= ENCOURAGEMENT_CHANCE) return;
-    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.24, pickEncouragementPhrase());
+    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, pickEncouragementPhrase());
     SFX.playEncouragement();
   }
 
@@ -593,6 +602,7 @@ export class GameScene extends Phaser.Scene {
 
   private _onFrenzyStart(): void {
     this._frenzyActive = true;
+    this._reachedFrenzy = true;
     this._frenzyEndAt = this.time.now + FRENZY_DURATION_MS;
     this._score += FRENZY_BONUS_STARS;
     for (const spinner of this._spinners) {
@@ -621,7 +631,7 @@ export class GameScene extends Phaser.Scene {
 
   /** The wall crosses 60%/80% of spinners at FULL — a quiet, quick encouragement beat (CLAUDE.md §1's mini-frenzy). */
   private _onMiniFrenzy(message: string): void {
-    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, message);
+    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.36, message);
     SFX.playEncouragement();
   }
 
@@ -711,12 +721,28 @@ export class GameScene extends Phaser.Scene {
 
     this._unlocks.addStars(this._score);
     const save = saveManager.load();
-    if (this._score > save.highScore) {
-      saveManager.save({ ...save, highScore: this._score });
+    const previousBest = save.bestByWorld[this._world.id] ?? 0;
+    const isNewBest = this._score > previousBest;
+    if (isNewBest || this._score > save.highScore) {
+      saveManager.save({
+        ...save,
+        highScore: Math.max(save.highScore, this._score),
+        bestByWorld: isNewBest
+          ? { ...save.bestByWorld, [this._world.id]: this._score }
+          : save.bestByWorld,
+      });
     }
 
     this.scene.stop('HUDScene');
-    const gameOverData: GameOverData = { score: this._score };
+    const gameOverData: GameOverData = {
+      score: this._score,
+      worldId: this._world.id,
+      previousBest,
+      isNewBest,
+      peakFullSpinners: this._peakFullSpinners,
+      totalSpinners: this._spinners.length,
+      reachedFrenzy: this._reachedFrenzy,
+    };
     this.scene.start('GameOverScene', gameOverData);
   }
 

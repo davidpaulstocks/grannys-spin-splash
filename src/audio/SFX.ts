@@ -11,6 +11,9 @@
 
 import { audioBus } from './AudioBus';
 
+/** Every one-shot ramps in over this long — see playHit's note on step discontinuities. */
+const SFX_ATTACK_SECONDS = 0.006;
+
 /**
  * The one primitive every SFX below is built from: a decaying tone
  * starting at `startFreq`, optionally sweeping to `endFreq`, scheduled at
@@ -36,7 +39,10 @@ function scheduleTone(
   osc.frequency.setValueAtTime(startFreq, startTime);
   if (endFreq)
     osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + durationSeconds * 0.8);
-  gain.gain.setValueAtTime(volume, startTime);
+  // Short attack rather than a step to full volume: `setValueAtTime` is a
+  // discontinuity, i.e. an audible click on every one-shot in the game.
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.linearRampToValueAtTime(volume, startTime + SFX_ATTACK_SECONDS);
   gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSeconds);
   osc.connect(gain);
   gain.connect(master);
@@ -89,9 +95,35 @@ function playSequence(
 }
 
 /** A water hit landing on a spinner — pitch rises with the spinner's current speed. */
+/**
+ * How often a landed hit is actually audible, and how loud.
+ *
+ * The cannon fires every `interval / FIRE_DENSITY_SCALE` ms — 55ms for the
+ * Drip Pistol, and 61 hits/second for a twin-stream Soaker 3000 — and each
+ * hit was a 0.18s raw sawtooth at 0.12 with ZERO attack, connected straight
+ * to master and so bypassing the orchestra's limiter entirely. Measured by
+ * audit: 3-11 of them overlapping continuously, summing to ~-24.5 dBFS
+ * against an orchestra sitting near -31 dBFS. **The music was ~6 dB quieter
+ * than a permanent wall of sawtooth transients** — and once the tank was
+ * sized to last the whole round, the player fires almost constantly, so it
+ * never let up. That, more than the synthesis itself, is why the ASMR
+ * soundtrack "did not feel good": it was inaudible underneath its own SFX.
+ *
+ * So: one audible hit at most every HIT_MIN_INTERVAL_MS, much quieter, with
+ * a real attack ramp so it reads as a splash rather than a click. The
+ * per-hit feedback the user asked for earlier is preserved visually (splash
+ * VFX, floating stars) and is unchanged.
+ */
+const HIT_MIN_INTERVAL_MS = 90;
+const HIT_VOLUME = 0.035;
+let _lastHitAt = -Infinity;
+
 export function playHit(spinnerSpeed = 50): void {
+  const now = performance.now();
+  if (now - _lastHitAt < HIT_MIN_INTERVAL_MS) return;
+  _lastHitAt = now;
   const freq = 60 + spinnerSpeed * 3.5;
-  playTone('sawtooth', freq, 0.18, 0.12, freq * 2.2);
+  playTone('triangle', freq, 0.14, HIT_VOLUME, freq * 1.8);
 }
 
 /** Combo level increments (1–5) — a short rising chime per level. */

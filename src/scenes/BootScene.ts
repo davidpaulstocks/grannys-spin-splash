@@ -12,7 +12,7 @@
 import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { SPRITE_KEYS, type MoveButtonDirection } from '../assets/keys';
+import { SPRITE_KEYS } from '../assets/keys';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import type { GrannyPose } from '../entities/granny/granny.types';
 import { GUN_DEFS } from '../entities/gun/gun.data';
@@ -25,7 +25,6 @@ import { COLOUR } from '../utils/colour';
 
 const GRANNY_POSES: readonly GrannyPose[] = ['front', 'back', 'back_firing'];
 const GUN_ANGLES: readonly GunAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
-const MOVE_BUTTON_DIRECTIONS: readonly MoveButtonDirection[] = ['left', 'right'];
 
 const BAR_WIDTH = 480;
 const BAR_HEIGHT = 20;
@@ -55,19 +54,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image(SPRITE_KEYS.titleWordmark, 'sprites/ui/wordmark.png');
     this.load.image(SPRITE_KEYS.titleFlourish, 'sprites/ui/title_flourish.png');
 
-    // Touch-only art (§6.3) — skipped entirely on desktop, where these
-    // controls are never built, so mouse/keyboard players don't download
-    // ~120 KB they can't see. Gated on the same predicate that decides
-    // whether the buttons exist at all, so the two can't disagree.
+    // Touch-only art — skipped on desktop, where the pause button is never
+    // built, so mouse/keyboard players don't download it. Gated on the same
+    // predicate that decides whether the button exists at all, so the two
+    // can't disagree and leave a touch device with a missing texture.
     if (usesTouchControls(this.sys.game)) {
-      for (const direction of MOVE_BUTTON_DIRECTIONS) {
-        for (const pressed of [false, true]) {
-          this.load.image(
-            SPRITE_KEYS.moveButton(direction, pressed),
-            SPRITE_KEYS.moveButtonPath(direction, pressed),
-          );
-        }
-      }
       this.load.image(SPRITE_KEYS.pauseButton, SPRITE_KEYS.pauseButtonPath);
     }
   }

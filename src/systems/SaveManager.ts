@@ -77,6 +77,7 @@ export class SaveManager {
       selectedGunId: DEFAULT_GUN_ID,
       selectedWorldId: DEFAULT_WORLD_ID,
       highScore: 0,
+      bestByWorld: {},
       hasPlayed: false,
     };
   }

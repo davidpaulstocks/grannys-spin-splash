@@ -7,6 +7,19 @@
  * inside it.
  */
 
+/**
+ * Envelope shape shared by every voice. `SUSTAIN_LEVEL` is the fraction of
+ * peak a note holds after its initial decay, and `SUSTAIN_KNEE` is how far
+ * into the note that decay finishes — so notes now ring for most of their
+ * stated duration instead of ~30% of it.
+ */
+const SUSTAIN_LEVEL = 0.5;
+const SUSTAIN_KNEE = 0.28;
+/** Ceiling for tone()'s tame filter, and how many harmonics it lets through. */
+const TONE_TAME_HZ = 5200;
+const TONE_TAME_HARMONICS = 7;
+const NOISE_ATTACK_SECONDS = 0.004;
+
 export interface VoiceContext {
   readonly ctx: AudioContext;
   readonly dest: AudioNode;
@@ -36,8 +49,28 @@ export function tone(
   osc.detune.setValueAtTime(detune, start);
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.linearRampToValueAtTime(peak, start + attack);
+  // Decay to a SUSTAIN floor rather than to silence, then release at the
+  // end. The old shape ramped straight to 0.0001 over `duration`, and
+  // because that endpoint is fixed the dB span is set by `peak` — so the
+  // audible part was a near-constant ~30% of the note no matter what
+  // duration the theme asked for (measured: a nominal 0.5s pluck was a
+  // 139ms blip). Nothing in the game rang, every pad gated at its bar line,
+  // and all ten layers swelled and collapsed in unison once per bar — the
+  // "wheezing, pumping" quality. It also left the reverb nothing to work
+  // with: convolution on a transient smears it, on a tail it blends it.
+  const sustainAt = start + attack + (duration - attack) * SUSTAIN_KNEE;
+  gain.gain.exponentialRampToValueAtTime(Math.max(peak * SUSTAIN_LEVEL, 0.0002), sustainAt);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-  osc.connect(gain);
+  // A gentle lowpass on every tone. 13 call sites push raw `square` through
+  // this primitive; a square at 880Hz radiates partials at 2.6/4.4/6.2/7.9kHz,
+  // and A-weighting makes the 7th harmonic only ~11 dB down perceptually.
+  // That is the ice-pick most likely to actually hurt a child's ears.
+  const tame = c.ctx.createBiquadFilter();
+  tame.type = 'lowpass';
+  tame.frequency.setValueAtTime(Math.min(TONE_TAME_HZ, freq * TONE_TAME_HARMONICS), start);
+  tame.Q.setValueAtTime(0.4, start);
+  osc.connect(tame);
+  tame.connect(gain);
   gain.connect(c.dest);
   osc.start(start);
   osc.stop(start + duration + 0.02);
@@ -66,6 +99,11 @@ export function filteredTone(
   filter.frequency.setValueAtTime(cutoff, start);
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.linearRampToValueAtTime(peak, start + attack);
+  // Same sustain stage as tone() — see its comment. 22 call sites pass
+  // duration = BAR_SECONDS for pads, and without this every one of them
+  // gated to silence well before its own bar line.
+  const sustainAt = start + attack + (duration - attack) * SUSTAIN_KNEE;
+  gain.gain.exponentialRampToValueAtTime(Math.max(peak * SUSTAIN_LEVEL, 0.0002), sustainAt);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   osc.connect(filter);
   filter.connect(gain);
@@ -93,8 +131,31 @@ export function pitchBendTone(
   osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), start + duration * 0.85);
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.linearRampToValueAtTime(peak, start + attack);
+  // Decay to a SUSTAIN floor rather than to silence, then release at the
+  // end. The old shape ramped straight to 0.0001 over `duration`, and
+  // because that endpoint is fixed the dB span is set by `peak` — so the
+  // audible part was a near-constant ~30% of the note no matter what
+  // duration the theme asked for (measured: a nominal 0.5s pluck was a
+  // 139ms blip). Nothing in the game rang, every pad gated at its bar line,
+  // and all ten layers swelled and collapsed in unison once per bar — the
+  // "wheezing, pumping" quality. It also left the reverb nothing to work
+  // with: convolution on a transient smears it, on a tail it blends it.
+  const sustainAt = start + attack + (duration - attack) * SUSTAIN_KNEE;
+  gain.gain.exponentialRampToValueAtTime(Math.max(peak * SUSTAIN_LEVEL, 0.0002), sustainAt);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-  osc.connect(gain);
+  // A gentle lowpass on every tone. 13 call sites push raw `square` through
+  // this primitive; a square at 880Hz radiates partials at 2.6/4.4/6.2/7.9kHz,
+  // and A-weighting makes the 7th harmonic only ~11 dB down perceptually.
+  // That is the ice-pick most likely to actually hurt a child's ears.
+  const tame = c.ctx.createBiquadFilter();
+  tame.type = 'lowpass';
+  tame.frequency.setValueAtTime(
+    Math.min(TONE_TAME_HZ, Math.max(startFreq, endFreq) * TONE_TAME_HARMONICS),
+    start,
+  );
+  tame.Q.setValueAtTime(0.4, start);
+  osc.connect(tame);
+  tame.connect(gain);
   gain.connect(c.dest);
   osc.start(start);
   osc.stop(start + duration + 0.02);
@@ -119,12 +180,20 @@ export function filteredNoiseBurst(
   filter.type = filterType;
   filter.frequency.setValueAtTime(freq, start);
   filter.Q.setValueAtTime(q, start);
-  gain.gain.setValueAtTime(peak, start);
+  // Attack ramp, matching tone(): `setValueAtTime(peak, ...)` is a step
+  // discontinuity and every one of these 14 call sites clicked. Kitchen fires
+  // twelve of them per bar.
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(peak, start + NOISE_ATTACK_SECONDS);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   src.connect(filter);
   filter.connect(gain);
   gain.connect(c.dest);
-  src.start(start);
+  // Random offset into the shared noise buffer. Every burst previously
+  // started at sample 0 of one fixed 2-second buffer, so e.g. Kitchen's
+  // twelve whisk ticks a bar were twelve copies of the same 35ms — which is
+  // why the percussion read as a machine loop rather than an instrument.
+  src.start(start, Math.random() * Math.max(0, c.noise.duration - duration - 0.05));
   src.stop(start + duration + 0.02);
 }
 
