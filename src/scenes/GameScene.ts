@@ -366,10 +366,25 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** CLAUDE.md story 6.3: player-initiated only, shown solely while pumping — watching completes the refill instantly. */
+  /**
+   * CLAUDE.md story 6.3: player-initiated only, shown solely while pumping
+   * — watching completes the refill instantly.
+   *
+   * Pauses the scene for the ad's duration (2026-09-12, found by spec
+   * audit): without this, GameScene's `update()` kept advancing the whole
+   * time the ad promise was pending — the round timer could run out and
+   * `_endRound()` could navigate to GameOverScene mid-ad, so the eventual
+   * `await` continuation below would then run against a scene that had
+   * already been torn down (or, on "Play Again," against an unrelated NEW
+   * round reusing this same scene instance). `scene.pause()` is the exact
+   * mechanism `_pauseGame()` already uses — reused here without launching
+   * PauseScene, since an ad needs the round frozen, not a menu.
+   */
   private async _onWatchAdForRefill(): Promise<void> {
     if (!this._cannon.isPumping) return;
+    this.scene.pause();
     const watched = await adManager.playRewarded('small', AD_MUTE_HOOKS);
+    this.scene.resume();
     if (!watched || !this._cannon.isPumping) return;
 
     this._cannon.refillInstantly();
