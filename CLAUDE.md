@@ -867,7 +867,9 @@ class AudioOrchestra {
 
 ### 9.3 Production
 
-**Decision needed before Sprint 4 starts.** Google Gemini does not currently provide consumer-accessible music generation suitable for 12 perfectly-synced stems at matching BPM/key/length. Realistic v1 options, in order of recommendation:
+> **Resolved (2026-09-12):** took option 4 below — placeholder audio for v1 — but synthesised in Web Audio (`src/audio/orchestraVoices.ts`) rather than assembled from 2-3 royalty-free loops. Every option here needed the user's time or money before a single note could exist, and meanwhile §15's "the audio is the differentiator" was shipping as an empty stub. Synthesis costs zero asset-budget bytes and keeps this decision genuinely open instead of pre-empting it: `AudioOrchestra.updateMix()` never looks at how a layer makes its sound, so options 1-3 remain a one-file swap whenever the user wants to take one. The brief below is unchanged and is exactly what the synthesised voices are written to.
+
+**Original framing — decision needed before Sprint 4 starts.** Google Gemini does not currently provide consumer-accessible music generation suitable for 12 perfectly-synced stems at matching BPM/key/length. Realistic v1 options, in order of recommendation:
 
 1. **Royalty-free stem packs.** Splice, Loopcloud, or BBC Sound Effects archive. Hand-pick 12 loops at the same BPM and remix into matching keys with a free DAW (Reaper, GarageBand). Lowest cost, highest control. ~1–2 days work.
 2. **Suno or Udio with stem extraction.** Generate a single ambient track at 96 BPM in A minor, then use AI stem separation (LALAL.AI, free tier) to pull out 4–6 layers. Repeat with different track variants to build up to 12. Quality is variable; iteration is fast.
@@ -1177,11 +1179,11 @@ Open scope questions are closed. Recorded here for posterity and for Claude Code
 | **World scope re-plan** | User asked ("I hope you will be building the different worlds... like in the prototype") whether to pull C1/C2/P3 into v1. Chose "add all 4 remaining worlds now": Workshop/Kitchen/Funfair/Disco ship in v1 alongside Garden, unlocked by vault stars (500★/1,000★/1,500★/2,000★) via a new 3rd SplashScene carousel. Brought obstacles (cat/umbrella/duck — previously an empty stub) and the Golden Spinner (previously spec'd but unwired) fully online as part of this, since Workshop/Kitchen need obstacles and Disco needs the Golden Spinner to mean anything. C1/C2/P3 struck from post-launch backlog accordingly. | 2026-09-11 |
 | **Unlock-purchase flow** | Found live-testing the new world carousel: `UnlockManager.unlockGranny/unlockGun` existed and were unit-tested but were never called from any UI — tapping a locked item only ever showed an "earn more" toast, so grannies/guns (and the new worlds) had no real way to be purchased with vault stars outside the 0★ starter set and the gun rewarded-ad grant. Fixed for all three carousels: a tap now attempts an unlock-and-select, spending vault stars on success. | 2026-09-11 |
 | **Granny pose re-plan** | ART_BRIEF.md's original 5-pose-per-granny spec (front/front_firing/3-quarter/side/back, a splash-carousel turnaround set) was written before §14's camera re-plan (player stands behind Granny). Delivered art ships 3 poses instead: `front` (carousel portrait only), `back`/`back_firing` (the only views gameplay ever needs, since her body never turns toward camera). See §8.1. | 2026-09-11 |
+| **Audio approach** | Took §9.3's own option 4 (placeholder for v1), synthesised in Web Audio rather than sourced from loop packs. Reason: all four shortlisted paths blocked on the user's time or money, and the headline feature (§15, "the audio is the differentiator") was an empty stub in the meantime. 11 layers written to §9.3's brief verbatim — 96 BPM, 2.5 s bar, A minor — mixed per §9.1.1's each-spinner-is-an-instrument model. Zero asset-budget cost; upgrading to commissioned or royalty-free stems later replaces `orchestraVoices.ts` alone. | 2026-09-12 |
 | **Gun rotation via mechanical rotation, not re-prompting** | Tested asking Nano Banana to rotate a locked 0° gun image to 45° via text prompt — result was nearly identical to 0°, unreliable for precise angles. Switched to generating one locked 0° image per gun and mechanically rotating it through the other 7 angles with PIL (`Image.rotate`), with nozzle anchors computed automatically per angle (extremal alpha pixel along the aim direction) instead of hand-picked. Reliable and used for all 6 launch guns. | 2026-09-11 |
 
 **Remaining decisions blocking submission (not blocking dev):**
 1. Studio name — needed by Sprint 7
-2. Audio approach — needed by Sprint 4 start (week 4 of dev)
 
 ---
 
