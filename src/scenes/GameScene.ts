@@ -20,6 +20,7 @@ import {
   GRANNY_X_MARGIN,
   GRANNY_Y_FROM_BOTTOM,
   PUMP_REFILL_MS,
+  SOAKER_EXTRA_WOBBLE,
   URGENT_COUNTDOWN_SECONDS,
   WALL_AREA,
   WATER_BAR_Y,
@@ -27,7 +28,9 @@ import {
 } from '../config';
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
 import { Obstacle } from '../entities/obstacle/Obstacle';
-import { SPINNER_DEFS } from '../entities/spinner/spinner.data';
+import { POWERUP_DEFS, type PowerUpEffect } from '../entities/powerup/powerup.data';
+import { PowerUpSpawner } from '../entities/powerup/PowerUpSpawner';
+import { MAX_SPINNER_SPEED, SPINNER_DEFS } from '../entities/spinner/spinner.data';
 import {
   DEFAULT_WORLD_ID,
   GOLDEN_LIFETIME_MS,
@@ -131,6 +134,14 @@ export class GameScene extends Phaser.Scene {
   private _goldenLifetimeMs = 0;
   private _goldenSpawnAt = 0;
 
+  // Power-ups (CLAUDE.md §1) — see PowerUpSpawner.ts for spawn/lifetime/collision; these are the
+  // active-effect windows GameScene itself has to track to actually change gameplay.
+  private _powerupSpawner!: PowerUpSpawner;
+  private _soakerEndAt = 0;
+  private _spinlockEndAt = 0;
+  private _doubleStarsEndAt = 0;
+  private _goldenSplashPending = false;
+
   constructor() {
     super('GameScene');
   }
@@ -159,6 +170,7 @@ export class GameScene extends Phaser.Scene {
     this._applyMovingTargets();
     this._buildObstacles();
     this._scheduleNextGolden();
+    this._powerupSpawner = new PowerUpSpawner(this);
     this._granny = new Granny(
       this,
       GAME_WIDTH / 2,
@@ -199,7 +211,7 @@ export class GameScene extends Phaser.Scene {
 
     for (const spinner of this._spinners) {
       const result = spinner.update(time, delta);
-      if (result?.leveledUp) this._onSpinnerLeveledUp(spinner, result.state);
+      if (result?.leveledUp) this._onSpinnerLeveledUp(spinner, result.state, time);
     }
     // Read spinner states into the Frenzy meter right after they're fresh —
     // NOT from inside the HUD refresh. See FrenzyMeter.ts's header comment:
@@ -217,6 +229,7 @@ export class GameScene extends Phaser.Scene {
         GAME_WIDTH - DUCK_BOUNCE_MARGIN,
       );
     }
+    this._updatePowerups(time, delta);
 
     const aim = this._updateAim();
     const grip = this._granny.getGunGripOrigin();
@@ -291,6 +304,10 @@ export class GameScene extends Phaser.Scene {
     this._frenzyMeter.reset();
     this._combo.reset();
     this._lastUrgentSecond = -1;
+    this._soakerEndAt = 0;
+    this._spinlockEndAt = 0;
+    this._doubleStarsEndAt = 0;
+    this._goldenSplashPending = false;
   }
 
   /** Builds the spinner wall: an even grid within WALL_AREA, kinds cycled round-robin from the world's roster. */
@@ -368,6 +385,14 @@ export class GameScene extends Phaser.Scene {
       if (!particle) break;
       particle.fire(origin.x, origin.y, aim.x, aim.y, target);
     }
+    // Super Soaker power-up: two extra angled streams alongside the main
+    // one for its duration (prototype: `applyPowerup`'s `fx.soaker`).
+    if (time < this._soakerEndAt) {
+      for (const side of [-1, 1] as const) {
+        const extra = this._waterPool.get() as WaterParticle | null;
+        if (extra) extra.fire(origin.x, origin.y, aim.x, aim.y, target, side * SOAKER_EXTRA_WOBBLE);
+      }
+    }
     // FIRE_DENSITY_SCALE: drain scales down with interval so the actual
     // drain-per-second is unchanged — see its own doc comment.
     this._waterTank = Math.max(0, this._waterTank - this._gun.drain / FIRE_DENSITY_SCALE);
@@ -420,15 +445,22 @@ export class GameScene extends Phaser.Scene {
       const hitSpinner = particle.checkCollision(particle.getCandidates(activeSpinners));
       if (!hitSpinner) continue;
 
+      // Golden Splash power-up: the next landed hit jumps straight to FULL
+      // instead of its normal power — still routed through hit() so a
+      // whirligig keeps its usual deflect chance (prototype: the effect
+      // only ever fires from inside the "not deflected" branch).
+      const usingGoldenSplash = this._goldenSplashPending;
       // FIRE_DENSITY_SCALE: each of the N denser particles carries 1/N the
       // power, so a shot that lands all of them still delivers the exact
       // total the tuned balance expects — see the constant's doc comment.
-      const landed = hitSpinner.hit(this._gun.power / FIRE_DENSITY_SCALE);
+      const power = usingGoldenSplash ? MAX_SPINNER_SPEED : this._gun.power / FIRE_DENSITY_SCALE;
+      const landed = hitSpinner.hit(power);
       spawnSplash(this, hitX, hitY);
       if (!landed) {
         SFX.playDeflect(); // whirligig
         continue;
       }
+      if (usingGoldenSplash) this._goldenSplashPending = false;
 
       SFX.playHit(hitSpinner.currentSpeed);
       const comboBefore = this._combo.combo;
@@ -445,9 +477,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Stars are awarded only on an upward state transition (CLAUDE.md §2) — never per-hit, never on decay. */
-  private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState): void {
+  private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState, time: number): void {
     const levelBonus = Math.max(0, STATE_ORDINAL[newState] - 1);
-    const multiplier = this._combo.multiplier;
+    // Double Stars power-up stacks on top of the combo multiplier (prototype: `awardStars`'s `dsMult`).
+    const doubleStarsActive = time < this._doubleStarsEndAt;
+    const multiplier = this._combo.multiplier * (doubleStarsActive ? 2 : 1);
     const total = (spinner.def.stars + levelBonus) * multiplier;
     this._score += total;
     SFX.playUpgrade(STATE_ORDINAL[newState]);
@@ -464,6 +498,63 @@ export class GameScene extends Phaser.Scene {
       label,
       hitTextColour(multiplier),
     );
+  }
+
+  /** Advances every live power-up pickup and applies the effect of any just collected (CLAUDE.md §1). */
+  private _updatePowerups(time: number, delta: number): void {
+    const bounds = {
+      x0: WALL_AREA.x,
+      y0: WALL_AREA.y,
+      x1: WALL_AREA.x + WALL_AREA.width,
+      y1: WALL_AREA.y + WALL_AREA.height,
+    };
+    const particles = this._waterPool.getChildren() as WaterParticle[];
+    const collected = this._powerupSpawner.update(time, delta, bounds, this._spinners, particles);
+    for (const { effect, x, y } of collected) this._applyPowerupEffect(effect, time, x, y);
+
+    // Spin Lock's own release — a plain `time >= endAt` check, same shape as
+    // Frenzy's window (CLAUDE.md §1). The two share `spinner.locked`; both
+    // being active at once is a rare edge case not worth a lock-reason
+    // system for — worst case a spinner stays locked a beat longer.
+    if (this._spinlockEndAt && time >= this._spinlockEndAt) {
+      this._spinlockEndAt = 0;
+      if (!this._frenzyActive) for (const spinner of this._spinners) spinner.locked = false;
+    }
+  }
+
+  /**
+   * Dispatches on the collected effect (prototype: `applyPowerup`) — each
+   * one sets a timed window GameScene itself checks elsewhere (soaker in
+   * `_updateFiring`, spinlock as `spinner.locked`, doubleStars in
+   * `_onSpinnerLeveledUp`) except the two instants, which apply immediately.
+   */
+  private _applyPowerupEffect(effect: PowerUpEffect, time: number, x: number, y: number): void {
+    const def = POWERUP_DEFS.find((d) => d.effect === effect);
+    if (!def) return;
+    spawnFloatingText(this, x, y - 30, `${def.name}!`, COLOUR_HEX.sunnyGold);
+    SFX.playPowerup();
+    this.cameras.main.shake(200, 0.007);
+
+    switch (effect) {
+      case 'soaker':
+        this._soakerEndAt = time + def.duration * 1000;
+        return;
+      case 'turbo':
+        this._waterTank = this._gun.tank;
+        this._isPumping = false;
+        this._refillPrompt.setVisible(false);
+        return;
+      case 'spinlock':
+        this._spinlockEndAt = time + def.duration * 1000;
+        for (const spinner of this._spinners) spinner.locked = true;
+        return;
+      case 'goldenSplash':
+        this._goldenSplashPending = true;
+        return;
+      case 'doubleStars':
+        this._doubleStarsEndAt = time + def.duration * 1000;
+        return;
+    }
   }
 
   /** Ticks the live Golden Spinner (claim-on-FULL or lifetime expiry), or checks whether it's time to spawn one. */

@@ -173,3 +173,8 @@ export function playGoldenExpire(): void {
 export function playTick(urgent: boolean): void {
   playTone('sine', urgent ? 880 : 660, urgent ? 0.12 : 0.07, 0.1);
 }
+
+/** A power-up pickup is collected — a bright ascending triad, distinct from playRefill's 4-note run. */
+export function playPowerup(): void {
+  playSequence([{ freq: 392 }, { freq: 587 }, { freq: 784 }], 0.08, 0.3, 0.18);
+}

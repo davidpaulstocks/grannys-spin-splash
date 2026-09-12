@@ -81,11 +81,24 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     this.setVisible(false);
   }
 
-  /** (Re)launches this pooled particle from an origin toward an aim point, optionally locked onto a target. */
-  fire(originX: number, originY: number, aimX: number, aimY: number, target: Spinner | null): void {
+  /**
+   * (Re)launches this pooled particle from an origin toward an aim point,
+   * optionally locked onto a target. `extraWobble` is a deliberate
+   * horizontal shear on top of the random one — Super Soaker's two side
+   * streams use ±0.12 here (prototype: `_spawnWater`'s `wobbleExtra`
+   * param), not a true angular rotation, matching its exact feel.
+   */
+  fire(
+    originX: number,
+    originY: number,
+    aimX: number,
+    aimY: number,
+    target: Spinner | null,
+    extraWobble = 0,
+  ): void {
     const aimPoint = resolveFireAimPoint(aimX, aimY, target);
     const dist = Math.max(10, distance(originX, originY, aimPoint.x, aimPoint.y));
-    const wobble = (Math.random() - 0.5) * WATER_PARTICLE_WOBBLE;
+    const wobble = (Math.random() - 0.5) * WATER_PARTICLE_WOBBLE + extraWobble;
     const dirX = (aimPoint.x - originX) / dist + wobble;
     const dirY = (aimPoint.y - originY) / dist;
 

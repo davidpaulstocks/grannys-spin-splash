@@ -43,6 +43,8 @@ export const WATER_PARTICLE_RADIUS = 5;
 export const WATER_PARTICLE_MAX_POOL = 50;
 /** Random horizontal wobble added to each shot's direction, in radians. */
 export const WATER_PARTICLE_WOBBLE = 0.04;
+/** Super Soaker power-up: horizontal shear on its two extra side streams (prototype: `wobbleExtra`, ±0.12). */
+export const SOAKER_EXTRA_WOBBLE = 0.12;
 
 /** Default fire cadence in ms while no gun is selectable yet (Sprint 1; guns.ts picks per-gun from Sprint 5). */
 export const DEFAULT_FIRE_INTERVAL_MS = 220;

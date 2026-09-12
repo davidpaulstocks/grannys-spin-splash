@@ -18,7 +18,9 @@
 
 import Phaser from 'phaser';
 
+import { COLOUR_HEX } from '../../utils/colour';
 import { distance } from '../../utils/math';
+import { spawnFloatingText } from '../../ui/FloatingText';
 import { drawCat, drawDuck, drawUmbrella } from './obstacleRenderers';
 import type { ObstacleKind } from './obstacle.types';
 import type { Spinner } from '../spinner/Spinner';
@@ -131,6 +133,7 @@ export class Obstacle extends Phaser.GameObjects.Container {
       if (distance(particle.x, particle.y, this.x, this.y) >= CAT_SHOO_RADIUS) return false;
       particle.blockAndRecycle();
       this._startFleeing();
+      spawnFloatingText(this.scene, this.x, this.y - 30, 'SHOO!', COLOUR_HEX.heatOrange);
       return true;
     }
     if (this.kind === 'umbrella') {
@@ -146,6 +149,7 @@ export class Obstacle extends Phaser.GameObjects.Container {
     }
     if (distance(particle.x, particle.y, this.x, this.y) >= DUCK_BLOCK_RADIUS) return false;
     particle.blockAndRecycle();
+    spawnFloatingText(this.scene, this.x, this.y - 24, 'QUACK!', COLOUR_HEX.sunnyGold);
     return true;
   }
 
