@@ -25,6 +25,26 @@ export interface ButtonConfig {
   /** Pads the pill out to at least this wide — buttons still auto-size to their label above this. */
   readonly minWidth?: number;
   /**
+   * Expands the invisible hit zone to MIN_HIT_HEIGHT even though the drawn
+   * pill stays its natural size. Default true. Set false only where a
+   * neighbouring control sits close enough that the expanded zone would
+   * overlap it (the splash screen's rewarded-ad row, which must never steal
+   * a tap aimed at PLAY).
+   */
+  readonly expandHitArea?: boolean;
+  /**
+   * In-play buttons must claim their touch on InputManager, or the same tap
+   * is also read as aim/fire — and as the second finger of the two-finger
+   * pause gesture when the player is already holding fire. That is exactly
+   * how the mid-run refill prompt behaved: tapping it with a free thumb
+   * opened PAUSE instead of playing the rewarded ad (spec audit, 2026-09-12).
+   * Menu-scene buttons don't need this and leave it undefined.
+   */
+  readonly pointerGuard?: {
+    claimPointer(id: number): void;
+    releasePointer(id: number): void;
+  };
+  /**
    * Draws the custom "play" glyph before the label (CLAUDE.md §11.3: every
    * rewarded-ad button must "include a video icon prominently" — §7.3 rule
    * 8 bans emoji, so `drawPlayIcon` is the custom-SVG equivalent of 🎬).
@@ -34,6 +54,15 @@ export interface ButtonConfig {
 
 const PADDING_X = 32;
 const PADDING_Y = 16;
+/**
+ * Minimum tappable height, logical px. A pill auto-sizes to ~57.85 px tall,
+ * which is only 29 CSS px at Poki's 640x360 canonical size — well under
+ * Apple's 44pt / Android's 48dp minimum, so a child missing by 3-4 px hit
+ * nothing and read the button as broken (spec audit, 2026-09-12). 88 logical
+ * px = 44 CSS px at that size. The *visual* pill is unchanged; only the
+ * invisible zone grows, which is the standard way to hit both targets.
+ */
+const MIN_HIT_HEIGHT = 88;
 const ICON_RADIUS = 11;
 /** Icon diameter plus a small gap, reserved as extra left padding on the label when `showPlayIcon` is set. */
 const ICON_RESERVED_WIDTH = ICON_RADIUS * 2 + 10;
@@ -101,9 +130,7 @@ export function createButton(
 
   const parts: Phaser.GameObjects.GameObject[] = [bg, label];
   if (config.showPlayIcon) {
-    const iconGfx = scene.add
-      .graphics()
-      .setPosition(-width / 2 + PADDING_X * 0.7 + ICON_RADIUS, 0);
+    const iconGfx = scene.add.graphics().setPosition(-width / 2 + PADDING_X * 0.7 + ICON_RADIUS, 0);
     drawPlayIcon(iconGfx, ICON_RADIUS, COLOUR.ink);
     parts.push(iconGfx);
   }
@@ -111,7 +138,8 @@ export function createButton(
   const container = scene.add.container(config.x, config.y, parts);
   container.setSize(width, height);
 
-  const hitZone = scene.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+  const hitHeight = config.expandHitArea === false ? height : Math.max(height, MIN_HIT_HEIGHT);
+  const hitZone = scene.add.zone(0, 0, width, hitHeight).setInteractive({ useHandCursor: true });
   container.add(hitZone);
 
   const scaleTo = (scale: number): void => {
@@ -122,6 +150,12 @@ export function createButton(
       ease: EASE.standardOut,
     });
   };
+  if (config.pointerGuard) {
+    const guard = config.pointerGuard;
+    hitZone.on('pointerdown', (p: Phaser.Input.Pointer) => guard.claimPointer(p.id));
+    hitZone.on('pointerup', (p: Phaser.Input.Pointer) => guard.releasePointer(p.id));
+    hitZone.on('pointerout', (p: Phaser.Input.Pointer) => guard.releasePointer(p.id));
+  }
   hitZone.on('pointerover', () => scaleTo(HOVER_SCALE));
   hitZone.on('pointerout', () => scaleTo(1));
   hitZone.on('pointerdown', () => scaleTo(PRESS_SCALE));

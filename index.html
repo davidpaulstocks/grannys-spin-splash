@@ -35,10 +35,76 @@
       canvas {
         display: block;
       }
+
+      /*
+        Portrait gate. The game is locked 16:9 (CLAUDE.md §3 rule 1), so a
+        portrait phone letterboxes it to a ~375x211 band adrift in the middle
+        of a black screen — every touch target drops under 34 CSS px and the
+        HUD text under 10. The reference prototype had a rotate gate; the
+        rebuild dropped it (found by spec audit, 2026-09-12). Pure CSS so it
+        works before any JS runs and cannot itself fail.
+        Palette: Ink / Cloud / Sunny Gold from §5.1. The phone glyph is drawn
+        with borders rather than an emoji (§7.3 rule 8).
+      */
+      #rotate-gate {
+        display: none;
+      }
+      @media (orientation: portrait) and (max-width: 900px) {
+        #game {
+          display: none;
+        }
+        #rotate-gate {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          width: 100vw;
+          height: 100vh;
+          color: #f5f2e8;
+          font-family: 'Fredoka', system-ui, sans-serif;
+          text-align: center;
+          padding: 0 32px;
+          box-sizing: border-box;
+        }
+        #rotate-gate .phone {
+          width: 64px;
+          height: 104px;
+          border: 6px solid #f5f2e8;
+          border-radius: 16px;
+          animation: rotate-hint 2s ease-in-out infinite;
+        }
+        #rotate-gate p {
+          margin: 0;
+          font-size: 22px;
+          font-weight: 600;
+          line-height: 1.4;
+        }
+        #rotate-gate .sub {
+          font-size: 16px;
+          font-weight: 400;
+          color: #ffc93c;
+        }
+        @keyframes rotate-hint {
+          0%,
+          45% {
+            transform: rotate(0deg);
+          }
+          70%,
+          100% {
+            transform: rotate(-90deg);
+          }
+        }
+      }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="rotate-gate">
+      <div class="phone"></div>
+      <p>Turn your phone sideways to play!</p>
+      <p class="sub">Granny needs the whole wall in view</p>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

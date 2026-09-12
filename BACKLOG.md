@@ -303,3 +303,29 @@ Final QA pass and submission.
 - [ ] **P6** Speedrun leaderboards (Poki Accounts)
 - [ ] **P7** Additional grannies (Queen, Disco, Santa, Astro, Pirate, Cyber)
 - [ ] **P8** A/B thumbnail tests (built-in Poki tool)
+
+---
+
+## Spec audit — responsive/UX across all screen sizes (2026-09-12)
+
+A 38-agent audit ran six dimensions (touch targets, text legibility, HUD collisions, portrait/safe-area, input correctness, Poki compliance), each finding adversarially verified by a second agent instructed to refute it. **32 raw findings → 29 confirmed, 3 refuted.** Two of the refuted ones described the water bar and Granny problems already fixed earlier the same session, which is a good sign the verification stage works.
+
+### Fixed — all three CRITICALs
+
+- **Two-finger pause permanently soft-locked the run.** `scene.pause()` runs synchronously inside the pointerdown that triggers it, and a paused Phaser scene receives no input at all (`InputPlugin.update` bails while `canInput()` is false; events dispatch live with no queue or replay). So the two touchends that end the gesture were discarded and `_activePointerIds` kept both ids forever — after RESUME the next tap re-reached size 2 and re-emitted 'pause', for ever, with the cannon dead for the rest of the round and QUIT the only escape. Fixed with `InputManager.resetPointerState()`, called on both `Phaser.Scenes.Events.PAUSE` and `RESUME` (fingers can lift either side of the boundary). Verified live by replaying the exact sequence: gesture pauses once, state clears on resume, no repeat pause, firing works again.
+- **Aim followed the move/pause button fingers.** `pointermove` wrote `_pointerX/_pointerY` for every pointer with no exclusion check — `pointerdown` had the guard, `pointermove` did not. In the standard mobile grip (left thumb on the move button, right thumb firing) the crosshair snapped to the bottom-left corner on every micro-movement of the moving thumb, so moving and firing at once — the entire §6.3 control scheme — sprayed water at the floor. Verified: aim now holds at the wall while an excluded thumb drags, and still tracks the real finger.
+- **An ad blocker produced a permanently blank page.** `boot()` did `await Promise.all([poki.init(), ...])`, so a rejected SDK handshake propagated out before `new Phaser.Game()` ever ran — no canvas, no loading bar, nothing to retry — and `void boot()` swallowed the error silently. This is the maximum possible violation of §3 rule 9 ("works with ad blockers — core gameplay never gated"), and Poki's reviewers test with one on. `poki.init()` now swallows rejections *and* races a 3s timeout so a hanging handshake can't stall boot either; `main.ts` uses `allSettled` and logs rather than dying.
+
+### Fixed — IMPORTANT
+
+- **Every pill button was 29 CSS px tall at 640×360**, well under Apple's 44pt / Android's 48dp. Fixed by expanding the invisible hit zone to 88 logical px (44 CSS px) while leaving the drawn pill exactly as designed — the standard way to satisfy both the visual and the target rule. PauseScene re-spaced (0.52/0.70) so the bigger zones don't overlap.
+- **PLAY and the rewarded-ad button had a 0.15px gap — they touched.** A child aiming at PLAY and landing one pixel low got a full-screen ad instead of a game, on every返 returning visit. Re-spaced to 604/684, and the ad button is the one button in the game that opts out of the expanded hit zone (`expandHitArea: false`) precisely so it can never steal a tap meant for PLAY.
+- **The mid-run refill prompt didn't claim its pointer**, so tapping it while holding fire registered as the second finger of the pause gesture — the rewarded ad never played. `ButtonConfig.pointerGuard` added for in-play buttons.
+- **Splash item names and unlock costs rendered at 8 CSS px** — the entire vault economy was unreadable at 640×360. Promoted to `bodyL`.
+- **No portrait gate anywhere** (the prototype had one; the rebuild dropped it). A portrait phone letterboxed the game to a 375×211 sliver with every touch target under 34 CSS px. Added a pure-CSS rotate gate — works before any JS runs, palette-correct, custom phone glyph rather than an emoji (§7.3 rule 8).
+- **Only 2 concurrent touch pointers**, so a thumb resting on the letterbox bar starved the two gameplay touches and the fire tap was silently dropped. Raised to 4.
+- **Any finger lifting killed another finger's held fire.** Now only the pointer that started the fire can end it (`_firingPointerId`).
+
+### Open, not fixed (recorded honestly)
+
+The remaining 16 confirmed findings are MINOR and listed in the audit output at `tasks/worzf4nqt.output`. The ones most worth a follow-up pass: carousel arrows are 31 CSS px (still under 44, and they are the only way to change selection on touch); the controls legend and tutorial captions render at 8–10 CSS px; every button label is stroked 4px in its own fill colour, which is a pure dilation that closes letter counters; `pointerupoutside` is unhandled so a mouse released off-canvas leaves the cannon stuck on; the mid-run rewarded ad never calls `gameplayStop()`/`gameplayStart()`; and `dist/` ships a 10.2 MB sourcemap that `budget-check.ts` is configured to ignore (it is excluded from the 8 MB cap honestly, but it is still shipped).

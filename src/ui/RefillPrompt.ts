@@ -17,6 +17,7 @@ export function createRefillPrompt(
   x: number,
   waterBarY: number,
   onWatchAd: () => void,
+  pointerGuard: { claimPointer(id: number): void; releasePointer(id: number): void },
 ): Phaser.GameObjects.Container {
   const button = createButton(scene, {
     x,
@@ -29,6 +30,9 @@ export function createRefillPrompt(
     // prompt has none) — still gets the video icon since that half of the
     // rule ("must include a video icon prominently") applies regardless.
     showPlayIcon: true,
+    // Mid-run, so the tap must not double as aim/fire or as the second
+    // finger of the pause gesture — see ButtonConfig.pointerGuard.
+    pointerGuard,
     onClick: onWatchAd,
   });
   button.setVisible(false);

@@ -71,7 +71,7 @@ const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
 const TITLE_CENTRE_Y = 110;
 const TITLE_WORDMARK_HEIGHT = 120;
 const VAULT_Y = 205;
-const PLAY_Y = 618;
+const PLAY_Y = 604;
 /**
  * The row under PLAY holds exactly one thing. For a first-time player it's
  * CLAUDE.md §6.5's hint; for everyone after, the rewarded-ad offer. They
@@ -82,7 +82,7 @@ const PLAY_Y = 618;
  * new player what to do, rather than an ad offer for a gun they have no
  * context for yet.
  */
-const BOTTOM_ROW_Y = 676;
+const BOTTOM_ROW_Y = 684;
 /**
  * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
  * to the rewarded button beside/above it. The reward button's own label —
@@ -347,6 +347,12 @@ export class SplashScene extends Phaser.Scene {
       variant: 'secondary',
       minWidth: REWARD_BUTTON_MIN_WIDTH,
       showPlayIcon: true,
+      // The only button in the game that keeps its hit zone at its drawn
+      // size. PLAY sits directly above with an expanded (88px) zone, and an
+      // expanded zone here would overlap it — and win, because this button is
+      // added later. A child aiming at PLAY and landing low would get a
+      // full-screen rewarded ad instead of a game (spec audit, 2026-09-12).
+      expandHitArea: false,
       onClick: () => void this._onWatchAdForGun(),
     });
   }

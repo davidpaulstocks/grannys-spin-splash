@@ -39,7 +39,7 @@ export class PauseScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT * 0.55,
+      y: GAME_HEIGHT * 0.52,
       label: 'RESUME',
       variant: 'primary',
       minWidth: 260,
@@ -48,7 +48,7 @@ export class PauseScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT * 0.66,
+      y: GAME_HEIGHT * 0.7,
       label: 'QUIT',
       variant: 'secondary',
       minWidth: 260,

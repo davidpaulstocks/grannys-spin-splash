@@ -30,7 +30,25 @@ function sdk(): PokiSDKv2 | null {
 
 let _initialised = false;
 
-/** Awaits the Poki SDK handshake. Safe to call before any other wrapper method. */
+/** How long to wait for the SDK handshake before booting the game without it. */
+const INIT_TIMEOUT_MS = 3000;
+
+/**
+ * Awaits the Poki SDK handshake. Safe to call before any other wrapper
+ * method, and **never rejects or hangs**.
+ *
+ * CLAUDE.md §3 rule 9 is "works with ad blockers — core gameplay never
+ * gated", and this is the one place that rule can be broken absolutely: an
+ * ad blocker that lets the SDK script load but blocks its backend calls
+ * makes `s.init()` reject, which used to propagate out of `main.ts`'s
+ * `boot()` before `new Phaser.Game()` ran — a permanently blank dark-blue
+ * page with no canvas, no loading bar, and nothing to retry. Poki's own
+ * reviewers test with an ad blocker on (found by spec audit, 2026-09-12).
+ *
+ * Both failure modes are handled: a rejection is swallowed, and a handshake
+ * that never settles is raced against a timeout so it cannot stall boot
+ * either. Gameplay then runs exactly as it does with no SDK present.
+ */
 export async function init(): Promise<void> {
   if (_initialised) return;
   _initialised = true;
@@ -39,7 +57,14 @@ export async function init(): Promise<void> {
     console.info('[poki] SDK not loaded — running in offline mode');
     return;
   }
-  await s.init();
+  try {
+    await Promise.race([
+      s.init(),
+      new Promise<void>((resolve) => setTimeout(resolve, INIT_TIMEOUT_MS)),
+    ]);
+  } catch {
+    console.info('[poki] init failed (ad blocker?) — continuing without the SDK');
+  }
 }
 
 /** Fires once assets are ready and the game is about to become interactive. */

@@ -34,7 +34,12 @@ async function loadFredoka(): Promise<void> {
 }
 
 async function boot(): Promise<void> {
-  await Promise.all([poki.init(), loadFredoka()]);
+  // Neither the SDK handshake nor the font may keep the canvas off the page:
+  // CLAUDE.md §3 rule 9's "core gameplay never gated" means an ad blocker (or
+  // a font that fails to decode) degrades the experience, never blanks it.
+  // poki.init() already swallows its own failures; this is belt-and-braces
+  // for anything else in the pre-boot path.
+  await Promise.allSettled([poki.init(), loadFredoka()]);
 
   // Poki's mobile branding pill defaults to a corner that overlaps our own
   // UI — a no-op on desktop, but CLAUDE.md §12 must-fix 8 requires this
@@ -50,14 +55,19 @@ async function boot(): Promise<void> {
     type: Phaser.AUTO,
     backgroundColor: BACKGROUND_COLOUR,
     scale: SCALE_CONFIG,
-    // 2 concurrent touch pointers — Phaser's default of 1 can't see a
-    // second simultaneous finger, which the two-finger pause gesture
-    // (CLAUDE.md §6.3, InputManager.ts) needs to detect at all.
-    input: { activePointers: 2 },
+    // 4 concurrent touch pointers. Phaser's default of 1 can't see a second
+    // simultaneous finger at all, which the two-finger pause gesture
+    // (CLAUDE.md §6.3, InputManager.ts) needs; 2 was still too few in
+    // practice (spec audit, 2026-09-12) — a thumb resting on the letterbox
+    // bar beside the canvas ate a slot, so "hold move button + tap to fire"
+    // silently dropped the fire tap. Spare Pointer objects are cheap.
+    input: { activePointers: 4 },
     scene: [BootScene, SplashScene, GameScene, HUDScene, GameOverScene, PauseScene],
   });
 
   if (import.meta.env.DEV) window.__gameForDebug = game;
 }
 
-void boot();
+// A throw anywhere in boot() must still surface rather than vanish into an
+// unhandled rejection — but it must never be the reason nothing renders.
+void boot().catch((err: unknown) => console.error('[boot] failed', err));

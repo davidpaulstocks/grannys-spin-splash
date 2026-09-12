@@ -201,6 +201,13 @@ export class GameScene extends Phaser.Scene {
     this._maybeShowGhostFinger();
     this._maybeStartTutorial();
 
+    // Fingers can lift on either side of a pause boundary, and a paused scene
+    // never sees those releases at all — so held pointer state is dropped
+    // going both ways. Without this, one two-finger pause permanently
+    // soft-locked the rest of the run (see InputManager.resetPointerState).
+    this.events.on(Phaser.Scenes.Events.PAUSE, () => this._input.resetPointerState());
+    this.events.on(Phaser.Scenes.Events.RESUME, () => this._input.resetPointerState());
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this._input.destroy();
       this._golden.destroy();
@@ -315,6 +322,7 @@ export class GameScene extends Phaser.Scene {
       GAME_WIDTH / 2,
       WATER_BAR_Y,
       () => void this._onWatchAdForRefill(),
+      this._input,
     );
     createMobileMoveButtons(this, this._input);
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.

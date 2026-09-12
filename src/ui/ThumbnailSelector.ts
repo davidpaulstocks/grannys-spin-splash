@@ -73,7 +73,7 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
     this._swatch.setStrokeStyle(3, COLOUR.ink);
     this._swatchImage = scene.add.image(0, THUMB_Y, '__DEFAULT').setVisible(false);
     this._label = scene.add
-      .text(0, LABEL_Y, '', textStyle('bodyM', COLOUR_HEX.ink, COLOUR_HEX.cloud))
+      .text(0, LABEL_Y, '', textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud))
       .setOrigin(0.5);
 
     const lockGfx = scene.add.graphics();
@@ -82,7 +82,7 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
     drawStarIcon(starGfx, STAR_ICON_RADIUS, COLOUR.sunnyGold);
     lockGfx.setPosition(0, -8);
     this._costText = scene.add
-      .text(6, 34, '', textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
+      .text(6, 34, '', textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink))
       .setOrigin(0, 0.5);
     const lockDim = scene.add.rectangle(0, THUMB_Y, THUMB_SIZE, THUMB_SIZE, COLOUR.ink, 0.55);
     this._lockOverlay = scene.add.container(0, 0, [lockDim, lockGfx, starGfx, this._costText]);

@@ -51,6 +51,8 @@ export class InputManager extends EventEmitter {
    * in this set is excluded from both.
    */
   private readonly _excludedPointerIds = new Set<number>();
+  /** Which pointer started the current fire — only it may end it (see the pointerup handler). */
+  private _firingPointerId: number | null = null;
 
   constructor(scene: Phaser.Scene) {
     super();
@@ -86,6 +88,13 @@ export class InputManager extends EventEmitter {
     }
 
     scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      // Excluded ids are fingers resting on a move/pause button. Without this
+      // check the crosshair tracked THEM: in the standard mobile grip (left
+      // thumb on the move button, right thumb firing) the aim snapped to the
+      // bottom-left corner on every micro-movement of the moving thumb, so
+      // moving and firing at once — the whole §6.3 control scheme — sprayed
+      // water at the floor. `pointerdown` had this guard; `pointermove` did not.
+      if (this._excludedPointerIds.has(pointer.id)) return;
       this._pointerX = pointer.x;
       this._pointerY = pointer.y;
     });
@@ -103,6 +112,7 @@ export class InputManager extends EventEmitter {
         return;
       }
       this._pointerDown = true;
+      this._firingPointerId = pointer.id;
       this._pointerX = pointer.x;
       this._pointerY = pointer.y;
     });
@@ -117,8 +127,35 @@ export class InputManager extends EventEmitter {
       // whatever OTHER finger is genuinely holding fire. Confirmed live.
       if (this._excludedPointerIds.delete(pointer.id)) return;
       this._activePointerIds.delete(pointer.id);
-      this._pointerDown = false;
+      // Only the finger that STARTED the fire can stop it. Clearing on any
+      // pointerup meant a left thumb that drifted off a move button and
+      // lifted killed the right thumb's held fire mid-spray.
+      if (this._firingPointerId === null || pointer.id === this._firingPointerId) {
+        this._firingPointerId = null;
+        this._pointerDown = false;
+      }
     });
+  }
+
+  /**
+   * Drops every piece of held pointer state. Required around a scene pause:
+   * `scene.pause()` runs synchronously inside the pointerdown that triggered
+   * it, and a paused Phaser scene receives NO input at all (InputPlugin.update
+   * bails while `canInput()` is false, and events are dispatched live with no
+   * queue or replay). So the touchends that end the two-finger pause gesture
+   * are discarded outright and `_activePointerIds` keeps both ids forever —
+   * after resume the next tap re-reaches size 2 and re-emits 'pause', over and
+   * over, with the cannon permanently dead for the rest of the run. The
+   * mirror case leaves `_pointerDown` stuck true so the cannon fires by itself.
+   * Both were found by spec audit, 2026-09-12.
+   */
+  resetPointerState(): void {
+    this._activePointerIds.clear();
+    this._excludedPointerIds.clear();
+    this._firingPointerId = null;
+    this._pointerDown = false;
+    this._mobileLeftDown = false;
+    this._mobileRightDown = false;
   }
 
   /** Held state for the on-screen edge buttons (`ui/MobileMoveButtons.ts`) — merged into `getMoveDir()`. */
