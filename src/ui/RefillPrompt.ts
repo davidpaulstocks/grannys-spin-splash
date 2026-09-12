@@ -24,6 +24,11 @@ export function createRefillPrompt(
     label: 'Watch an ad to refill now',
     variant: 'secondary',
     minWidth: 260,
+    // No adjacent "standard" button to stay under here (CLAUDE.md §11.3's
+    // size rule is about a paired continue button, and this solo mid-run
+    // prompt has none) — still gets the video icon since that half of the
+    // rule ("must include a video icon prominently") applies regardless.
+    showPlayIcon: true,
     onClick: onWatchAd,
   });
   button.setVisible(false);

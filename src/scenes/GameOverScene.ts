@@ -39,6 +39,16 @@ const RANK_DESC_Y = GAME_HEIGHT * 0.53;
 const VAULT_Y = GAME_HEIGHT * 0.6;
 const PLAY_AGAIN_Y = GAME_HEIGHT * 0.73;
 const DOUBLE_SCORE_Y = GAME_HEIGHT * 0.86;
+/**
+ * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
+ * to the rewarded button beside/above it. The reward label — "Watch an ad
+ * to double your score" — plus its new video icon renders wider than "PLAY
+ * AGAIN" naturally would, so PLAY AGAIN needs an explicit floor rather than
+ * relying on its own short text (found by spec audit: the old 280/340 pair
+ * had it backwards).
+ */
+const PLAY_AGAIN_MIN_WIDTH = 470;
+const DOUBLE_SCORE_MIN_WIDTH = 340;
 
 /** How long the score takes to tick up, and how often it ticks audibly on the way. */
 const COUNT_UP_MS = 900;
@@ -98,7 +108,9 @@ export class GameOverScene extends Phaser.Scene {
       y: PLAY_AGAIN_Y,
       label: 'PLAY AGAIN',
       variant: 'primary',
-      minWidth: 280,
+      // Wide enough to stay ≥ the reward button below it, per CLAUDE.md
+      // §11.3 — see PLAY_AGAIN_MIN_WIDTH's own comment.
+      minWidth: PLAY_AGAIN_MIN_WIDTH,
       onClick: () => this.scene.start('SplashScene'),
     });
 
@@ -174,7 +186,8 @@ export class GameOverScene extends Phaser.Scene {
       y: DOUBLE_SCORE_Y,
       label: 'Watch an ad to double your score',
       variant: 'secondary',
-      minWidth: 340,
+      minWidth: DOUBLE_SCORE_MIN_WIDTH,
+      showPlayIcon: true,
       onClick: () => void this._onDoubleScore(score),
     });
   }

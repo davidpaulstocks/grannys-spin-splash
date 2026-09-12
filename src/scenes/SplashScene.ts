@@ -83,6 +83,16 @@ const PLAY_Y = 618;
  * context for yet.
  */
 const BOTTOM_ROW_Y = 676;
+/**
+ * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
+ * to the rewarded button beside/above it. The reward button's own label —
+ * "Watch an ad for a free gun" — plus its new video icon is wider than
+ * PLAY's own short label would naturally render, so PLAY needs an explicit
+ * floor rather than relying on its text to win that comparison (found by
+ * spec audit: PLAY's old 300 was narrower than the reward button's 340).
+ */
+const PLAY_BUTTON_MIN_WIDTH = 400;
+const REWARD_BUTTON_MIN_WIDTH = 340;
 
 export class SplashScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
@@ -135,7 +145,10 @@ export class SplashScene extends Phaser.Scene {
       y: PLAY_Y,
       label: 'PLAY',
       variant: 'primary',
-      minWidth: 300,
+      // Wide enough to stay ≥ the reward button below it even with its
+      // longer label + video icon (CLAUDE.md §11.3: "standard continue
+      // button: Mint Green, larger or equal") — see PLAY_BUTTON_MIN_WIDTH.
+      minWidth: PLAY_BUTTON_MIN_WIDTH,
       onClick: () => void this._onPlay(),
     });
 
@@ -332,7 +345,8 @@ export class SplashScene extends Phaser.Scene {
       y: BOTTOM_ROW_Y,
       label: 'Watch an ad for a free gun',
       variant: 'secondary',
-      minWidth: 340,
+      minWidth: REWARD_BUTTON_MIN_WIDTH,
+      showPlayIcon: true,
       onClick: () => void this._onWatchAdForGun(),
     });
   }
