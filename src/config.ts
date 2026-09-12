@@ -151,5 +151,13 @@ export const GRANNY_X_MARGIN = 48;
  * position the mid-run refill prompt (story 6.3) directly above it.
  */
 export const WATER_BAR_MARGIN_X = 96;
-export const WATER_BAR_HEIGHT = 32;
+/**
+ * 48 rather than 32 (2026-09-12): the tank was rebuilt as a live body of
+ * water — sloshing meniscus, rising bubbles, a colour that warms as it
+ * drains (see ui/WaterBar.ts) — and at 32px none of that detail survived
+ * the scale down to Poki's 640x360 canonical size, where a logical px is
+ * half a CSS px. Still inside §5.8's "8% bottom" HUD band (48/720 = 6.7%),
+ * and still clear of Granny's feet at y 644.
+ */
+export const WATER_BAR_HEIGHT = 48;
 export const WATER_BAR_Y = GAME_HEIGHT - WATER_BAR_HEIGHT - 24;
