@@ -35,6 +35,7 @@ import {
   DEFAULT_WORLD_ID,
   GOLDEN_LIFETIME_MS,
   GOLDEN_SPAWN_DELAY_MS,
+  SPINNER_PALETTE_BY_WORLD,
   WORLD_DEFS,
 } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
@@ -44,7 +45,7 @@ import { Granny } from '../entities/granny/Granny';
 import { Gun } from '../entities/gun/Gun';
 import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
-import { spawnSplash } from '../entities/waterParticle/splashVFX';
+import { spawnSparks, spawnSplash } from '../entities/waterParticle/splashVFX';
 import * as poki from '../poki';
 import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
@@ -310,7 +311,14 @@ export class GameScene extends Phaser.Scene {
     this._goldenSplashPending = false;
   }
 
-  /** Builds the spinner wall: an even grid within WALL_AREA, kinds cycled round-robin from the world's roster. */
+  /**
+   * Builds the spinner wall: an even grid within WALL_AREA, kinds cycled
+   * round-robin from the world's roster. Each spinner's colours are
+   * overridden to its world's palette (SPINNER_PALETTE_BY_WORLD) rather
+   * than the shared type's own — see that constant's doc comment for why
+   * (2026-09-12, direct user feedback: spinners needed to feel specific
+   * to the world they're in, not just to their mechanical type).
+   */
   private _buildWall(cols: number, rows: number, kinds: readonly string[]): void {
     const positions = computeGridPositions(
       cols,
@@ -320,11 +328,13 @@ export class GameScene extends Phaser.Scene {
       WALL_AREA.width,
       WALL_AREA.height,
     );
+    const palette = SPINNER_PALETTE_BY_WORLD[this._world.id];
     positions.forEach((pos, i) => {
       const kind = kinds[i % kinds.length];
       const def = SPINNER_DEFS.find((d) => d.type === kind);
       if (!def) throw new Error(`No SPINNER_DEFS entry for kind "${kind}"`);
-      this._spinners.push(new Spinner(this, pos.x, pos.y, def));
+      const themedDef = palette ? { ...def, colors: palette } : def;
+      this._spinners.push(new Spinner(this, pos.x, pos.y, themedDef));
     });
   }
 
@@ -502,6 +512,21 @@ export class GameScene extends Phaser.Scene {
       label,
       hitTextColour(multiplier),
     );
+
+    // Spark burst on the spinner itself — a state upgrade is the single
+    // most rewarding moment in the loop and previously had no VFX beyond
+    // the SFX + a flat glow-colour swap (2026-09-12, direct user feedback:
+    // spinners needed more "juice, momentum, sparks"). FULL gets Sunny
+    // Gold sparks (matches its glow); every earlier tier gets the
+    // spinner's own base colour. No scale-punch tween here deliberately —
+    // Spinner._updateWobble() already writes this.scale every frame past
+    // WOBBLE_SPEED_THRESHOLD, which would fight a separate tween on the
+    // same property and read as a flicker rather than a punch.
+    const sparkColour =
+      newState === SpinnerState.FULL
+        ? COLOUR.sunnyGold
+        : Phaser.Display.Color.HexStringToColor(spinner.def.colors[0]).color;
+    spawnSparks(this, spinner.x, spinner.y, sparkColour);
   }
 
   /** Advances every live power-up pickup and applies the effect of any just collected (CLAUDE.md §1). */
