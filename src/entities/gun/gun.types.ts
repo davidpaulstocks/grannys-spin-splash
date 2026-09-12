@@ -37,4 +37,12 @@ export interface GunDef {
   /** Particle size in px. */
   readonly sz: number;
   readonly type: GunType;
+  /**
+   * Projectile + impact-splash colour (CLAUDE.md §5.1 palette only — no
+   * new hex values). Restored 2026-09-12: guns previously all fired
+   * identical blue dots regardless of `type`/`sz`, which were both dead
+   * fields nothing read — direct user feedback that the 6 guns needed to
+   * "feel super different" surfaced this.
+   */
+  readonly particleColour: number;
 }

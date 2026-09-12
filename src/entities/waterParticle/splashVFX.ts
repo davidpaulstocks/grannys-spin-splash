@@ -14,14 +14,19 @@ const DROPLET_COUNT = 6;
 const DROPLET_RADIUS = 4;
 const BURST_DISTANCE = 18;
 
-/** Spawns a small radial water-droplet burst centred on (x, y). */
-export function spawnSplash(scene: Phaser.Scene, x: number, y: number): void {
+/** Spawns a small radial water-droplet burst centred on (x, y), tinted `colour` (defaults to Water Blue). */
+export function spawnSplash(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  colour: number = COLOUR.waterBlue,
+): void {
   for (let i = 0; i < DROPLET_COUNT; i++) {
     const angle = (i / DROPLET_COUNT) * Math.PI * 2 + Math.random() * 0.4;
     const targetX = x + Math.cos(angle) * BURST_DISTANCE;
     const targetY = y + Math.sin(angle) * BURST_DISTANCE;
 
-    const droplet = scene.add.circle(x, y, DROPLET_RADIUS, COLOUR.waterBlue, 0.9);
+    const droplet = scene.add.circle(x, y, DROPLET_RADIUS, colour, 0.9);
     scene.tweens.add({
       targets: droplet,
       x: targetX,

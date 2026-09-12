@@ -81,6 +81,12 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     this.setVisible(false);
   }
 
+  /** Sets this shot's colour + size to the firing gun's own — called once per pool `get()`, before `fire()`. */
+  setAppearance(colour: number, radius: number): void {
+    this.setFillStyle(colour, 1);
+    this.setRadius(radius);
+  }
+
   /**
    * (Re)launches this pooled particle from an origin toward an aim point,
    * optionally locked onto a target. `extraWobble` is a deliberate

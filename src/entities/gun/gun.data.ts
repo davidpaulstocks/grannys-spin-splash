@@ -28,6 +28,7 @@
  * possible for a disciplined player."
  */
 
+import { COLOUR, shade } from '../../utils/colour';
 import type { GunDef } from './gun.types';
 
 export const GUN_DEFS: readonly GunDef[] = [
@@ -45,6 +46,12 @@ export const GUN_DEFS: readonly GunDef[] = [
     streams: 1,
     sz: 6,
     type: 'water',
+    // `sz`/`particleColour` were dead fields until 2026-09-12 (direct user
+    // feedback: the 6 guns needed to "feel super different") — every gun
+    // fired an identical blue dot regardless. Colours below are an
+    // escalating ladder through CLAUDE.md §5.1's existing palette, no new
+    // hex values: pale/thin water blue for the starter toy pistol.
+    particleColour: shade(COLOUR.waterBlue, 1.3),
   },
   {
     id: 'squirter',
@@ -60,6 +67,8 @@ export const GUN_DEFS: readonly GunDef[] = [
     streams: 1,
     sz: 8,
     type: 'water',
+    // A punchier, deeper blue than the pistol — same tier, still a step up.
+    particleColour: shade(COLOUR.waterBlue, 0.85),
   },
   {
     id: 'hose',
@@ -75,6 +84,8 @@ export const GUN_DEFS: readonly GunDef[] = [
     streams: 1,
     sz: 10,
     type: 'water',
+    // Garden/nature association for the coiled brass-nozzle hose.
+    particleColour: COLOUR.mintGreen,
   },
   {
     id: 'splashjr',
@@ -90,6 +101,9 @@ export const GUN_DEFS: readonly GunDef[] = [
     streams: 2,
     sz: 8,
     type: 'water',
+    // Playful two-handed kid blaster — bright pink stands out against the
+    // otherwise blue-family lineup, matching its already-visible dual stream.
+    particleColour: COLOUR.grannyPink,
   },
   {
     id: 'soaker3000',
@@ -105,6 +119,8 @@ export const GUN_DEFS: readonly GunDef[] = [
     streams: 2,
     sz: 10,
     type: 'water',
+    // Retro-futuristic twin-barrel — gold reads as the "big unlock" reward tier.
+    particleColour: COLOUR.sunnyGold,
   },
   {
     id: 'inferno',
@@ -120,6 +136,9 @@ export const GUN_DEFS: readonly GunDef[] = [
     streams: 1,
     sz: 12,
     type: 'fire',
+    // The one fire-type weapon — heat orange makes the "fire" flavour
+    // actually visible instead of shooting the same blue as everything else.
+    particleColour: COLOUR.heatOrange,
   },
 ];
 

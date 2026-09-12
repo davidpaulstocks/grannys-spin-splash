@@ -383,6 +383,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < this._gun.streams; i++) {
       const particle = this._waterPool.get() as WaterParticle | null;
       if (!particle) break;
+      particle.setAppearance(this._gun.particleColour, this._gun.sz);
       particle.fire(origin.x, origin.y, aim.x, aim.y, target);
     }
     // Super Soaker power-up: two extra angled streams alongside the main
@@ -390,7 +391,10 @@ export class GameScene extends Phaser.Scene {
     if (time < this._soakerEndAt) {
       for (const side of [-1, 1] as const) {
         const extra = this._waterPool.get() as WaterParticle | null;
-        if (extra) extra.fire(origin.x, origin.y, aim.x, aim.y, target, side * SOAKER_EXTRA_WOBBLE);
+        if (extra) {
+          extra.setAppearance(this._gun.particleColour, this._gun.sz);
+          extra.fire(origin.x, origin.y, aim.x, aim.y, target, side * SOAKER_EXTRA_WOBBLE);
+        }
       }
     }
     // FIRE_DENSITY_SCALE: drain scales down with interval so the actual
@@ -455,7 +459,7 @@ export class GameScene extends Phaser.Scene {
       // total the tuned balance expects — see the constant's doc comment.
       const power = usingGoldenSplash ? MAX_SPINNER_SPEED : this._gun.power / FIRE_DENSITY_SCALE;
       const landed = hitSpinner.hit(power);
-      spawnSplash(this, hitX, hitY);
+      spawnSplash(this, hitX, hitY, this._gun.particleColour);
       if (!landed) {
         SFX.playDeflect(); // whirligig
         continue;
