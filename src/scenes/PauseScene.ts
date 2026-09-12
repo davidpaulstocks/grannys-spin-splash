@@ -11,6 +11,7 @@
 import Phaser from 'phaser';
 
 import { audioBus } from '../audio/AudioBus';
+import { audioOrchestra } from '../audio/AudioOrchestra';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import * as poki from '../poki';
 import { createButton } from '../ui/Button';
@@ -58,6 +59,7 @@ export class PauseScene extends Phaser.Scene {
   private _resume(): void {
     this.scene.resume('GameScene');
     audioBus.fadeIn(DURATION.stateChange);
+    audioOrchestra.start();
     poki.gameplayStart();
     this.scene.stop();
   }

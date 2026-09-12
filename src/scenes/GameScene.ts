@@ -64,6 +64,7 @@ import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
 import { audioBus, AD_MUTE_HOOKS } from '../audio/AudioBus';
+import { audioOrchestra } from '../audio/AudioOrchestra';
 import * as SFX from '../audio/SFX';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
@@ -243,7 +244,12 @@ export class GameScene extends Phaser.Scene {
     this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._onFrenzyStart());
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this._input.destroy());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this._input.destroy();
+      // Covers every way this scene can end — round over, quit from pause,
+      // or a direct scene.stop() — so the music can never outlive the run.
+      audioOrchestra.stop();
+    });
   }
 
   override update(time: number, delta: number): void {
@@ -268,6 +274,12 @@ export class GameScene extends Phaser.Scene {
     // deliberately excluded (own array, see class field comment) — a
     // temporary bonus spawn shouldn't distort Frenzy's "% of wall at FULL".
     this._frenzyMeter.update(this._spinners.map((s) => ({ state: s.currentState })));
+    // Each spinner's own charge drives its assigned instrument, continuously
+    // (CLAUDE.md §9.1.1) — same list, same frame, same exclusion of the
+    // Golden Spinner as the Frenzy meter above.
+    audioOrchestra.updateMix(
+      this._spinners.map((s) => ({ charge: s.currentSpeed / MAX_SPINNER_SPEED })),
+    );
     this._updateGolden(time, delta);
 
     for (const obstacle of this._obstacles) {
@@ -842,11 +854,13 @@ export class GameScene extends Phaser.Scene {
       'SPLASH FRENZY!',
     );
     SFX.playFrenzy();
+    audioOrchestra.onFrenzyStart();
   }
 
   private _updateFrenzyWindow(time: number): void {
     if (!this._frenzyActive || time < this._frenzyEndAt) return;
     this._frenzyActive = false;
+    audioOrchestra.onFrenzyEnd();
     for (const spinner of this._spinners) spinner.locked = false;
     if (this._frenzyBanner) {
       hideBanner(this, this._frenzyBanner);
@@ -864,6 +878,10 @@ export class GameScene extends Phaser.Scene {
     audioBus.init();
     audioBus.resume();
     audioBus.fadeIn(0);
+    // The orchestra can only start once there's an AudioContext, which is
+    // this gesture — so the run's music begins on the player's first shot
+    // rather than on scene load (CLAUDE.md §9).
+    audioOrchestra.start();
     poki.gameplayStart();
   }
 
@@ -877,6 +895,7 @@ export class GameScene extends Phaser.Scene {
     if (!this._started || this._roundOver || this.scene.isPaused()) return;
     poki.gameplayStop();
     audioBus.fadeOut(100);
+    audioOrchestra.stop();
     this.scene.pause();
     this.scene.launch('PauseScene');
   }
