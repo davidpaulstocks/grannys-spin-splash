@@ -25,7 +25,15 @@ export const SPRITE_KEYS = {
   /** public/sprites/ui/*.png */
   titleWordmark: 'ui_wordmark',
   titleFlourish: 'ui_title_flourish',
+
+  /** public/sprites/ui/buttons/move_<left|right>[_pressed].png — the touch-only move buttons (§6.3). */
+  moveButton: (direction: MoveButtonDirection, pressed: boolean): string =>
+    `ui_move_${direction}${pressed ? '_pressed' : ''}`,
+  moveButtonPath: (direction: MoveButtonDirection, pressed: boolean): string =>
+    `sprites/ui/buttons/move_${direction}${pressed ? '_pressed' : ''}.png`,
 } as const;
+
+export type MoveButtonDirection = 'left' | 'right';
 
 export const AUDIO_KEYS = {} as const;
 export const ICON_KEYS = {} as const;
