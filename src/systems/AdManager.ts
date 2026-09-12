@@ -37,20 +37,49 @@ export class AdManager {
     return this._runsSinceLastCommercialBreak >= RUNS_BETWEEN_COMMERCIAL_BREAKS;
   }
 
-  /** Shows the commercial break and resets the run counter. No-ops the mute hooks if the caller doesn't supply them. */
+  /**
+   * Shows the commercial break and resets the run counter. No-ops the mute
+   * hooks if the caller doesn't supply them.
+   *
+   * The underlying SDK call is wrapped in try/catch (2026-09-12, found by
+   * spec audit): an ad blocker or a rejected SDK promise must never gate
+   * core gameplay (CLAUDE.md §3 rule 9) — before this, a rejection here
+   * propagated straight out of the caller's `await`, which for
+   * `SplashScene._onPlay()` meant `_isStartingRun` stayed permanently true
+   * and `scene.start('GameScene', ...)` never ran, bricking the PLAY button
+   * for the rest of the session. The `finally` also guarantees `onAdEnd`
+   * (unmute) still fires — without it, a rejection after `onAdStart` had
+   * already muted audio would leave it muted forever.
+   */
   async playCommercialBreak(hooks: AdHooks = {}): Promise<void> {
     this._runsSinceLastCommercialBreak = 0;
     hooks.onAdStart?.();
-    await poki.commercialBreak();
-    hooks.onAdEnd?.();
+    try {
+      await poki.commercialBreak();
+    } catch {
+      // Treated as "the break didn't happen" — play proceeds regardless.
+    } finally {
+      hooks.onAdEnd?.();
+    }
   }
 
-  /** Shows a rewarded ad. Resolves true only if the player watched it to completion — one reward per ad (CLAUDE.md §11.3). */
+  /**
+   * Shows a rewarded ad. Resolves true only if the player watched it to
+   * completion — one reward per ad (CLAUDE.md §11.3). A rejected SDK
+   * promise resolves `false`, the same outcome as a player-skipped ad —
+   * callers already handle that by granting nothing, so this needs no
+   * special case beyond not bricking whatever awaited it (see
+   * `playCommercialBreak`'s doc comment for the same failure mode).
+   */
   async playRewarded(size: RewardSize, hooks: AdHooks = {}): Promise<boolean> {
     hooks.onAdStart?.();
-    const watched = await poki.rewardedBreak(size);
-    hooks.onAdEnd?.();
-    return watched;
+    try {
+      return await poki.rewardedBreak(size);
+    } catch {
+      return false;
+    } finally {
+      hooks.onAdEnd?.();
+    }
   }
 }
 
