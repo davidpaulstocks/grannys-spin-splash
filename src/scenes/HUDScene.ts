@@ -1,11 +1,15 @@
 /**
- * Overlay on top of GameScene — timer dial, water bar, on-wall Frenzy
- * meter (CLAUDE.md §7.2). No game logic of its own: GameScene calls
- * `refresh()` once per frame with fresh state (CLAUDE.md §7.1 one-way
- * data flow — HUDScene is a leaf, it never reads GameScene back).
+ * Overlay on top of GameScene — timer dial, live star tally, water bar,
+ * on-wall Frenzy meter (CLAUDE.md §7.2). No game logic of its own:
+ * GameScene calls `refresh()` once per frame with fresh state (CLAUDE.md
+ * §7.1 one-way data flow — HUDScene is a leaf, it never reads GameScene
+ * back).
  *
- * Score is deliberately never rendered here during play (CLAUDE.md story
- * 2.5) — GameOverScene reveals it once the round ends.
+ * The star tally is visible throughout the run (2026-09-12 re-plan, direct
+ * user feedback: "I'm not seeing a point and gold tally add up as I'm
+ * playing, I want to see that currency get earned and be excited about how
+ * much gold I'm earning") — this supersedes story 2.5's original design,
+ * which hid score until GameOverScene revealed it at the end.
  */
 
 import Phaser from 'phaser';

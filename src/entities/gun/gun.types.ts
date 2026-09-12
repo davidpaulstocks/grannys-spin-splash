@@ -26,8 +26,6 @@ export interface GunDef {
   readonly tank: number;
   /** Water drained per shot. */
   readonly drain: number;
-  /** Water added per pump-refill click. */
-  readonly pump: number;
   /** Milliseconds between auto-shots while firing held. */
   readonly interval: number;
   /** Speed boost imparted to a spinner on hit. */

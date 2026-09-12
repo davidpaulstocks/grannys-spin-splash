@@ -178,3 +178,16 @@ export function playTick(urgent: boolean): void {
 export function playPowerup(): void {
   playSequence([{ freq: 392 }, { freq: 587 }, { freq: 784 }], 0.08, 0.3, 0.18);
 }
+
+/**
+ * A soft encouragement ping under an "encouragement toast" (2026-09-12,
+ * direct user request: "well done, or let's go... a little sound effect,
+ * without disrupting from the actual orchestra sound, which is the hero").
+ * Deliberately the quietest thing in this file (0.09 vs everything else's
+ * 0.1-0.2) and a single short sine note, not a run — the orchestra is
+ * meant to fill the room at these moments, this only needs to be felt,
+ * not competed with.
+ */
+export function playEncouragement(): void {
+  playTone('sine', 880, 0.22, 0.09, 1180);
+}

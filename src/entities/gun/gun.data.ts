@@ -1,6 +1,6 @@
 /**
  * GUN_DEFS — launch roster of 6 guns × 8 angles each (CLAUDE.md §8.2).
- * Tier + cost are locked by spec; tank/drain/pump/interval/streams/sz are
+ * Tier + cost are locked by spec; tank/drain/interval/streams/sz are
  * still first-pass placeholders. `power` values were tuned in Sprint 2
  * story 2.8 against a live-simulated player (manual frame-stepping —
  * see BACKLOG.md's Sprint 2 notes) who commits to one spinner at a time
@@ -40,7 +40,6 @@ export const GUN_DEFS: readonly GunDef[] = [
     cost: 0,
     tank: 60,
     drain: 1,
-    pump: 25,
     interval: 220,
     power: 30,
     streams: 1,
@@ -61,7 +60,6 @@ export const GUN_DEFS: readonly GunDef[] = [
     cost: 0,
     tank: 80,
     drain: 1,
-    pump: 25,
     interval: 200,
     power: 37,
     streams: 1,
@@ -78,7 +76,6 @@ export const GUN_DEFS: readonly GunDef[] = [
     cost: 200,
     tank: 100,
     drain: 2,
-    pump: 30,
     interval: 160,
     power: 47,
     streams: 1,
@@ -95,7 +92,6 @@ export const GUN_DEFS: readonly GunDef[] = [
     cost: 500,
     tank: 110,
     drain: 2,
-    pump: 35,
     interval: 150,
     power: 37,
     streams: 2,
@@ -113,7 +109,6 @@ export const GUN_DEFS: readonly GunDef[] = [
     cost: 1200,
     tank: 140,
     drain: 2,
-    pump: 40,
     interval: 130,
     power: 43,
     streams: 2,
@@ -130,7 +125,6 @@ export const GUN_DEFS: readonly GunDef[] = [
     cost: 5000,
     tank: 120,
     drain: 3,
-    pump: 35,
     interval: 110,
     power: 83,
     streams: 1,

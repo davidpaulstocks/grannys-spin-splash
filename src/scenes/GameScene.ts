@@ -68,6 +68,8 @@ import { spawnFloatingText } from '../ui/FloatingText';
 import { showGhostFinger } from '../ui/GhostFinger';
 import { createMobileMoveButtons } from '../ui/MobileMoveButtons';
 import { createRefillPrompt } from '../ui/RefillPrompt';
+import { pickEncouragementPhrase } from '../ui/encouragementPhrases';
+import { showToast } from '../ui/Toast';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { distance, resolveAim } from '../utils/math';
 import type { HUDScene } from './HUDScene';
@@ -77,6 +79,9 @@ const DUCK_BOUNCE_MARGIN = 60;
 
 /** Combo tiers ≥ this shake (prototype: `if(combo>=4) shake(150, 0.005*(combo-2))`). */
 const COMBO_SHAKE_THRESHOLD = 4;
+
+/** How often a spinner reaching FULL also gets a spoken "well done!" — rare enough to stay a nice surprise. */
+const ENCOURAGEMENT_CHANCE = 0.18;
 
 /** Floating "+N ★" colour by combo multiplier tier — escalates with the combo, matching the prototype's `awardStars`. */
 function hitTextColour(multiplier: number): string {
@@ -181,6 +186,13 @@ export class GameScene extends Phaser.Scene {
     this._input.on('first-input', () => this._onFirstInput());
     this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._onFrenzyStart());
+    // The 60%/80% mini-frenzy thresholds were already emitted by
+    // FrenzyMeter but nothing ever listened for them (found by spec
+    // audit) — wired to the same encouragement-toast beat as a spinner
+    // reaching FULL, just with their own specific lines since these are
+    // meaningful wall-wide milestones, not a per-spinner moment.
+    this._frenzyMeter.on('miniLow', () => this._onMiniFrenzy("You're on fire!"));
+    this._frenzyMeter.on('miniHigh', () => this._onMiniFrenzy('Almost there!!'));
 
     this._maybeShowGhostFinger();
 
@@ -419,9 +431,10 @@ export class GameScene extends Phaser.Scene {
     SFX.playUpgrade(STATE_ORDINAL[newState]);
     // Restored 2026-09-12 from the prototype's `awardStars` — direct user
     // feedback that per-hit feedback ("toasts when the player hit
-    // targets") was part of what made hits feel rewarding. The permanent
-    // score number stays hidden during play either way (CLAUDE.md story
-    // 2.5) — this is transient combat text, not a persistent HUD readout.
+    // targets") was part of what made hits feel rewarding. This is
+    // transient combat text at the point of action, distinct from
+    // HUDScene's persistent running tally (ScoreCounter) — the two
+    // complement each other rather than one replacing the other.
     const label = multiplier > 1 ? `+${total} ★ ×${multiplier}` : `+${total} ★`;
     spawnFloatingText(
       this,
@@ -446,6 +459,24 @@ export class GameScene extends Phaser.Scene {
         : Phaser.Display.Color.HexStringToColor(spinner.def.colors[0]).color;
     spawnSparks(this, spinner.x, spinner.y, sparkColour);
     this._maybeEasterEgg(spinner);
+    if (newState === SpinnerState.FULL) this._maybeEncourage();
+  }
+
+  /**
+   * A rare, quiet "well done!" on a spinner reaching FULL (2026-09-12,
+   * direct user request: "as a player gets a spinner spinning, well done,
+   * or let's go... encouragement, perhaps a little sound effect, without
+   * disrupting the actual orchestra sound, which is the hero"). Chanced
+   * rather than constant for the same reason as the world easter eggs —
+   * every FULL transition already has its own spark burst and floating
+   * star text; this is occasional extra warmth on top, not a new habit to
+   * get used to (and never a new SFX layer loud enough to compete with the
+   * orchestra it's meant to sit quietly underneath).
+   */
+  private _maybeEncourage(): void {
+    if (Math.random() >= ENCOURAGEMENT_CHANCE) return;
+    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.24, pickEncouragementPhrase());
+    SFX.playEncouragement();
   }
 
   /**
@@ -546,8 +577,24 @@ export class GameScene extends Phaser.Scene {
       GAME_HEIGHT / 2,
       'SPLASH FRENZY!',
     );
+    // The single biggest star award in a run had no number attached to it
+    // anywhere on screen (found by spec audit) — every other scoring site
+    // gets a floating "+N ★", this is the one that most deserves it.
+    spawnFloatingText(
+      this,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 + 70,
+      `+${FRENZY_BONUS_STARS} ★`,
+      COLOUR_HEX.sunnyGold,
+    );
     SFX.playFrenzy();
     audioOrchestra.onFrenzyStart();
+  }
+
+  /** The wall crosses 60%/80% of spinners at FULL — a quiet, quick encouragement beat (CLAUDE.md §1's mini-frenzy). */
+  private _onMiniFrenzy(message: string): void {
+    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, message);
+    SFX.playEncouragement();
   }
 
   private _updateFrenzyWindow(time: number): void {
