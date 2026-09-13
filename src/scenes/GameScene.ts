@@ -82,6 +82,28 @@ const COMBO_SHAKE_THRESHOLD = 4;
 /** How often a spinner reaching FULL also gets a spoken "well done!" — rare enough to stay a nice surprise. */
 const ENCOURAGEMENT_CHANCE = 0.18;
 
+/**
+ * Stars per landed hit during the SPLASH FRENZY window, and how often those
+ * hits are celebrated with their own sparks/text (2026-09-13, direct user
+ * feedback: "when you achieve splash frenzy the sounds of hitting the
+ * spinners stops so it kinda feels like the excitement is over vs it being a
+ * sustained high point").
+ *
+ * The cause was structural. Frenzy maxes AND locks every spinner, so no
+ * spinner can change state for the whole window — and every reward in the
+ * game hangs off `_onSpinnerLeveledUp`, which only fires on an upward
+ * transition. So the climax paid no stars, spawned no floating "+N ★", threw
+ * no sparks and played no upgrade sound: the game's single biggest moment was
+ * its only scoring and feedback dead zone. CLAUDE.md §1 calls Frenzy "a
+ * 5-second bonus burst worth bonus stars", which is exactly what it wasn't.
+ *
+ * Every hit now pays, multiplied by the live combo, so the window rewards
+ * firing flat out. Only a fraction spawn their own text/sparks — at up to 60
+ * hits a second the screen would otherwise be unreadable confetti.
+ */
+const FRENZY_HIT_STARS = 2;
+const FRENZY_HIT_FLOURISH_CHANCE = 0.14;
+
 /** Floating "+N ★" colour by combo multiplier tier — escalates with the combo, matching the prototype's `awardStars`. */
 function hitTextColour(multiplier: number): string {
   if (multiplier >= 4) return COLOUR_HEX.grannyPink;
@@ -448,6 +470,7 @@ export class GameScene extends Phaser.Scene {
       if (usingGoldenSplash) this._goldenSplashPending = false;
 
       SFX.playHit(hitSpinner.currentSpeed);
+      if (this._frenzyActive) this._payOutFrenzyHit(hitSpinner);
       const comboBefore = this._combo.combo;
       const comboAfter = this._combo.registerHit(hitSpinner.id);
       if (comboAfter !== comboBefore) {
@@ -503,6 +526,30 @@ export class GameScene extends Phaser.Scene {
     if (newState === SpinnerState.FULL) {
       this._maybeEncourage();
       this._tutorial?.maybeShowPurpose(this);
+    }
+  }
+
+  /**
+   * Pays out a hit landed during the Frenzy window — see FRENZY_HIT_STARS
+   * for why the climax previously rewarded nothing at all.
+   */
+  private _payOutFrenzyHit(spinner: Spinner): void {
+    const total = FRENZY_HIT_STARS * this._combo.multiplier;
+    this._score += total;
+    if (Math.random() < FRENZY_HIT_FLOURISH_CHANCE) {
+      spawnFloatingText(
+        this,
+        spinner.x,
+        spinner.y - spinner.def.r - 12,
+        `+${total} ★`,
+        COLOUR_HEX.sunnyGold,
+      );
+      spawnSparks(this, spinner.x, spinner.y, COLOUR.sunnyGold);
+      // The bright upgrade chime is what actually made hits feel rewarding,
+      // and it stopped dead at Frenzy because nothing could level up any
+      // more. Riding the same chance keeps it celebratory without turning
+      // 60 hits a second into a siren.
+      SFX.playUpgrade(STATE_ORDINAL[SpinnerState.FULL]);
     }
   }
 
