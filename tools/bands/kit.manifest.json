@@ -1,0 +1,261 @@
+{
+  "source": {
+    "repo": "sgossner/VSCO-2-CE",
+    "branch": "master",
+    "license": "CC0-1.0",
+    "note": "Default source; instruments override `repo` (branch comes from APPROVED_SOURCES). role = intended SOUNDING note (C4 = 60) for pitched samples, round-robin label for unpitched. File-name octaves are NOT trusted: the build measures the real pitch."
+  },
+  "instruments": {
+    "kick": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/kick_24/kick/oh/k_vl11_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/kick_24/kick/oh/k_vl11_rr2.flac"
+        }
+      ]
+    },
+    "snare_kit": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.45,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/snare_14/center/oh/sn_center_vl8_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/snare_14/center/oh/sn_center_vl8_rr2.flac"
+        },
+        {
+          "role": "rr3",
+          "file": "Samples/snare_14/center/oh/sn_center_vl8_rr3.flac"
+        }
+      ]
+    },
+    "rimshot": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.4,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/snare_14/rimshot/oh/sn_rims_vl5_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/snare_14/rimshot/oh/sn_rims_vl5_rr2.flac"
+        }
+      ]
+    },
+    "hat_closed": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.18,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/hihat_14/cl/oh/ht_cl_vl5_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/hihat_14/cl/oh/ht_cl_vl5_rr2.flac"
+        },
+        {
+          "role": "rr3",
+          "file": "Samples/hihat_14/cl/oh/ht_cl_vl5_rr3.flac"
+        }
+      ]
+    },
+    "hat_open": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.6,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/hihat_14/open/oh/ht_open_vl5_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/hihat_14/open/oh/ht_open_vl5_rr2.flac"
+        }
+      ]
+    },
+    "crash": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 1.6,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/crash_17/cr/oh/cr_vl5_rr1.flac"
+        }
+      ]
+    },
+    "tom_hi": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.6,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/tom_14/center/oh/t14_vl5_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/tom_14/center/oh/t14_vl5_rr2.flac"
+        }
+      ]
+    },
+    "tom_lo": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.8,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/tom_22/center/oh/t22_vl6_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/tom_22/center/oh/t22_vl6_rr2.flac"
+        }
+      ]
+    },
+    "conga": {
+      "repo": "sgossner/VCSL",
+      "pitched": false,
+      "maxLength": 0.4,
+      "samples": [
+        {
+          "role": "open",
+          "file": "Membranophones/Struck Membranophones/Conga/Conga_HitN_v3_rr1_Sum.wav"
+        },
+        {
+          "role": "slap",
+          "file": "Membranophones/Struck Membranophones/Conga/Conga_HitFM_v2_rr1_Sum.wav"
+        },
+        {
+          "role": "bass",
+          "file": "Membranophones/Struck Membranophones/Conga/Tumba_HitN_v3_rr1_Sum.wav"
+        }
+      ]
+    },
+    "ebass": {
+      "repo": "sfzinstruments/karoryfer.growlybass",
+      "pitched": true,
+      "maxLength": 0.9,
+      "samples": [
+        {
+          "role": "E1",
+          "file": "sustain/e2_f_rr1.wav"
+        },
+        {
+          "role": "A1",
+          "file": "sustain/a2_f_rr1.wav"
+        },
+        {
+          "role": "D2",
+          "file": "sustain/eb3_f_rr1.wav"
+        },
+        {
+          "role": "G2",
+          "file": "sustain/gb3_f_rr1.wav"
+        },
+        {
+          "role": "C3",
+          "file": "sustain/c4_f_rr1.wav"
+        }
+      ]
+    },
+    "ebass_stac": {
+      "repo": "sfzinstruments/karoryfer.growlybass",
+      "pitched": true,
+      "maxLength": 0.35,
+      "samples": [
+        {
+          "role": "E1",
+          "file": "staccato/e2_staccato_rr1.wav"
+        },
+        {
+          "role": "A1",
+          "file": "staccato/a2_staccato_rr2.wav"
+        },
+        {
+          "role": "D2",
+          "file": "staccato/eb3_staccato_rr2.wav"
+        },
+        {
+          "role": "G2",
+          "file": "staccato/gb3_staccato_rr4.wav"
+        }
+      ]
+    },
+    "epiano": {
+      "repo": "sgossner/VCSL",
+      "pitched": true,
+      "maxLength": 1.2,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Electrophones/TX81Z/FM Piano/FMPiano_C2_vl2.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Electrophones/TX81Z/FM Piano/FMPiano_G#2_vl2.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Electrophones/TX81Z/FM Piano/FMPiano_E3_vl2.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Electrophones/TX81Z/FM Piano/FMPiano_G#3_vl2.wav"
+        },
+        {
+          "role": "E4",
+          "file": "Electrophones/TX81Z/FM Piano/FMPiano_E4_vl2.wav"
+        },
+        {
+          "role": "B4",
+          "file": "Electrophones/TX81Z/FM Piano/FMPiano_C5_vl2.wav"
+        }
+      ]
+    },
+    "clav": {
+      "repo": "sgossner/VCSL",
+      "pitched": true,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Electrophones/TX81Z/Clavisynth/Clavisynth_C0_vl2.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Electrophones/TX81Z/Clavisynth/Clavisynth_G#0_vl2.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Electrophones/TX81Z/Clavisynth/Clavisynth_C1_vl2.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Electrophones/TX81Z/Clavisynth/Clavisynth_G#1_vl2.wav"
+        },
+        {
+          "role": "E4",
+          "file": "Electrophones/TX81Z/Clavisynth/Clavisynth_E2_vl2.wav"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,354 @@
+{
+  "version": 1,
+  "file": "kit.mp3",
+  "sampleRate": 32000,
+  "syncMarker": 0.1,
+  "duration": 29.692,
+  "instruments": {
+    "kick": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 0.402,
+          "duration": 0.5,
+          "rms": 0.067
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 0.982,
+          "duration": 0.5,
+          "rms": 0.077
+        }
+      ]
+    },
+    "snare_kit": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 1.562,
+          "duration": 0.45,
+          "rms": 0.069
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 2.092,
+          "duration": 0.45,
+          "rms": 0.078
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 2.622,
+          "duration": 0.45,
+          "rms": 0.067
+        }
+      ]
+    },
+    "rimshot": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 3.152,
+          "duration": 0.4,
+          "rms": 0.075
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 3.632,
+          "duration": 0.4,
+          "rms": 0.058
+        }
+      ]
+    },
+    "hat_closed": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 4.112,
+          "duration": 0.18,
+          "rms": 0.054
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 4.372,
+          "duration": 0.18,
+          "rms": 0.046
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 4.632,
+          "duration": 0.18,
+          "rms": 0.049
+        }
+      ]
+    },
+    "hat_open": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 4.892,
+          "duration": 0.6,
+          "rms": 0.051
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 5.572,
+          "duration": 0.6,
+          "rms": 0.064
+        }
+      ]
+    },
+    "crash": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 6.252,
+          "duration": 1.6,
+          "rms": 0.035
+        }
+      ]
+    },
+    "tom_hi": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 7.932,
+          "duration": 0.6,
+          "rms": 0.06
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 8.612,
+          "duration": 0.6,
+          "rms": 0.053
+        }
+      ]
+    },
+    "tom_lo": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 9.292,
+          "duration": 0.8,
+          "rms": 0.106
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 10.172,
+          "duration": 0.8,
+          "rms": 0.105
+        }
+      ]
+    },
+    "conga": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 11.052,
+          "duration": 0.4,
+          "rms": 0.118
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 11.532,
+          "duration": 0.4,
+          "rms": 0.108
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 12.012,
+          "duration": 0.4,
+          "rms": 0.124
+        }
+      ]
+    },
+    "ebass": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 28,
+          "cents": 28,
+          "start": 12.492,
+          "duration": 0.9,
+          "rms": 0.099
+        },
+        {
+          "midi": 33,
+          "cents": -2,
+          "start": 13.472,
+          "duration": 0.9,
+          "rms": 0.062
+        },
+        {
+          "midi": 39,
+          "cents": 5,
+          "start": 14.452,
+          "duration": 0.9,
+          "rms": 0.078
+        },
+        {
+          "midi": 42,
+          "cents": 2,
+          "start": 15.432,
+          "duration": 0.9,
+          "rms": 0.061
+        },
+        {
+          "midi": 48,
+          "cents": 9,
+          "start": 16.412,
+          "duration": 0.9,
+          "rms": 0.093
+        }
+      ]
+    },
+    "ebass_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 29,
+          "cents": -37,
+          "start": 17.392,
+          "duration": 0.35,
+          "rms": 0.134
+        },
+        {
+          "midi": 33,
+          "cents": 17,
+          "start": 17.822,
+          "duration": 0.35,
+          "rms": 0.085
+        },
+        {
+          "midi": 39,
+          "cents": 19,
+          "start": 18.252,
+          "duration": 0.35,
+          "rms": 0.094
+        },
+        {
+          "midi": 42,
+          "cents": 5,
+          "start": 18.682,
+          "duration": 0.35,
+          "rms": 0.074
+        }
+      ]
+    },
+    "epiano": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 36,
+          "cents": 2,
+          "start": 19.112,
+          "duration": 1.2,
+          "rms": 0.175
+        },
+        {
+          "midi": 44,
+          "cents": 1,
+          "start": 20.392,
+          "duration": 1.2,
+          "rms": 0.179
+        },
+        {
+          "midi": 52,
+          "cents": 1,
+          "start": 21.672,
+          "duration": 1.2,
+          "rms": 0.183
+        },
+        {
+          "midi": 56,
+          "cents": 1,
+          "start": 22.952,
+          "duration": 1.2,
+          "rms": 0.178
+        },
+        {
+          "midi": 64,
+          "cents": 1,
+          "start": 24.232,
+          "duration": 1.2,
+          "rms": 0.173
+        },
+        {
+          "midi": 72,
+          "cents": 0,
+          "start": 25.512,
+          "duration": 1.2,
+          "rms": 0.165
+        }
+      ]
+    },
+    "clav": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 36,
+          "cents": 5,
+          "start": 26.792,
+          "duration": 0.5,
+          "rms": 0.244
+        },
+        {
+          "midi": 44,
+          "cents": 5,
+          "start": 27.372,
+          "duration": 0.5,
+          "rms": 0.249
+        },
+        {
+          "midi": 48,
+          "cents": 6,
+          "start": 27.952,
+          "duration": 0.5,
+          "rms": 0.251
+        },
+        {
+          "midi": 56,
+          "cents": 4,
+          "start": 28.532,
+          "duration": 0.5,
+          "rms": 0.242
+        },
+        {
+          "midi": 64,
+          "cents": 4,
+          "start": 29.112,
+          "duration": 0.5,
+          "rms": 0.217
+        }
+      ]
+    }
+  }
+}

@@ -35,7 +35,8 @@ const AMP_CURVE_SAMPLES = 1024;
 const AMP_CURVE_STEEPNESS = 2.4;
 const AMP_CABINET_LOW_HZ = 90;
 const AMP_CABINET_HIGH_HZ = 4200;
-const AMP_POST_GAIN = 0.9;
+/** A saturated guitar is close to a square wave, so its level is set here, after the clipper, not by the part's own level. */
+const AMP_POST_GAIN = 0.25;
 
 /** Fader moves: quick to arrive so a squirt is answered at once, slow to leave so a decaying spinner fades like a held breath. */
 const FADER_RISE_SECONDS = 0.05;

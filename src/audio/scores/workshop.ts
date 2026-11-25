@@ -43,7 +43,7 @@ export const WORKSHOP_SCORE: Score = {
       ornament: line('rimshot', 0, 0.4, ['. . . . . . . x']),
       spray: 'snare_kit',
     }),
-    struck('bass', 'Bass Guitar', 'ebass', 28, 0.85, ['r r r r r r r f'], {
+    struck('bass', 'Bass Guitar', 'ebass', 28, 1.06, ['r r r r r r r f'], {
       light: ['r . r . r . r .'],
       sprayFloor: 40,
     }),
@@ -80,17 +80,17 @@ export const WORKSHOP_SCORE: Score = {
         sprayFloor: 57,
       },
     ),
-    struck('tambourine', 'Tambourine', 'tambourine', 0, 0.45, ['x x? x x? x x? x x?'], {
+    struck('tambourine', 'Tambourine', 'tambourine', 0, 0.59, ['x x? x x? x x? x x?'], {
       light: ['. x . x'],
     }),
-    struck('claps', 'Handclaps', 'clap', 0, 0.5, ['. . x . . . x x'], {
+    struck('claps', 'Handclaps', 'clap', 0, 0.85, ['. . x . . . x x'], {
       light: ['. x . x'],
     }),
-    struck('piano', 'Piano', 'piano', 60, 0.45, ['a+c a+c a+c a+c a+c a+c a+c a+c'], {
+    struck('piano', 'Piano', 'piano', 60, 0.38, ['a+c a+c a+c a+c a+c a+c a+c a+c'], {
       light: ['a+c . a+c . a+c . a+c .'],
       ornament: line('piano', 72, 0.26, ['. . c . . . c .']),
     }),
-    struck('cowbell', 'Cowbell', 'cowbell', 0, 0.4, ['x . x . x . x .'], {
+    struck('cowbell', 'Cowbell', 'cowbell', 0, 0.64, ['x . x . x . x .'], {
       light: ['x . . . x . . .'],
     }),
 
@@ -100,11 +100,11 @@ export const WORKSHOP_SCORE: Score = {
       with: [line('tom_hi', 0, 0.55, ['. . . .', '. . . . . x . .'])],
       spray: 'tom_hi',
     }),
-    struck('cymbals', 'Cymbals', 'hat_open', 0, 0.4, ['. . . . . . . x'], {
+    struck('cymbals', 'Cymbals', 'hat_open', 0, 0.72, ['. . . . . . . x'], {
       light: ['. . . .'],
       with: [line('crash', 0, 0.34, ['x . . .', '. . . .', '. . . .', '. . . .'])],
     }),
-    struck('sax', 'Saxophone', 'tenor_stac', 48, 0.5, ['. . . . r . r t', 'f . . . . . . .'], {
+    struck('sax', 'Saxophone', 'tenor_stac', 48, 0.9, ['. . . . r . r t', 'f . . . . . . .'], {
       light: ['. . . . r . . .', '. . . .'],
     }),
     struck(
@@ -112,7 +112,7 @@ export const WORKSHOP_SCORE: Score = {
       'Horns',
       'trumpet_stac',
       57,
-      0.48,
+      0.77,
       ['a+c . . a+c . . . .', '. . . . a+c . a+c .'],
       {
         light: ['a+c . . . . . . .', '. . . .'],
@@ -124,7 +124,7 @@ export const WORKSHOP_SCORE: Score = {
     }),
 
     // ── The workshop itself ──────────────────────────────────────────────
-    struck('anvil', 'Anvil & Woodblocks', 'claves', 0, 0.45, ['x . x? . x . x? x?'], {
+    struck('anvil', 'Anvil & Woodblocks', 'claves', 0, 0.77, ['x . x? . x . x? x?'], {
       light: ['x . . . x . . .'],
       with: [line('anvil', 0, 0.34, ['. . . .', '. . x .'])],
     }),
