@@ -1,40 +1,37 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on:** Overnight into 2026-09-12: real sprite art landed and Sprint 3 closed out (`Granny.ts`/`Gun.ts` rendering, `BootScene.ts` implemented, Sprint 7 QA partway — see git history for that wave's detail). Then a second wave, driven by direct, specific user feedback that the game "felt a long way behind the quality and fun of the prototype": went back and actually read `game prototype/granny-spin-splash.html` rather than working from secondhand summaries, and closed the gaps it surfaced —
-
-- **Splash screen redesign:** the title flourish now fills the entire 1280×720 canvas as the page's frame (was a small tight border); the three separate granny/world/gun carousels became one big `LoadoutStage` composite (world background + granny + gun badge layered together) with slim arrow-only `CompactSelector`s for granny/gun either side — "one composite image, three independent controls," not three disconnected thumbnails.
-- **Gameplay juice restored from the prototype:** final-10-seconds countdown urgency (pulsing red vignette, scale-pulsing timer, per-second tick + camera shake, big popping numbers — `UrgencyOverlay.ts`, new), floating "+N ★ ×combo" hit-feedback text (`FloatingText.ts`, new) on every level-up plus obstacle SHOO!/QUACK! reactions, combo-streak camera shake, and a visually denser water stream (`FIRE_DENSITY_SCALE` — fires 4× more/smaller particles at the same total DPS/drain, so tuned balance is untouched but the stream reads as continuous instead of discrete pulses).
-- **The power-up system, which didn't exist:** `PowerUp.ts` was a literal empty stub despite `powerup.data.ts` already documenting all 5 effects verbatim from the prototype, and GameScene had zero references to it. Implemented fully — `PowerUpSpawner.ts` (spawn/lifetime/collision, kept out of the already-over-300-line GameScene) plus all 5 effects wired in (Super Soaker, Turbo Pump, Spin Lock, Golden Splash, Double Stars).
-- **Gun visual differentiation:** `GunDef.type`/`sz` were dead fields nothing read — every gun fired an identical blue dot. Added `particleColour` (escalating through the existing palette) and wired both fields into `WaterParticle`/`spawnSplash`, so Inferno now visibly shoots fire-orange and Splash Jr pink.
-- **Spinner juice + per-world theming:** a spark burst (`spawnSparks()`) on every level-up, and `SPINNER_PALETTE_BY_WORLD` — spinner types are shared/reused across worlds, so a per-world recolour (wood/brass Workshop, pastel Kitchen, carnival Funfair, neon Disco) is what actually makes them feel specific to the world they're in.
-
-Then a third wave, again from direct user feedback — that spinners "just look like generic shapes" and had to sit "in natural positions like they fit in naturally eg on the fence or the disco ball," matching each scene's style so they "feel native not add on":
-
-- **Gun feel, beyond colour:** multi-stream guns now offset their streams to real barrel positions (`BARREL_SPACING_PX`) rather than wobbling off one shared point, an opening **blast surge** fires on the rising edge of every press (3× streams + a small camera kick), and the tank running dry ends in a weak **splutter** of three short dying spurts instead of silence. Per-gun particle radius/colour escalate through the tier ladder.
-- **Bespoke per-world spinner objects:** Garden daisy, Workshop saw blade, Kitchen whisk + citrus slice, Funfair candy swirl, Disco vinyl record — `SpinnerDef.style` is now genuinely separate from `SpinnerDef.type`, so only the drawing changes and every mechanical value (decay/power/blades/deflects) stays exactly as tuned. `WORLD_TYPE_PALETTE` recolours one type inside one world where the world-wide palette doesn't carry the right colours.
-- **Native integration, which was the actual complaint:** every shape fills-and-outlines in Ink and drops a contact shadow to match the backgrounds' own thick-outline illustration style; the cream wall scrim is gone entirely (it *was* the pasted-on look) and `DIM_BY_STATE`'s floor rose 0.38 → 0.6 so idle spinners stay coloured against full-vibrancy art; and each world mounts its wall on its own art via `WorldDef.wallArea` — Garden's fence panel, Workshop's pegboard, Kitchen's shelf + backsplash, Funfair's tent canvas, Disco's back wall — instead of one generic rectangle that left spinners floating over sky, shelves and floor depending on the scene.
-- **Funfair needed more than that:** its tent stripes run at the same spatial frequency as a spinner's blades and swallowed them whole, so Funfair spinners mount on shooting-gallery **target boards** — the one backing that reads as a fairground object rather than a UI panel.
-- **`fitScaleForGrid()`** keeps the largest spinner inside its own grid cell, fixing visible overlap in all three 4-row worlds (Kitchen/Funfair/Disco). It only ever scales down, so worlds with room to spare keep their tuned radii untouched.
-- **Per-world easter eggs:** a rare (10% of level-ups) world-specific shout + confetti burst — BLOOM! / CLANG! / SIZZLE! / TA-DA! / GROOVY!. Keyed off level-ups, not hits, so it stays a surprise instead of becoming wallpaper.
-
-Later the same session, Sprint 4's orchestra was built (synthesised placeholder voices per §9.3 option 4 — see CLAUDE.md's decisions log), and thumbnails/onboarding shipped (see git history for that wave).
-
-Then a live playtest surfaced a cluster of real regressions and gaps, fixed in one pass — a comprehensive spec audit (10 parallel agents auditing every CLAUDE.md section + the prototype against actual source) ran alongside, confirming several of them independently and surfacing others fixed the same session:
-
-- **The splash screen's world-switch arrows were genuinely broken, twice over.** First bug: `LoadoutStage`'s external arrows floated far enough outside its own card that they overlapped the neighbouring Granny/Gun selectors — whichever was added to the scene last painted over and ate clicks on the other's nearer arrow. Fixed by insetting every selector's arrows within its own footprint. Second bug, caught live testing the fix: the new inset `CompactSelector` added its arrows *before* its own opaque pill background, so they existed and worked but were invisible — the user's exact follow-up report, "I don't see the buttons to change granny or gun." Both components now add their arrows last, so they win the paint order and Phaser's topOnly input.
-- **Granny/Gun selectors became real visual thumbnails again**, on direct request ("let players scroll through a carousel of thumbnails... name just under, beautiful composite in centre reflecting current choices") — new `ThumbnailSelector.ts` shows the actual granny/gun art with the name in its own row below the thumbnail+arrows row, so a long name ("The Squirt Sister") never shares horizontal space with an arrow the way the old text-only `CompactSelector` did (which is why long names used to render clipped). `CompactSelector.ts` deleted, fully superseded.
-- **A live, exciting star tally during play** (`ScoreCounter.ts`) — direct feedback that not seeing currency accumulate live was a letdown. Counts up with a gold pop on every increase, superseding story 2.5's original "hide score until game over."
-- **A distinct orchestra theme per world** — Garden (bird chirps, C major, 92bpm), Workshop (hammer clangs + a steel-drum voice, D minor, 100bpm), Kitchen (glassy kalimba + stovetop sizzle, F major, 98bpm), Funfair (oom-pah calliope, G major, 108bpm), Disco (real four-on-the-floor kick + syncopated bass + wah guitar, 120bpm) — `src/audio/themes/`, one theme-agnostic mixing graph so switching worlds needs no rebuild.
-- **Two critical, player-facing bugs the audit caught:** mobile move buttons were also firing the water cannon and could trigger a false two-finger pause (Phaser's scene-wide pointer events fire for every touch regardless of what it hit) — fixed with a pointer-id exclusion set in `InputManager`, ordered so a button's own release can't be mistaken for a genuine lift and cancel an unrelated held fire touch. And any rejected `PokiSDK` promise (ad blocker, network failure) could permanently brick the PLAY button and leave audio muted forever — fixed with try/catch + a `finally` in `AdManager.ts`.
-- **Smaller but real gaps the audit found and this pass closed:** the 60%/80% mini-frenzy thresholds were emitted but never listened for (now a toast + soft chime); Frenzy's own bonus stars had no floating-text feedback; the mid-run refill ad let the round timer keep advancing underneath it (now pauses the scene for the ad's duration); the two reward-button pairs violated §11.3's own "standard button must be larger-or-equal" and "must show a video icon" rules (fixed with a new `drawPlayIcon` custom glyph + explicit width floors); `GunDef.pump` was dead data describing a click-to-pump mechanic that was never built and doesn't match the actual (correctly prototype-extracted) flat-2-second-refill behaviour, so it was removed rather than left misleading.
-- **Direct requests folded in alongside:** a desktop-only controls legend on the splash (`ControlsLegend.ts`); chunkier, higher-contrast mobile move buttons with a pressed state, sized for a young child's thumb; occasional "Nice!"/"Let's go!" encouragement toasts with a deliberately quiet SFX chime that doesn't compete with the orchestra; `BUTTON_ART_BRIEF.md` — Nano Banana prompts for the user to generate real move-button art, matching the existing delivery convention.
-
-Verified with a real autonomous bot playtest, not just unit tests: three full 30-second rounds (Garden/squirter, Funfair/soaker3000, Disco/inferno) run end-to-end with a "commit to the weakest spinner until FULL" strategy, zero JS errors, 11–17 of each world's spinners individually reaching FULL, screenshots confirming the live score tally and wall art read correctly mid-play. None of the three reached full Splash Frenzy — worth noting honestly rather than hiding, though CLAUDE.md's own target is "~50% of runs," not every run, and the bot never used power-ups, which real players will.
-
-All of the above is live-verified (see individual commit messages for exact test steps) and the full pipeline is green. Cross-browser/real-device testing (7.2) still needs actual devices; studio name (7.0) needs the user; the 4.6 "does it feel like ASMR" human playtest is still outstanding. Everything else is unblocked and this session kept moving through it autonomously per explicit standing instruction.
+**Currently working on (2026-11-25):** the "Granny's Grand Tour" transformation — turning a solid 30-second prototype into a game with a journey, a real orchestra and a reason to play the next round (Poki's first gate needs average playtime over 3 minutes). **Done:** the orchestra rebuilt on real instruments with written scores, the sound of water, a real water jet and a wall that moves with the music, slice 1 of the engagement redesign (gig ladder, star ratings, results screen, one coin currency, Garden balance, dev balance harness), slice 2 (Home, Tour map, Shop, first launch straight into gig 1, new-musician name labels in the gig intro; `e6ab381`) and the WebP art conversion (build 7.33 MB to 4.64 MB). **Next:** slice 3 (missions, daily gift, band album, jam mode, rewarded options) and slice 4 (per-venue bands). **Plans:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md), [`docs/BANDS.md`](docs/BANDS.md). The older narrative that used to sit here is under "History" at the bottom.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
+
+---
+
+## Uplift — Granny's Grand Tour (2026-11-25)
+
+Commits `8b36957` … `e6ab381`. Tracked against `docs/UPLIFT_PLAN.md` (phases A–D) and `docs/ENGAGEMENT_DESIGN.md` (slices 1–4).
+
+**Done**
+
+- [x] Orchestra engine: sample sprite builder (`npm run samples`), `SampleBank`, `Conductor`, `OrchestraGraph`, notation + theory helpers, spray notes, tiers, round shape (finale / Frenzy fanfare / closing chord) — CLAUDE.md §9
+- [x] Real instruments — VSCO-2 Community Edition (CC0): 37 instruments, 119 notes, about 955 KB
+- [x] Five scores. **Garden is the reference**; Workshop, Kitchen, Funfair and Disco are orchestral stand-ins in the right key, tempo and feel until their bands are built
+- [x] Water sound (`WaterSound.ts`): spray, splash, droplet
+- [x] Orchestra-voiced feedback accents (level-ups, combos, pickups, golden spinners, refills, cheer)
+- [x] One-tap replay from the results screen (between-runs ad gate shared in `systems/startRound.ts`)
+- [x] Juice: continuous water jet (`WaterJet.ts`), spinner pulses on each note, floating notes, musician names the first time each joins, "n of 12 playing" HUD, Frenzy flash/zoom/confetti
+- [x] Engagement slice 1: gig ladder (8 gigs per venue, `gigs.data.ts`), star rating on the HUD bar, results screen (`ResultsScene.ts`), coins as the single currency with venues opening on stars (`Progress.ts`), balance pass for Garden, dev balance harness (`src/dev/botSim.ts`; `await window.__bot.ladder('garden')` in a dev build)
+- [x] **Slice 2 — the tour (`e6ab381`):** `HomeScene.ts` is the first screen for returning players; a first-ever launch (`save.hasPlayed === false`) goes from `BootScene` straight into Garden gig 1. `TourScene.ts` is the venue/gig map, `ShopScene.ts` (was `SplashScene.ts`) holds grannies and guns in coins, `ui/StatPill.ts` added, `ControlsLegend.ts` deleted; Results MENU and Pause quit go to Home. Verified live: first launch to gig 1, Home/Tour/Shop render and navigate. Not verified: touch layouts of the new screens. The gig intro only labels new musicians ("NEW" + name) — the new-musician solo is **not built**.
+- [x] **WebP art conversion (`e6ab381`)** — all 65 sprites under `public/sprites/` are WebP via `tools/sprite-optimise.sh` (`npm run optimise`: drop a PNG in, run it, reference the `.webp`; verifies SSIM, removes the source). Build 4.64 MB; 3.36 MB headroom under Poki's 8 MB (confirm with `npm run build && npm run budget`). Verified: all 62 art textures load. Not verified: every gun angle and granny pose inspected individually at full size.
+
+**Not done**
+
+- [ ] **Slice 2 leftover — new-musician solo** in the gig intro (only name labels exist)
+- [ ] **Slice 3 — reasons to return:** missions, daily gift, band album, jam mode, rewarded options inside Poki's rules
+- [ ] **Slice 4 — the bands:** per-venue styles (`docs/BANDS.md`); needs David's sign-off on Garden's sound and approval of extra sample libraries
+- [ ] **Balance tuning for venues beyond Garden** — gig ladders, wind-down and gun prices are tuned only for Garden; Workshop, Kitchen, Funfair and Disco are untuned
+- [ ] **Slice 2 leftover — new-musician solo** at the gig intro (only name labels exist)
+- [ ] **`GameScene.ts` size** — 1,068 lines at `e6ab381` (`wc -l`) against the 300-line cap
 
 ---
 
@@ -46,52 +43,43 @@ All of the above is live-verified (see individual commit messages for exact test
 | Sprint 1 | Walking Skeleton — playable end-to-end with placeholders | ✅ Done |
 | Sprint 2 | Visual Design System — premium look with procedural graphics | ✅ Done |
 | Sprint 3 | Sprite Pipeline — real granny/gun/world art wired in | ✅ Done |
-| Sprint 4 | ASMR Orchestra — layered audio | ✅ Built (4.1–4.5) with synthesised placeholder voices; 4.6's human playtest outstanding |
-| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done |
+| Sprint 4 | ASMR Orchestra — layered audio | ✅ Rebuilt 2026-11-25 on real instruments (see Uplift above); David's listening sign-off outstanding |
+| Sprint 5 | Splash Screen + Unlocks + all 5 Worlds (re-planned 2026-09-11) | ✅ Done (screen being superseded by Home/Tour/Shop — Uplift slice 2) |
 | Sprint 6 | Monetization Polish | ✅ Done (mobile controls gap closed 2026-09-11 — see below) |
-| Sprint 7 | Launch Polish + Poki submission | 🟡 In progress — all 10 §12 must-fix now pass; blocked only on studio name, real devices, submission |
+| Sprint 7 | Launch Polish + Poki submission | 🟡 In progress — all 10 §12 must-fix pass in the code, but `ADS_ENABLED` is `false` (blocker below); also blocked on studio name, real devices, submission |
 | Sprint 8 | First-run onboarding (§6.5) + launch assets | ✅ Done (added 2026-09-12, not in the original plan) |
+| Uplift | Granny's Grand Tour (2026-11-25) | 🟡 Slice 1 done; slices 2–4 not done — see Uplift section |
 
 ---
 
 ## Blockers / parked
 
-- ✅ **Audio approach decision** — resolved 2026-09-12 by taking §9.3's own option 4 (placeholder for v1), synthesised in Web Audio rather than sourced, so the headline feature stopped being a stub without spending the user's time or money. Upgrading to real stems later is a one-file swap and remains genuinely open — see Sprint 4, story 4.1.
+- ✅ **Audio approach decision** — resolved 2026-09-12 with synthesised placeholders and superseded 2026-11-25 by real VSCO-2 CE instruments (CLAUDE.md §9).
+- ⏳ **David has not yet listened to the new orchestra** — sign-off by ear is outstanding. We can measure the audio (peak, RMS, clipping, tests) but cannot hear it. Slice 4's other bands wait on this.
+- ⏳ **Only VSCO-2 CE is approved for download.** The other sample libraries (VCSL, Karoryfer, FreePats) await approval — see `docs/BANDS.md`.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
-- ✅ **Granny + gun art** — resolved 2026-09-11. Delivered as a 3-pose set per granny (front/back/back_firing — see the Sprint 3 re-plan note for why, not the original 5-pose turnaround) + 6 guns × 8 angles + anchor.json, all wired into `Granny.ts`/`Gun.ts` and verified live.
-- ✅ **World background art** — resolved 2026-09-11. All 5 illustrated world backgrounds delivered and wired via `worldBackgrounds.ts`'s `WORLD_BG_ASSETS` registry; procedural drawers remain only as the no-art fallback path.
+- ✅ **Granny + gun art** — resolved 2026-09-11 (3-pose set per granny, 6 guns x 8 angles + anchor.json).
+- ✅ **World background art** — resolved 2026-09-11 (all 5 backgrounds wired via `worldBackgrounds.ts`).
 
-## ⚠️ BLOCKERS BEFORE SUBMISSION — temporary testing switches
+## ⚠️ BLOCKERS BEFORE SUBMISSION
 
-These are deliberate, temporary changes made to make playtesting bearable.
-**Both must be reverted before Poki submission** — shipping either would fail
-review, not merely lose polish.
-
-1. **Ads are disabled.** `ADS_ENABLED = false` in `src/systems/AdManager.ts`
-   (2026-09-12, user: "disable all the ads for now, it's annoying while
-   testing"). Commercial breaks no-op and rewarded ads resolve as "watched" so
-   the reward paths stay testable. CLAUDE.md §12 must-fix 5 requires
-   `commercialBreak()` between runs and the reviewer checks the SDK events
-   actually fire. The unit and ad-flow tests pass `{ enabled: true }`
-   explicitly, so they still assert the shippable behaviour and will catch a
-   regression in the real path while the flag is off.
-
-2. **No two-finger pause gesture.** Removed the same day (user: "if two
-   fingers touch the screen on touch, it pauses the game. very annoying!").
-   CLAUDE.md §6.3 specifies it. This one is arguably a permanent improvement
-   rather than a blocker — touch gets a visible pause button and desktop keeps
-   ESC, and the gesture was the direct cause of the run-soft-locking critical
-   bug — but §6.3 needs updating to match either way.
+1. **Ads are disabled.** `ADS_ENABLED = false` in `src/systems/AdManager.ts` (checked 2026-11-25; set 2026-09-12, user: "disable all the ads for now, it's annoying while testing"). Commercial breaks no-op and rewarded ads resolve as "watched" so the reward paths stay testable. CLAUDE.md §12 must-fix 5 requires `commercialBreak()` between runs and the reviewer checks the SDK events actually fire. **Must be `true` before Poki submission.** The unit and ad-flow tests pass `{ enabled: true }` explicitly, so they still assert the shippable behaviour while the flag is off.
+2. ✅ **Production sourcemap no longer ships** — `vite.config.ts` has `sourcemap: false` (since `8cec83d`; `dist` went from 18 MB to 7.9 MB on disk, the budgeted payload is unchanged at about 7.3 MB). Was a blocker; resolved.
+3. ✅ **Two-finger pause gesture** — removed 2026-09-12 at the owner's request ("if two fingers touch the screen on touch, it pauses the game. very annoying!"): touch gets a visible pause button (`ui/PauseButton.ts`), desktop keeps ESC. It had been the direct cause of the run-soft-locking critical bug. Not a blocker — a permanent improvement; CLAUDE.md §6.3 now matches.
+4. **Real-device pass** (7.2) and **studio name** (7.0) still outstanding.
+5. **Size headroom:** 3.36 MB under Poki's 8 MB at `e6ab381` (4.64 MB built, after the WebP conversion). The five bands in `docs/BANDS.md` need roughly 300–500 KB each (about 1.5–2.5 MB for all five), so per-venue band loading is still the plan to stay clear of the cap.
 
 ---
 
 ## Known issues (non-blocking)
 
-- ⚠️ **`GameScene.ts` is 711 lines, against CLAUDE.md §7.3 rule 1's 300-line cap.** Was 623 after 2026-09-12's extraction of `wallBuilder.ts`, `GoldenSpinnerSpawner.ts` and `WaterCannon.ts` (joining the earlier `PowerUpSpawner.ts`/`UrgencyOverlay.ts`); grew back up the same session with several small, individually-justified additions (mini-frenzy payoff, Frenzy bonus floating text, the ad-in-flight pause guard, the occasional encouragement toast) that didn't each warrant their own extraction. The two remaining separable clusters are unchanged: water/spinner collision resolution with combo + scoring, and power-up effect application with its four timers — extracting both would land it near 500. Not attempted this session given how much else already changed in this file; a dedicated pass is lower-risk once nothing else is mid-flight here.
-- ⚠️ Also over the 300-line cap: `spinnerRenderers.ts` (520, one bespoke draw function per world × type — a natural place to split by world if picked up), `SplashScene.ts` (385, grew with the new `ThumbnailSelector` wiring), `gun.data.ts`'s comment-heavy header aside. None flagged as urgent; the audit's minor findings list (2026-09-12) has the fuller list of §7.3-style nitpicks (magic numbers off the 8px grid, a few raw hex literals, missing JSDoc on some public methods) not acted on this session — real but low-value relative to what was.
-- ⚠️ **Zero automated bot run reached full Splash Frenzy** in a 3-round live playtest (2026-09-12: Garden/squirter, Funfair/soaker3000, Disco/inferno — see this file's own log above), though 11–17 of each world's spinners individually reached FULL. CLAUDE.md's own target is "~50% of normal runs," not every run, and the bot used no power-ups (a real player will) and a simple "commit to the weakest spinner" strategy rather than an optimal one — so this isn't proof of a balance problem, but it's a data point worth a real human playtest confirming before submission, not just re-asserting the target is met.
+- ⚠️ **Files over CLAUDE.md §7.3 rule 1's 300-line cap** (`wc -l` at commit `e6ab381`): `src/scenes/GameScene.ts` **1,068**, `src/entities/spinner/spinnerRenderers.ts` 520, `src/audio/AudioOrchestra.ts` 367, `src/scenes/ShopScene.ts` 354, `src/scenes/ResultsScene.ts` 347, `src/scenes/TourScene.ts` 306. Also `tools/build-orchestra-samples.ts` 588 (tooling). `GameScene.ts` grew from 711 to 1,068 as the orchestra, jet, stars and gig plumbing landed; the two separable clusters named before are still there (water/spinner collision resolution with combo + scoring, and power-up effect application with its four timers), plus the gig/star/results hand-off. Now that slice 2 has landed, a dedicated extraction pass is the next lower-risk step.
+- ⚠️ **Venues beyond Garden are untuned** (see Uplift above).
+- ⚠️ **Only Garden has its own sound.** The other four venues play orchestral stand-ins until their bands are built.
+- ⚠️ The audit's minor findings list (2026-09-12) of §7.3-style nitpicks (magic numbers off the 8px grid, a few raw hex literals, missing JSDoc on some public methods) is still not acted on.
+- ⚠️ **Real human playtest still outstanding** for Frenzy reachability and gig difficulty: the bot has perfect-ish aim and uses no power-ups. The harness (`window.__bot`) measures; a real seven-year-old confirms.
 
-(The cog dead-zone vs. auto-aim bug tracked here since Sprint 1 — "not reachable, Garden has no cog" — became reachable when Workshop/Kitchen shipped 2026-09-11, and was fixed the same day: see `resolveFireAimPoint()` in `src/entities/waterParticle/WaterParticle.ts`, verified live — a dead-centre-locked cog now reaches FULL in ~2s of continuous fire instead of never.)
+(The cog dead-zone vs. auto-aim bug tracked here since Sprint 1 was fixed 2026-09-11: see `resolveFireAimPoint()` in `src/entities/waterParticle/WaterParticle.ts`.)
 
 ---
 
@@ -353,3 +341,44 @@ A 38-agent audit ran six dimensions (touch targets, text legibility, HUD collisi
 ### Open, not fixed (recorded honestly)
 
 The remaining 16 confirmed findings are MINOR and listed in the audit output at `tasks/worzf4nqt.output`. The ones most worth a follow-up pass: carousel arrows are 31 CSS px (still under 44, and they are the only way to change selection on touch); the controls legend and tutorial captions render at 8–10 CSS px; every button label is stroked 4px in its own fill colour, which is a pure dilation that closes letter counters; `pointerupoutside` is unhandled so a mouse released off-canvas leaves the cannon stuck on; the mid-run rewarded ad never calls `gameplayStop()`/`gameplayStart()`; and `dist/` ships a 10.2 MB sourcemap that `budget-check.ts` is configured to ignore (it is excluded from the 8 MB cap honestly, but it is still shipped).
+
+---
+
+## History
+
+### Narrative that used to open this file (overnight into 2026-09-12 and later)
+
+Moved here unchanged on 2026-11-25. It describes the state of the game up to the end of September 2026 and is kept for the reasoning behind decisions; some of it (the synthesised orchestra, the score rank ladder, the stars-as-currency economy, the two-finger pause) has since been replaced.
+
+**Currently working on:** Overnight into 2026-09-12: real sprite art landed and Sprint 3 closed out (`Granny.ts`/`Gun.ts` rendering, `BootScene.ts` implemented, Sprint 7 QA partway — see git history for that wave's detail). Then a second wave, driven by direct, specific user feedback that the game "felt a long way behind the quality and fun of the prototype": went back and actually read `game prototype/granny-spin-splash.html` rather than working from secondhand summaries, and closed the gaps it surfaced —
+
+- **Splash screen redesign:** the title flourish now fills the entire 1280×720 canvas as the page's frame (was a small tight border); the three separate granny/world/gun carousels became one big `LoadoutStage` composite (world background + granny + gun badge layered together) with slim arrow-only `CompactSelector`s for granny/gun either side — "one composite image, three independent controls," not three disconnected thumbnails.
+- **Gameplay juice restored from the prototype:** final-10-seconds countdown urgency (pulsing red vignette, scale-pulsing timer, per-second tick + camera shake, big popping numbers — `UrgencyOverlay.ts`, new), floating "+N ★ ×combo" hit-feedback text (`FloatingText.ts`, new) on every level-up plus obstacle SHOO!/QUACK! reactions, combo-streak camera shake, and a visually denser water stream (`FIRE_DENSITY_SCALE` — fires 4× more/smaller particles at the same total DPS/drain, so tuned balance is untouched but the stream reads as continuous instead of discrete pulses).
+- **The power-up system, which didn't exist:** `PowerUp.ts` was a literal empty stub despite `powerup.data.ts` already documenting all 5 effects verbatim from the prototype, and GameScene had zero references to it. Implemented fully — `PowerUpSpawner.ts` (spawn/lifetime/collision, kept out of the already-over-300-line GameScene) plus all 5 effects wired in (Super Soaker, Turbo Pump, Spin Lock, Golden Splash, Double Stars).
+- **Gun visual differentiation:** `GunDef.type`/`sz` were dead fields nothing read — every gun fired an identical blue dot. Added `particleColour` (escalating through the existing palette) and wired both fields into `WaterParticle`/`spawnSplash`, so Inferno now visibly shoots fire-orange and Splash Jr pink.
+- **Spinner juice + per-world theming:** a spark burst (`spawnSparks()`) on every level-up, and `SPINNER_PALETTE_BY_WORLD` — spinner types are shared/reused across worlds, so a per-world recolour (wood/brass Workshop, pastel Kitchen, carnival Funfair, neon Disco) is what actually makes them feel specific to the world they're in.
+
+Then a third wave, again from direct user feedback — that spinners "just look like generic shapes" and had to sit "in natural positions like they fit in naturally eg on the fence or the disco ball," matching each scene's style so they "feel native not add on":
+
+- **Gun feel, beyond colour:** multi-stream guns now offset their streams to real barrel positions (`BARREL_SPACING_PX`) rather than wobbling off one shared point, an opening **blast surge** fires on the rising edge of every press (3× streams + a small camera kick), and the tank running dry ends in a weak **splutter** of three short dying spurts instead of silence. Per-gun particle radius/colour escalate through the tier ladder.
+- **Bespoke per-world spinner objects:** Garden daisy, Workshop saw blade, Kitchen whisk + citrus slice, Funfair candy swirl, Disco vinyl record — `SpinnerDef.style` is now genuinely separate from `SpinnerDef.type`, so only the drawing changes and every mechanical value (decay/power/blades/deflects) stays exactly as tuned. `WORLD_TYPE_PALETTE` recolours one type inside one world where the world-wide palette doesn't carry the right colours.
+- **Native integration, which was the actual complaint:** every shape fills-and-outlines in Ink and drops a contact shadow to match the backgrounds' own thick-outline illustration style; the cream wall scrim is gone entirely (it *was* the pasted-on look) and `DIM_BY_STATE`'s floor rose 0.38 → 0.6 so idle spinners stay coloured against full-vibrancy art; and each world mounts its wall on its own art via `WorldDef.wallArea` — Garden's fence panel, Workshop's pegboard, Kitchen's shelf + backsplash, Funfair's tent canvas, Disco's back wall — instead of one generic rectangle that left spinners floating over sky, shelves and floor depending on the scene.
+- **Funfair needed more than that:** its tent stripes run at the same spatial frequency as a spinner's blades and swallowed them whole, so Funfair spinners mount on shooting-gallery **target boards** — the one backing that reads as a fairground object rather than a UI panel.
+- **`fitScaleForGrid()`** keeps the largest spinner inside its own grid cell, fixing visible overlap in all three 4-row worlds (Kitchen/Funfair/Disco). It only ever scales down, so worlds with room to spare keep their tuned radii untouched.
+- **Per-world easter eggs:** a rare (10% of level-ups) world-specific shout + confetti burst — BLOOM! / CLANG! / SIZZLE! / TA-DA! / GROOVY!. Keyed off level-ups, not hits, so it stays a surprise instead of becoming wallpaper.
+
+Later the same session, Sprint 4's orchestra was built (synthesised placeholder voices per §9.3 option 4 — see CLAUDE.md's decisions log), and thumbnails/onboarding shipped (see git history for that wave).
+
+Then a live playtest surfaced a cluster of real regressions and gaps, fixed in one pass — a comprehensive spec audit (10 parallel agents auditing every CLAUDE.md section + the prototype against actual source) ran alongside, confirming several of them independently and surfacing others fixed the same session:
+
+- **The splash screen's world-switch arrows were genuinely broken, twice over.** First bug: `LoadoutStage`'s external arrows floated far enough outside its own card that they overlapped the neighbouring Granny/Gun selectors — whichever was added to the scene last painted over and ate clicks on the other's nearer arrow. Fixed by insetting every selector's arrows within its own footprint. Second bug, caught live testing the fix: the new inset `CompactSelector` added its arrows *before* its own opaque pill background, so they existed and worked but were invisible — the user's exact follow-up report, "I don't see the buttons to change granny or gun." Both components now add their arrows last, so they win the paint order and Phaser's topOnly input.
+- **Granny/Gun selectors became real visual thumbnails again**, on direct request ("let players scroll through a carousel of thumbnails... name just under, beautiful composite in centre reflecting current choices") — new `ThumbnailSelector.ts` shows the actual granny/gun art with the name in its own row below the thumbnail+arrows row, so a long name ("The Squirt Sister") never shares horizontal space with an arrow the way the old text-only `CompactSelector` did (which is why long names used to render clipped). `CompactSelector.ts` deleted, fully superseded.
+- **A live, exciting star tally during play** (`ScoreCounter.ts`) — direct feedback that not seeing currency accumulate live was a letdown. Counts up with a gold pop on every increase, superseding story 2.5's original "hide score until game over."
+- **A distinct orchestra theme per world** — Garden (bird chirps, C major, 92bpm), Workshop (hammer clangs + a steel-drum voice, D minor, 100bpm), Kitchen (glassy kalimba + stovetop sizzle, F major, 98bpm), Funfair (oom-pah calliope, G major, 108bpm), Disco (real four-on-the-floor kick + syncopated bass + wah guitar, 120bpm) — `src/audio/themes/`, one theme-agnostic mixing graph so switching worlds needs no rebuild.
+- **Two critical, player-facing bugs the audit caught:** mobile move buttons were also firing the water cannon and could trigger a false two-finger pause (Phaser's scene-wide pointer events fire for every touch regardless of what it hit) — fixed with a pointer-id exclusion set in `InputManager`, ordered so a button's own release can't be mistaken for a genuine lift and cancel an unrelated held fire touch. And any rejected `PokiSDK` promise (ad blocker, network failure) could permanently brick the PLAY button and leave audio muted forever — fixed with try/catch + a `finally` in `AdManager.ts`.
+- **Smaller but real gaps the audit found and this pass closed:** the 60%/80% mini-frenzy thresholds were emitted but never listened for (now a toast + soft chime); Frenzy's own bonus stars had no floating-text feedback; the mid-run refill ad let the round timer keep advancing underneath it (now pauses the scene for the ad's duration); the two reward-button pairs violated §11.3's own "standard button must be larger-or-equal" and "must show a video icon" rules (fixed with a new `drawPlayIcon` custom glyph + explicit width floors); `GunDef.pump` was dead data describing a click-to-pump mechanic that was never built and doesn't match the actual (correctly prototype-extracted) flat-2-second-refill behaviour, so it was removed rather than left misleading.
+- **Direct requests folded in alongside:** a desktop-only controls legend on the splash (`ControlsLegend.ts`); chunkier, higher-contrast mobile move buttons with a pressed state, sized for a young child's thumb; occasional "Nice!"/"Let's go!" encouragement toasts with a deliberately quiet SFX chime that doesn't compete with the orchestra; `BUTTON_ART_BRIEF.md` — Nano Banana prompts for the user to generate real move-button art, matching the existing delivery convention.
+
+Verified with a real autonomous bot playtest, not just unit tests: three full 30-second rounds (Garden/squirter, Funfair/soaker3000, Disco/inferno) run end-to-end with a "commit to the weakest spinner until FULL" strategy, zero JS errors, 11–17 of each world's spinners individually reaching FULL, screenshots confirming the live score tally and wall art read correctly mid-play. None of the three reached full Splash Frenzy — worth noting honestly rather than hiding, though CLAUDE.md's own target is "~50% of runs," not every run, and the bot never used power-ups, which real players will.
+
+All of the above is live-verified (see individual commit messages for exact test steps) and the full pipeline is green. Cross-browser/real-device testing (7.2) still needs actual devices; studio name (7.0) needs the user; the 4.6 "does it feel like ASMR" human playtest is still outstanding. Everything else is unblocked and this session kept moving through it autonomously per explicit standing instruction.
