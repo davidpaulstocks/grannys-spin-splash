@@ -151,15 +151,37 @@ UI restraint still applies: no screen has more than one primary action.
 
 ## 7. Build slices
 
-| Slice                    | Contents                                                                                                                                       | Done when                                                               |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **1. The gig**           | Level data, sized wall layout, line-up seating, star rating on the bar, per-gig difficulty, coin rebalance, results screen with stars and Next | Garden's eight gigs are playable back to back with one tap between them |
-| **2. The tour**          | Home, gig intro with new-musician solo, Tour map, Shop, save migration, first-launch straight to gig 1                                         | All five venues playable through the new navigation                     |
-| **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                   | —                                                                       |
-| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco) once Garden's sound is signed off and sources approved — see `BANDS.md`                       | —                                                                       |
+| Slice                    | Contents                                                                                                                                       | Status (2026-11-25)                                                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **1. The gig**           | Level data, sized wall layout, line-up seating, star rating on the bar, per-gig difficulty, coin rebalance, results screen with stars and Next | **Built.** All five venues run their eight gigs. Garden tuned gig by gig; the other four checked at first and last gig only |
+| **2. The tour**          | Home, gig intro, Tour map, Shop, save fields, first launch straight to gig 1                                                                   | **Built.** The gig intro names new musicians on their spinners; it does not yet play them a solo                            |
+| **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                   | **Part built:** one rolling mission and the daily gift. Not built: Jam mode, the album, "ten more seconds"                  |
+| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                               | **Not started** — waiting on Garden's sound being signed off and sources approved, see `BANDS.md`                           |
 
 Each slice ends with lint, tests, build, budget, a live playthrough, a commit
 and a push.
+
+### What the balance harness says
+
+Starter gun, a bot that plays like a child and one that plays sharply
+(`window.__bot.ladder('garden')` in a dev build):
+
+| Garden gig | Band | Child-speed bot | Sharp bot   |
+| ---------- | ---- | --------------- | ----------- |
+| 1          | 3    | ★★★ at 4 s      | ★★★ at 4 s  |
+| 3          | 5    | ★★★ at 10 s     | ★★★ at 10 s |
+| 4          | 6    | ★★★ at 12 s     | ★★★ at 10 s |
+| 5          | 8    | ★★              | ★★★ at 16 s |
+| 6          | 9    | ★★★ at 21 s     | ★★★ at 16 s |
+| 8          | 12   | ★★              | ★★★ at 26 s |
+
+Later venues' Grand Concerts, with the gun a player would plausibly own by
+then: two stars for both bots (Disco: three for the sharp one). Three stars
+there is what the better guns are for. The bots do not steer around
+obstacles, so real players should do a little better than these numbers.
+
+**These are bots, not children.** The curve needs a real playtest before
+submission.
 
 ---
 

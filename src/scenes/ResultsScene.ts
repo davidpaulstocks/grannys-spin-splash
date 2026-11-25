@@ -16,11 +16,13 @@ import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { playStarChime } from '../audio/ResultsMusic';
 import * as SFX from '../audio/SFX';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
+import { musiciansJoining } from '../audio/scores';
 import { spawnConfetti } from '../entities/waterParticle/splashVFX';
+import { gigFor } from '../entities/world/gigs.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
-import { applyGigToMission, currentMission, type MissionUpdate } from '../systems/Missions';
+import { applyGigToMission } from '../systems/Missions';
 import { MAX_STARS_PER_GIG, nextLockedVenue, nextStop, type TourStop } from '../systems/Progress';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
@@ -28,6 +30,7 @@ import { UnlockManager } from '../systems/UnlockManager';
 import type { GameSceneData, GigResultData } from '../types/sceneData';
 import { createButton } from '../ui/Button';
 import { drawCoinIcon, drawStarIcon } from '../ui/icons';
+import { showMissionCard } from '../ui/MissionCard';
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
@@ -73,12 +76,6 @@ const GRANNY_HEIGHT = 330;
 
 const MISSION_X = GAME_WIDTH - 136;
 const MISSION_Y = 330;
-const MISSION_WIDTH = 232;
-const MISSION_HEIGHT = 190;
-const MISSION_RADIUS = 26;
-const MISSION_TEXT_WRAP = MISSION_WIDTH - 36;
-/** How long a finished mission is celebrated before the card turns to the next one. */
-const MISSION_NEXT_AFTER_MS = 1800;
 
 const COUNT_UP_MS = 800;
 const TICK_EVERY_MS = 90;
@@ -141,7 +138,10 @@ export class ResultsScene extends Phaser.Scene {
     this._buildCoins(coins, data.stars);
     this._buildHint(data);
     this._buildButtons(data, passed);
-    this._buildMissionCard(mission, STAR_FIRST_DELAY_MS + data.stars * STAR_STEP_MS + COUNT_UP_MS);
+    showMissionCard(this, MISSION_X, MISSION_Y, mission, {
+      celebrateAfterMs: STAR_FIRST_DELAY_MS + data.stars * STAR_STEP_MS + COUNT_UP_MS,
+      onReward: () => this._refreshBank(),
+    });
   }
 
   /** The venue's own art, softened, with a card on top — the gig happened somewhere, and it still looks like there. */
@@ -234,7 +234,7 @@ export class ResultsScene extends Phaser.Scene {
       )
       .setOrigin(0, 0.5);
     this._bankText = this.add
-      .text(CENTRE_X, BANK_Y, '', textStyle('bodyM', COLOUR_HEX.softSlate, COLOUR_HEX.cloud))
+      .text(CENTRE_X, BANK_Y, '', textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud))
       .setOrigin(0.5);
     this._refreshBank();
 
@@ -268,89 +268,46 @@ export class ResultsScene extends Phaser.Scene {
   }
 
   /**
-   * Granny's request, beside the result: how far this gig moved it, and —
-   * when the gig finished it — the reward landing, then the next request.
+   * One line that always points at the next thing worth doing. After a pass
+   * that is who joins the band next — the strongest reason to press NEXT is
+   * a new musician waiting behind it.
    */
-  private _buildMissionCard(update: MissionUpdate, celebrateAfterMs: number): void {
-    const card = this.add.graphics();
-    card.fillStyle(COLOUR.cloud, 0.97);
-    card.fillRoundedRect(
-      MISSION_X - MISSION_WIDTH / 2,
-      MISSION_Y - MISSION_HEIGHT / 2,
-      MISSION_WIDTH,
-      MISSION_HEIGHT,
-      MISSION_RADIUS,
-    );
-    card.lineStyle(5, COLOUR.ink, 1);
-    card.strokeRoundedRect(
-      MISSION_X - MISSION_WIDTH / 2,
-      MISSION_Y - MISSION_HEIGHT / 2,
-      MISSION_WIDTH,
-      MISSION_HEIGHT,
-      MISSION_RADIUS,
-    );
-
-    const heading = this.add
+  private _buildHint(data: GigResultData): void {
+    this.add
       .text(
-        MISSION_X,
-        MISSION_Y - 62,
-        'MISSION',
-        textStyle('bodyM', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+        CENTRE_X,
+        HINT_Y,
+        this._hintFor(data),
+        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
       )
       .setOrigin(0.5);
-    const body = this.add
-      .text(MISSION_X, MISSION_Y - 14, update.mission.text, {
-        ...textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud),
-        align: 'center',
-        wordWrap: { width: MISSION_TEXT_WRAP },
-      })
-      .setOrigin(0.5);
-    const status = this.add
-      .text(
-        MISSION_X,
-        MISSION_Y + 52,
-        `${update.progress} / ${update.mission.target}`,
-        textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
-      )
-      .setOrigin(0.5);
-    if (!update.completed) return;
-
-    this.time.delayedCall(celebrateAfterMs, () => {
-      heading.setText('MISSION DONE!').setColor(COLOUR_HEX.grannyPink);
-      status.setText(`+${update.mission.reward}`).setColor(COLOUR_HEX.sunnyGold).setScale(0.5);
-      this.tweens.add({
-        targets: status,
-        scale: 1,
-        duration: DURATION.celebration,
-        ease: EASE.bouncy,
-      });
-      playStarChime(0);
-      this._refreshBank();
-    });
-    this.time.delayedCall(celebrateAfterMs + MISSION_NEXT_AFTER_MS, () => {
-      const next = currentMission(saveManager.load());
-      heading.setText('NEXT MISSION').setColor(COLOUR_HEX.softSlate);
-      body.setText(next.text);
-      status.setText(`0 / ${next.target}`).setColor(COLOUR_HEX.ink);
-    });
   }
 
-  /** One line that always points at the next thing worth doing. */
-  private _buildHint(data: GigResultData): void {
-    let hint: string;
+  private _hintFor(data: GigResultData): string {
     if (data.stars === 0) {
-      hint = `${data.peakFullSpinners} of ${data.totalSpinners} playing at once — get more of the band going for a star`;
-    } else if (data.stars < MAX_STARS_PER_GIG) {
-      hint = 'Get the whole band playing at once for three stars';
-    } else {
-      const locked = nextLockedVenue(saveManager.load(), WORLD_DEFS);
-      hint = locked
-        ? `${locked.starsNeeded} more ${locked.starsNeeded === 1 ? 'star' : 'stars'} to open the ${locked.venue.name}`
-        : 'The whole band, playing together!';
+      return `${data.peakFullSpinners} of ${data.totalSpinners} playing at once — get more of the band going for a star`;
     }
-    this.add
-      .text(CENTRE_X, HINT_Y, hint, textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud))
-      .setOrigin(0.5);
+    const save = saveManager.load();
+    const onward = nextStop(save, WORLD_DEFS, data.worldId, data.gig);
+    const venue = WORLD_DEFS.find((w) => w.id === data.worldId);
+    if (onward && venue && onward.venueId === data.worldId) {
+      const joining = musiciansJoining(
+        data.worldId,
+        gigFor(venue, data.gig).band,
+        gigFor(venue, onward.gig).band,
+      );
+      if (joining.length > 0) {
+        const last = joining[joining.length - 1] ?? '';
+        const names =
+          joining.length === 1 ? last : `${joining.slice(0, -1).join(', ')} and ${last}`;
+        return `Next gig: ${names} ${joining.length === 1 ? 'joins' : 'join'} the band`;
+      }
+    }
+    if (data.stars < MAX_STARS_PER_GIG) return 'Get the whole band playing at once for three stars';
+    const locked = nextLockedVenue(save, WORLD_DEFS);
+    return locked
+      ? `${locked.starsNeeded} more ${locked.starsNeeded === 1 ? 'star' : 'stars'} to open the ${locked.venue.name}`
+      : 'The whole band, playing together!';
   }
 
   private _buildButtons(data: GigResultData, passed: boolean): void {

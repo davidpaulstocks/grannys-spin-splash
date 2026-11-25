@@ -216,7 +216,7 @@ export class HomeScene extends Phaser.Scene {
         CARD_X,
         NEW_LINE_Y,
         gig === 0 ? 'MEET THE BAND' : joining.length === 1 ? 'NEW MUSICIAN' : 'NEW MUSICIANS',
-        textStyle('bodyM', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
       )
       .setOrigin(0.5);
     this.add
