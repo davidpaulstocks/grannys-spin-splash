@@ -29,11 +29,11 @@ import { COLOUR, shade } from '../../utils/colour';
  * else (preload, render, fallback) picks it up automatically.
  */
 const WORLD_BG_ASSETS: Readonly<Record<string, { key: string; path: string }>> = {
-  garden: { key: 'world_garden_bg', path: 'sprites/worlds/garden_bg.jpg' },
-  workshop: { key: 'world_workshop_bg', path: 'sprites/worlds/workshop_bg.jpg' },
-  kitchen: { key: 'world_kitchen_bg', path: 'sprites/worlds/kitchen_bg.jpg' },
-  funfair: { key: 'world_funfair_bg', path: 'sprites/worlds/funfair_bg.jpg' },
-  disco: { key: 'world_disco_bg', path: 'sprites/worlds/disco_bg.jpg' },
+  garden: { key: 'world_garden_bg', path: 'sprites/worlds/garden_bg.webp' },
+  workshop: { key: 'world_workshop_bg', path: 'sprites/worlds/workshop_bg.webp' },
+  kitchen: { key: 'world_kitchen_bg', path: 'sprites/worlds/kitchen_bg.webp' },
+  funfair: { key: 'world_funfair_bg', path: 'sprites/worlds/funfair_bg.webp' },
+  disco: { key: 'world_disco_bg', path: 'sprites/worlds/disco_bg.webp' },
 };
 
 /** Loads the world's background image if real art exists for it — no-op otherwise (procedural fallback needs no asset). */

@@ -10,8 +10,8 @@
 
 import Phaser from 'phaser';
 
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { drawLockIcon, drawStarIcon } from './icons';
+import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
+import { drawCoinIcon, drawLockIcon } from './icons';
 import { pillRadius } from '../utils/math';
 import { textStyle } from '../utils/typography';
 
@@ -41,7 +41,7 @@ const SWATCH_SIZE = 190;
 const ARROW_BUTTON_SIZE = 50;
 const ARROW_GAP = 32;
 const LOCK_ICON_SIZE = 26;
-const STAR_ICON_RADIUS = 13;
+const COIN_ICON_RADIUS = 13;
 const SWATCH_Y = -45;
 const LABEL_Y = 110;
 
@@ -83,13 +83,14 @@ export class Carousel extends Phaser.GameObjects.Container {
 
     const lockGfx = scene.add.graphics();
     drawLockIcon(lockGfx, LOCK_ICON_SIZE, COLOUR.cloud);
-    const starGfx = scene.add.graphics().setPosition(-18, 52);
-    drawStarIcon(starGfx, STAR_ICON_RADIUS, COLOUR.sunnyGold);
+    const coinGfx = scene.add.graphics().setPosition(-18, 52);
+    drawCoinIcon(coinGfx, COIN_ICON_RADIUS + 2, COLOUR.ink, COLOUR.ink);
+    drawCoinIcon(coinGfx, COIN_ICON_RADIUS, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
     this._costText = scene.add
       .text(6, 52, '', textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
       .setOrigin(0, 0.5);
     const lockDim = scene.add.rectangle(0, SWATCH_Y, SWATCH_SIZE, SWATCH_SIZE, COLOUR.ink, 0.55);
-    this._lockOverlay = scene.add.container(0, 0, [lockDim, lockGfx, starGfx, this._costText]);
+    this._lockOverlay = scene.add.container(0, 0, [lockDim, lockGfx, coinGfx, this._costText]);
 
     this._buildArrow(scene, -(CARD_WIDTH / 2 + ARROW_GAP), -1);
     this._buildArrow(scene, CARD_WIDTH / 2 + ARROW_GAP, 1);

@@ -67,6 +67,6 @@ export class PauseScene extends Phaser.Scene {
   private _quit(): void {
     this.scene.stop('GameScene');
     this.scene.stop('HUDScene');
-    this.scene.start('SplashScene');
+    this.scene.start('HomeScene');
   }
 }

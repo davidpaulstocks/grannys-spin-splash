@@ -11,24 +11,24 @@ import type { GrannyPose } from '../entities/granny/granny.types';
 import type { GunAngle } from '../entities/gun/gun.types';
 
 export const SPRITE_KEYS = {
-  /** public/sprites/grannies/<id>/<pose>.png */
+  /** public/sprites/grannies/<id>/<pose>.webp */
   grannyPose: (grannyId: string, pose: GrannyPose): string => `granny_${grannyId}_${pose}`,
   grannyPath: (grannyId: string, pose: GrannyPose): string =>
-    `sprites/grannies/${grannyId}/${pose}.png`,
+    `sprites/grannies/${grannyId}/${pose}.webp`,
 
-  /** public/sprites/guns/<id>/<angle>.png + anchor.json */
+  /** public/sprites/guns/<id>/<angle>.webp + anchor.json */
   gunAngle: (gunId: string, angle: GunAngle): string => `gun_${gunId}_${angle}`,
-  gunAnglePath: (gunId: string, angle: GunAngle): string => `sprites/guns/${gunId}/${angle}.png`,
+  gunAnglePath: (gunId: string, angle: GunAngle): string => `sprites/guns/${gunId}/${angle}.webp`,
   gunAnchorKey: (gunId: string): string => `gun_${gunId}_anchor`,
   gunAnchorPath: (gunId: string): string => `sprites/guns/${gunId}/anchor.json`,
 
-  /** public/sprites/ui/*.png */
+  /** public/sprites/ui/*.webp */
   titleWordmark: 'ui_wordmark',
   titleFlourish: 'ui_title_flourish',
 
-  /** public/sprites/ui/buttons/pause.png — the touch-only pause control. */
+  /** public/sprites/ui/buttons/pause.webp — the touch-only pause control. */
   pauseButton: 'ui_pause',
-  pauseButtonPath: 'sprites/ui/buttons/pause.png',
+  pauseButtonPath: 'sprites/ui/buttons/pause.webp',
 } as const;
 
 export const AUDIO_KEYS = {} as const;

@@ -78,7 +78,7 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     grid: { cols: 5, rows: 4 },
     types: ['disco', 'pinwheel', 'propeller', 'whirligig', 'fan'],
     // The big mirror ball hanging in the middle of the backdrop. Centre and
-    // radius were measured off disco_bg.jpg itself (brightest low-saturation
+    // radius were measured off disco_bg.webp itself (brightest low-saturation
     // blob: centre px 810,131 r~94) and converted through the background's
     // own cover-fit scale of 0.8063, so the spinner sits exactly on the
     // painted ball. It hangs above the wall grid, which is what makes it

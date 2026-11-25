@@ -331,7 +331,7 @@ export class ResultsScene extends Phaser.Scene {
   private _toMenu(): void {
     if (this._isLeaving) return;
     this._isLeaving = true;
-    this.scene.start('SplashScene');
+    this.scene.start('HomeScene');
   }
 
   /** CLAUDE.md §11.1/§11.3: optional, one reward per ad, and it tops the bank up rather than gating anything. */

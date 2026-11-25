@@ -178,8 +178,11 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
     // whichever is added last wins that overlap — these must win it, or the
     // arrows would be dead and every tap near an edge would just re-select
     // the current world instead of stepping to the next/previous one.
-    this._buildArrow(scene, -ARROW_OFFSET_X, -1);
-    this._buildArrow(scene, ARROW_OFFSET_X, 1);
+    // One item is a preview, not a choice: no arrows to step nowhere.
+    if (items.length > 1) {
+      this._buildArrow(scene, -ARROW_OFFSET_X, -1);
+      this._buildArrow(scene, ARROW_OFFSET_X, 1);
+    }
 
     this._refresh();
   }

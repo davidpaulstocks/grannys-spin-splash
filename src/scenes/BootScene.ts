@@ -1,12 +1,12 @@
 /**
  * Loads every launch asset up front — all 3 grannies' 3 poses, all 6 guns'
  * 8 angles + anchor.json, all 5 world backgrounds, the title lockup — so
- * neither SplashScene nor GameScene ever shows a blank/partial frame
+ * no later scene ever shows a blank/partial frame
  * while art streams in (CLAUDE.md §12 must-fix 9 territory: a first
  * impression that starts with a stutter reads as broken). Fires
  * `PokiSDK.gameLoadingFinished()` once everything is ready, then hands
- * off to SplashScene — neither downstream scene needs its own preload()
- * for launch content any more.
+ * off — to the first gig on a first-ever launch, otherwise to Home. No
+ * downstream scene needs its own preload() for launch content.
  */
 
 import Phaser from 'phaser';
@@ -21,6 +21,8 @@ import type { GunAngle } from '../entities/gun/gun.types';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { preloadWorldBackground } from '../entities/world/worldBackgrounds';
 import * as poki from '../poki';
+import { saveManager } from '../systems/SaveManager';
+import type { GameSceneData } from '../types/sceneData';
 import { usesTouchControls } from '../ui/touchControls';
 import { COLOUR } from '../utils/colour';
 
@@ -55,8 +57,8 @@ export class BootScene extends Phaser.Scene {
     for (const w of WORLD_DEFS) {
       preloadWorldBackground(this, w.id);
     }
-    this.load.image(SPRITE_KEYS.titleWordmark, 'sprites/ui/wordmark.png');
-    this.load.image(SPRITE_KEYS.titleFlourish, 'sprites/ui/title_flourish.png');
+    this.load.image(SPRITE_KEYS.titleWordmark, 'sprites/ui/wordmark.webp');
+    this.load.image(SPRITE_KEYS.titleFlourish, 'sprites/ui/title_flourish.webp');
 
     // Touch-only art — skipped on desktop, where the pause button is never
     // built, so mouse/keyboard players don't download it. Gated on the same
@@ -69,7 +71,21 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     poki.gameLoadingFinished();
-    this.scene.start('SplashScene');
+    // A first-ever launch goes straight into the first gig: Poki measures
+    // how many visitors reach their first input, and a menu before play costs
+    // some of them. Everyone else lands on Home.
+    const save = saveManager.load();
+    if (save.hasPlayed) {
+      this.scene.start('HomeScene');
+      return;
+    }
+    const firstGig: GameSceneData = {
+      grannyId: save.selectedGrannyId,
+      gunId: save.selectedGunId,
+      worldId: save.selectedWorldId,
+      gig: 0,
+    };
+    this.scene.start('GameScene', firstGig);
   }
 
   /** A minimal on-brand progress bar (CLAUDE.md §5) — the only thing visible while ~5MB of art streams in. */

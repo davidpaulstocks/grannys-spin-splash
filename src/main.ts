@@ -14,9 +14,11 @@ import * as poki from './poki';
 import { BootScene } from './scenes/BootScene';
 import { ResultsScene } from './scenes/ResultsScene';
 import { GameScene } from './scenes/GameScene';
+import { HomeScene } from './scenes/HomeScene';
 import { HUDScene } from './scenes/HUDScene';
 import { PauseScene } from './scenes/PauseScene';
-import { SplashScene } from './scenes/SplashScene';
+import { ShopScene } from './scenes/ShopScene';
+import { TourScene } from './scenes/TourScene';
 
 declare global {
   interface Window {
@@ -73,7 +75,16 @@ async function boot(): Promise<void> {
     // bar beside the canvas ate a slot, so "hold move button + tap to fire"
     // silently dropped the fire tap. Spare Pointer objects are cheap.
     input: { activePointers: 4 },
-    scene: [BootScene, SplashScene, GameScene, HUDScene, ResultsScene, PauseScene],
+    scene: [
+      BootScene,
+      HomeScene,
+      TourScene,
+      ShopScene,
+      GameScene,
+      HUDScene,
+      ResultsScene,
+      PauseScene,
+    ],
   });
 
   if (import.meta.env.DEV) {

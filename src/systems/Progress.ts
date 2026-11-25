@@ -106,3 +106,18 @@ export function nextLockedVenue(
   const locked = venues.find((venue) => venue.starsToOpen > have);
   return locked ? { venue: locked, starsNeeded: locked.starsToOpen - have } : null;
 }
+
+/**
+ * Where PLAY on the home screen goes: the first gig not yet passed in the
+ * first open venue that has one. Once everything open is passed, the last
+ * open venue's Grand Concert — there is always somewhere to play.
+ */
+export function frontier(save: SaveData, venues: readonly WorldDef[]): TourStop {
+  const open = venues.filter((venue) => isVenueOpen(save, venue));
+  for (const venue of open) {
+    const gig = venueStars(save, venue.id).findIndex((stars) => stars === 0);
+    if (gig !== -1) return { venueId: venue.id, gig };
+  }
+  const last = open[open.length - 1] ?? venues[0];
+  return { venueId: last?.id ?? '', gig: GIGS_PER_VENUE - 1 };
+}

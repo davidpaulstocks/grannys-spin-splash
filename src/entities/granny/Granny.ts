@@ -107,7 +107,7 @@ export class Granny extends Phaser.GameObjects.Container {
    * World-space point near her hands, where Gun.ts anchors the gun sprite
    * (grip end, not the nozzle). HAND_HEIGHT_FRACTION was measured directly
    * against the delivered back_firing art (2026-09-11 live-browser QA
-   * pass, pixel-analysed against classic/back_firing.png) — her fists sit
+   * pass, pixel-analysed against classic/back_firing.webp) — her fists sit
    * ~58% up from her feet given her actual proportions (big poofy hair,
    * short legs), not a generic humanoid guess. `this.y` is her vertical
    * *centre*, not her feet (GRANNY_Y_FROM_BOTTOM's own doc comment), so

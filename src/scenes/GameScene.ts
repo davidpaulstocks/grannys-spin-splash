@@ -32,7 +32,8 @@ import {
   WORLD_DEFS,
 } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
-import { gigFor, type GigDef } from '../entities/world/gigs.data';
+import { musiciansJoining } from '../audio/scores';
+import { gigFor, newMusicianCount, type GigDef } from '../entities/world/gigs.data';
 import { buildObstacles, buildWall, wallAreaFor } from '../entities/world/wallBuilder';
 import { currentGig, MAX_STARS_PER_GIG, recordGig } from '../systems/Progress';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
@@ -62,6 +63,8 @@ import * as SFX from '../audio/SFX';
 import { waterSound } from '../audio/WaterSound';
 import { WaterJet } from '../entities/waterParticle/WaterJet';
 import { spawnNoteGlyph } from '../ui/NoteGlyph';
+import { textStyle } from '../utils/typography';
+import { EASE } from '../utils/tween';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GigResultData, GameSceneData } from '../types/sceneData';
@@ -134,6 +137,12 @@ const STAR_TEXT_Y = GAME_HEIGHT * 0.2;
 const STAR_TEXT_STEP_Y = 34;
 const STAR_LABELS = ['ONE STAR!', 'TWO STARS!', 'THREE STARS!'] as const;
 
+const INTRO_LABEL_GAP = 14;
+const INTRO_LABEL_DEPTH = 165;
+const INTRO_TAG_BOB_PX = 8;
+const INTRO_TAG_BOB_MS = 520;
+const INTRO_FADE_MS = 260;
+
 const FRENZY_FLASH_MS = 220;
 const FRENZY_ZOOM = 1.045;
 const FRENZY_ZOOM_IN_MS = 110;
@@ -196,6 +205,8 @@ export class GameScene extends Phaser.Scene {
   private _encoreUnpaidMs = 0;
   private _jet!: WaterJet;
   /** Spinners whose musician has already been introduced by name this round. */
+  /** The "NEW" tags and names over this gig's new musicians, shown until the first squirt. */
+  private _introLabels: Phaser.GameObjects.Text[] = [];
   private readonly _joined = new Set<number>();
   /** Highest tier each spinner has reached this gig — coins are paid once per tier, per spinner. */
   private readonly _bestTier = new Map<number, number>();
@@ -303,6 +314,7 @@ export class GameScene extends Phaser.Scene {
       this._intro = null;
     });
 
+    this._showGigIntro();
     this._maybeShowGhostFinger();
     this._maybeStartTutorial();
 
@@ -467,6 +479,7 @@ export class GameScene extends Phaser.Scene {
     this._obstacles = [];
 
     this._score = 0;
+    this._introLabels = [];
     this._stars = 0;
     this._encoreUnpaidMs = 0;
     this._started = false;
@@ -526,6 +539,62 @@ export class GameScene extends Phaser.Scene {
         COLOUR_HEX.waterBlue,
       );
     }
+  }
+
+  /**
+   * Before the first squirt, the musicians who are new at this gig are
+   * labelled on their own spinners — "NEW" above, their name below. At the
+   * first gig that is the whole trio, which is also how a first-time player
+   * learns that the spinners are a band.
+   */
+  private _showGigIntro(): void {
+    const joining = newMusicianCount(this._world, this._gig.index);
+    const firstNew = this._gig.band - joining;
+    const names = musiciansJoining(this._world.id, firstNew, this._gig.band);
+    names.forEach((name, i) => {
+      const spinner = this._spinners[firstNew + i];
+      if (!spinner) return;
+      const tag = this.add
+        .text(
+          spinner.x,
+          spinner.y - spinner.def.r - INTRO_LABEL_GAP,
+          'NEW',
+          textStyle('bodyL', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
+        )
+        .setOrigin(0.5, 1)
+        .setDepth(INTRO_LABEL_DEPTH);
+      const label = this.add
+        .text(
+          spinner.x,
+          spinner.y + spinner.def.r + INTRO_LABEL_GAP,
+          name,
+          textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
+        )
+        .setOrigin(0.5, 0)
+        .setDepth(INTRO_LABEL_DEPTH);
+      this.tweens.add({
+        targets: tag,
+        y: tag.y - INTRO_TAG_BOB_PX,
+        duration: INTRO_TAG_BOB_MS,
+        ease: EASE.standardOut,
+        yoyo: true,
+        repeat: -1,
+      });
+      this._introLabels.push(tag, label);
+    });
+  }
+
+  private _dismissGigIntro(): void {
+    for (const label of this._introLabels) {
+      this.tweens.killTweensOf(label);
+      this.tweens.add({
+        targets: label,
+        alpha: 0,
+        duration: INTRO_FADE_MS,
+        onComplete: () => label.destroy(),
+      });
+    }
+    this._introLabels = [];
   }
 
   /**
@@ -882,6 +951,7 @@ export class GameScene extends Phaser.Scene {
     this._intro = null;
     this._dismissGhostFinger?.();
     this._dismissGhostFinger = null;
+    this._dismissGigIntro();
     const save = saveManager.load();
     if (!save.hasPlayed) saveManager.save({ ...save, hasPlayed: true });
     poki.gameplayStart();
