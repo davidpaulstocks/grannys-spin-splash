@@ -8,8 +8,33 @@
 
 import type { Mode } from './theory';
 
-/** Every instrument in the sample sprite — see tools/orchestra-manifest.json. */
-export type InstrumentId =
+/**
+ * Every instrument the game can play. The orchestra's live in the core
+ * sprite (tools/bands/orchestra.manifest.json), which every venue may use;
+ * each other band adds its own (tools/bands/<band>.manifest.json).
+ */
+export type InstrumentId = OrchestraInstrumentId | KitchenInstrumentId;
+
+/** The Kitchen's jazz combo — tools/bands/kitchen.manifest.json. */
+export type KitchenInstrumentId =
+  | 'jazz_bass'
+  | 'piano'
+  | 'vibes'
+  | 'tenor_sus'
+  | 'tenor_stac'
+  | 'trumpet_mute'
+  | 'trombone_sus'
+  | 'jazz_guitar'
+  | 'ride'
+  | 'ride_bell'
+  | 'brush_snare'
+  | 'brush_swirl'
+  | 'hat_chick'
+  | 'kick_soft'
+  | 'sidestick'
+  | 'clap';
+
+export type OrchestraInstrumentId =
   | 'bass_pizz'
   | 'cello_pizz'
   | 'violin_pizz'

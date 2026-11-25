@@ -48,8 +48,16 @@ export interface NoteOptions {
   readonly holdSeconds?: number;
 }
 
-const INDEX_URL = 'audio/orchestra.json';
-const AUDIO_DIR = 'audio/';
+/** The orchestra: instruments every venue may use. Loaded first. */
+const CORE_SPRITE = { index: 'audio/orchestra.json', dir: 'audio/' } as const;
+/**
+ * One further sprite per band (docs/BANDS.md), fetched in the background
+ * after the core. They are small, and by the time a player has toured far
+ * enough to reach a venue its band has long since arrived; if it somehow has
+ * not, that venue's notes use the fallback voice until it does.
+ */
+const BAND_SPRITES = ['kitchen'] as const;
+const BAND_DIR = 'audio/bands/';
 
 /** The sync marker is a full-scale burst; anything this loud in the first second is it. */
 const SYNC_THRESHOLD = 0.5;
@@ -65,7 +73,7 @@ export class SampleBank {
   private readonly _instruments = new Map<string, LoadedInstrument>();
   private _loading: Promise<void> | null = null;
 
-  /** True once the sprite is decoded and sliced. Until then every note uses the fallback voice. */
+  /** True once the core sprite is decoded and sliced. Until then every note uses the fallback voice. */
   get ready(): boolean {
     return this._instruments.size > 0;
   }
@@ -125,12 +133,23 @@ export class SampleBank {
   }
 
   private async _load(): Promise<void> {
-    const indexResponse = await fetch(INDEX_URL);
-    if (!indexResponse.ok) throw new Error(`orchestra index: HTTP ${indexResponse.status}`);
+    await this._loadSprite(CORE_SPRITE.index, CORE_SPRITE.dir);
+    for (const band of BAND_SPRITES) {
+      // A band that fails to load must not take the others, or the core, with it.
+      await this._loadSprite(`${BAND_DIR}${band}.json`, BAND_DIR).catch((err: unknown) => {
+        console.warn(`[orchestra] band "${band}" unavailable, using fallback voices`, err);
+      });
+    }
+  }
+
+  /** Fetches one sprite and its index, and adds its instruments to the bank. */
+  private async _loadSprite(indexUrl: string, audioDir: string): Promise<void> {
+    const indexResponse = await fetch(indexUrl);
+    if (!indexResponse.ok) throw new Error(`${indexUrl}: HTTP ${indexResponse.status}`);
     const index = (await indexResponse.json()) as SpriteIndex;
 
-    const audioResponse = await fetch(AUDIO_DIR + index.file);
-    if (!audioResponse.ok) throw new Error(`orchestra sprite: HTTP ${audioResponse.status}`);
+    const audioResponse = await fetch(audioDir + index.file);
+    if (!audioResponse.ok) throw new Error(`${index.file}: HTTP ${audioResponse.status}`);
     const sprite = await decode(await audioResponse.arrayBuffer(), index.sampleRate);
 
     const data = sprite.getChannelData(0);

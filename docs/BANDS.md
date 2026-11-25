@@ -1,7 +1,10 @@
 # Bands — one style per venue
 
-**Written:** 2026-11-25 · **Status:** Garden built; the rest awaiting David's
-sign-off on Garden's sound and approval of extra sample sources.
+**Written:** 2026-11-25 · **Status:** Garden (chamber orchestra) and Kitchen
+(jazz combo) built. All three sample sources approved by David on 2026-11-25
+and each repository's own LICENSE file checked (CC0-1.0). Nobody has yet
+listened to either band; sign-off by ear is outstanding. Funfair, Workshop
+and Disco still play orchestral stand-ins.
 
 The engine separates the mechanic (each spinner is a musician with a written
 part) from the style (which recordings, which score). A new band is a new
@@ -9,35 +12,52 @@ score plus a new set of recordings. No engine change.
 
 ## Plan
 
-| Venue    | Band                            | Feel                                           | Recordings                                                                         |
-| -------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Garden   | Chamber orchestra               | G major, 96 BPM, pastoral                      | **Built.** VSCO-2 CE                                                               |
-| Kitchen  | Jazz combo                      | C major, ~120 BPM, swung                       | Upright bass, piano, muted trumpet, clarinet, vibraphone, tenor sax, brushes, ride |
-| Workshop | Garage rock band                | A minor or C major, ~130 BPM, straight eighths | Drum kit, electric bass, distorted and clean guitar, organ, tambourine             |
-| Funfair  | Fairground organ and brass band | F major, 120 BPM, oom-pah                      | Organ, tuba, trombone, trumpet, snare, cymbals — mostly VSCO-2 CE already          |
-| Disco    | Funk/disco band                 | D minor, ~120 BPM, four on the floor           | Drum kit, electric bass, muted guitar, electric piano, strings, brass              |
+| Venue    | Band                            | Feel                                           | Recordings                                                                                                     |
+| -------- | ------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Garden   | Chamber orchestra               | G major, 96 BPM, pastoral                      | **Built.** VSCO-2 CE                                                                                           |
+| Kitchen  | Jazz combo                      | C major, 116 BPM, swung                        | **Built.** Upright bass, ride, piano, tenor sax, brushes, vibraphone, guitar, muted trumpet, trombone (363 KB) |
+| Workshop | Garage rock band                | A minor or C major, ~130 BPM, straight eighths | Drum kit, electric bass, distorted and clean guitar, organ, tambourine                                         |
+| Funfair  | Fairground organ and brass band | F major, 120 BPM, oom-pah                      | Organ, tuba, trombone, trumpet, snare, cymbals — mostly VSCO-2 CE already                                      |
+| Disco    | Funk/disco band                 | D minor, ~120 BPM, four on the floor           | Drum kit, electric bass, muted guitar, electric piano, strings, brass                                          |
 
 Until each is built, every venue plays an orchestral stand-in written in the
 right key, tempo and feel, so nothing is silent.
 
-## Sources to approve
+## Sources (approved 2026-11-25)
 
-Only CC0 / public-domain libraries are proposed: free to ship inside a
-commercial game, no attribution needed. Licences below were read from each
-project's own page by a research pass; **each will be re-checked against the
-repository's LICENSE file before a single file is downloaded.**
+Only CC0 / public-domain libraries: free to ship inside a commercial game, no
+attribution needed. Each repository's LICENSE file was read on 2026-11-25
+before any download, and the sample builder (`tools/build-orchestra-samples.ts`)
+refuses any repository not on its approved list.
 
-| Library                                                                                                 | Licence      | Gives us                                                                                                       | Notes                                                                                           |
-| ------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **VCSL** — Versilian Community Sample Library (github.com/sgossner/VCSL)                                | CC0          | Hi-hat open/closed, kick, snares, rim click, toms, claps, cowbells, congas, tambourines, vibraphone, tenor sax | Same author as the library already approved. Files fetchable one at a time                      |
-| **Karoryfer** (github.com/sfzinstruments) — Big Rusty Drums, Growlybass, Meatbass, Emilyguitar, Weresax | CC0          | Full drum kit including **brushes**, electric bass, jazz upright bass, electric guitar, alto sax               | Big Rusty Drums is 2.3 GB as a whole; only a few dozen files would be fetched                   |
-| **FreePats** (freepats.zenvoid.org)                                                                     | CC0 per bank | Hammond-style organ, electric piano, clean and distorted electric guitar                                       | Distributed as archives, so a whole bank must be downloaded to take a few notes (3–300 MB each) |
+| Library                                                                                               | Licence                                     | Used for                                                                                                      |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| VSCO-2 Community Edition (`sgossner/VSCO-2-CE`)                                                       | CC0-1.0                                     | The orchestra; muted trumpet and trombone for the jazz combo                                                  |
+| VCSL (`sgossner/VCSL`)                                                                                | CC0-1.0                                     | Piano, vibraphone, tenor sax, claps. Also has hi-hat, kick, snares, toms, cowbells, congas for rock and disco |
+| Karoryfer (`sfzinstruments/karoryfer.*`: big-rusty-drums, meatbass, emilyguitar, weresax, growlybass) | CC0-1.0                                     | Upright bass, brushes, ride, kick, sidestick, jazz guitar. Electric bass and the full kit for rock and disco  |
+| FreePats (freepats.zenvoid.org)                                                                       | CC0 per bank (not yet re-checked at source) | Not used yet. Wanted for Hammond organ, electric piano and distorted guitar                                   |
 
 Excluded: anything share-alike, non-commercial or "custom" licensed (Salamander
 drums, jRhodes, Philharmonia, and others).
 
 Known gaps with no free source found: a true Rhodes, clavinet, slap bass,
-finger snaps. Each has a workable substitute from the above.
+finger snaps (the Kitchen uses claps). Each has a workable substitute.
+
+## How a band is built
+
+1. A manifest per band in `tools/bands/<band>.manifest.json` names each
+   instrument, its source repository and its notes.
+2. `npm run samples -- <band>` downloads, trims, measures real pitch, and
+   packs `public/audio/bands/<band>.mp3` + `.json`.
+3. The band's instrument ids are added to `InstrumentId` and the band's name
+   to `BAND_SPRITES` in `src/audio/orchestra/SampleBank.ts`; it then loads in
+   the background after the orchestra.
+4. A score in `src/audio/scores/` seats the musicians. A score may mix its
+   own band's instruments with the orchestra's.
+
+Still orchestral in every venue: the Frenzy fanfare, the closing chord and the
+feedback accents (harp, glockenspiel, timpani). Giving each band its own is a
+follow-up.
 
 ## Size
 
@@ -51,7 +71,8 @@ Each band costs roughly 300–500 KB as a sprite. Headroom today is about
 
 ## Order
 
-1. David signs off Garden by ear (or sends notes).
-2. Kitchen jazz combo — closest to what is already approved.
-3. Funfair — mostly existing recordings.
-4. Workshop rock and Disco funk, once the sources above are approved.
+1. **David listens to Garden and the Kitchen** and signs off or sends notes.
+2. Funfair — mostly recordings already in the orchestra sprite.
+3. Workshop garage rock and Disco funk — drum kit, electric bass and guitar
+   from the approved libraries; organ and electric piano need FreePats
+   re-checked at source first.

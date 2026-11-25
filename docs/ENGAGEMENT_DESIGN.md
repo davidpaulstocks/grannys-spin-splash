@@ -40,6 +40,16 @@ means more music, literally.
 
 ## 3. The gig (one round)
 
+> **The purpose, as the game now says it (2026-11-25):** _wake up the whole
+> band, and keep them all awake at once._ The musicians are dozing; a splash
+> wakes one and it plays; left alone it nods off again. One is easy — keeping
+> eight awake together is the game. A sleeping spinner shows "z z z", one
+> about to drop off nods, the top of the screen is a band meter with one
+> light per musician and the stars standing above the lights that earn them,
+> and a YOUR GOAL card states it before the first squirt of every gig. This
+> was added after David played and said he was not sure what he was trying to
+> accomplish. "Awake" means a spinner at full speed.
+
 - **Goal, in one sentence a seven-year-old can act on:** get the whole band
   playing at once.
 - **Stars are the meter that is already on screen.** The bar's existing marks
