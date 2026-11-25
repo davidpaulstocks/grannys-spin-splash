@@ -65,7 +65,7 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 ## Blockers / parked
 
 - ✅ **Audio approach decision** — resolved 2026-09-12 with synthesised placeholders and superseded 2026-11-25 by real VSCO-2 CE instruments (CLAUDE.md §9).
-- ⏳ **David has not yet listened to the new orchestra or the Kitchen jazz combo** — sign-off by ear is outstanding. We can measure the audio (peak, RMS, clipping, tests) but cannot hear it. Slice 4's other bands wait on this.
+- ✅ **The music has been heard.** David listened on 2026-11-25: "the music sounds good, sounds really delightful". His one note was that hitting a spinner did not obviously play that instrument, and that spinners looked unrelated to instruments; the wake-up call, spotlight, louder squirt notes and section badges (commit `149d0ea`) answer that and are awaiting his second listen. We can measure audio (peak, RMS, clipping, tests) but not hear it, so his ears remain the sign-off for each new band.
 - ✅ **Sample sources approved 2026-11-25** — VSCO-2 CE, VCSL and the Karoryfer repositories (the last two verified CC0 from their LICENSE files). FreePats is approved but not yet re-checked at source and not yet used — see `docs/BANDS.md`.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
 - ✅ **Granny + gun art** — resolved 2026-09-11 (3-pose set per granny, 6 guns x 8 angles + anchor.json).

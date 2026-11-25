@@ -200,7 +200,7 @@ submission.
 These have working defaults and do not block the build:
 
 1. **Names.** "Gig", "venue", "Grand Concert", "coins". Easy to change.
-2. **Garden's sound** — sign-off by ear before the other bands are built.
+2. **The sound** — heard and liked by David on 2026-11-25. A second listen is due after the wake-up call, spotlight and section badges, before the remaining bands are built.
 3. **Extra sample libraries** for rock and disco — see `BANDS.md`.
 4. **Spinner art.** Procedural spinners now sit on backing discs and read
    well, but painted sprites would match the rest of the art.

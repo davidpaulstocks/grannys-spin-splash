@@ -951,7 +951,7 @@ The engine separates the mechanic (each spinner is a musician with a written par
 
 ### 9.8 Verification
 
-Unit tests cover the notation, theory helpers and scores (scores stay in key in every tier, add music as musicians wake, seat every spinner in every world). Offline renders check peak, RMS and clipping. **Limit stated plainly: we can measure audio but not hear it.** As of 2026-11-25 David has not yet listened to the new orchestra or the Kitchen jazz combo; sign-off by ear is outstanding.
+Unit tests cover the notation, theory helpers and scores (scores stay in key in every tier, add music as musicians wake, seat every spinner in every world). Offline renders check peak, RMS and clipping. **Limit stated plainly: we can measure audio but not hear it.** David listened on 2026-11-25: "the music sounds good, sounds really delightful". His one note was that hitting a spinner did not obviously play that instrument, and that spinners looked unrelated to instruments; the wake-up call, spotlight, louder squirt notes and section badges (commit `149d0ea`) answer that and are awaiting his second listen.
 
 ### 9.9 History (decisions superseded by the above)
 

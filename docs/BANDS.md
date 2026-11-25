@@ -2,8 +2,9 @@
 
 **Written:** 2026-11-25 · **Status:** Garden (chamber orchestra) and Kitchen
 (jazz combo) built. All three sample sources approved by David on 2026-11-25
-and each repository's own LICENSE file checked (CC0-1.0). Nobody has yet
-listened to either band; sign-off by ear is outstanding. Funfair, Workshop
+and each repository's own LICENSE file checked (CC0-1.0). David listened on
+2026-11-25 and called the music "really delightful"; each new band still needs
+his ears. Funfair, Workshop
 and Disco still play orchestral stand-ins.
 
 The engine separates the mechanic (each spinner is a musician with a written
