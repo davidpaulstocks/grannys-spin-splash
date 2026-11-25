@@ -80,6 +80,8 @@ export class Spinner extends Phaser.GameObjects.Container {
   currentState: SpinnerState = SpinnerState.STOPPED;
   /** While true (SPLASH FRENZY's bonus window), decay is suspended. */
   locked = false;
+  /** How long this spinner holds at top speed before winding down — set per gig, see gigs.data.ts. */
+  holdMs = MAX_SPEED_HOLD_MS;
   /** Remaining decay-free grace after being topped right up, ms — see MAX_SPEED_HOLD_MS. */
   private _holdUntilMs = 0;
 
@@ -163,7 +165,7 @@ export class Spinner extends Phaser.GameObjects.Container {
     this.currentSpeed = Math.min(MAX_SPINNER_SPEED, this.currentSpeed + power);
     // Reaching the very top buys a decay-free grace period — see
     // MAX_SPEED_HOLD_MS for why the wall was otherwise un-completable by hand.
-    if (this.currentSpeed >= MAX_SPINNER_SPEED) this._holdUntilMs = MAX_SPEED_HOLD_MS;
+    if (this.currentSpeed >= MAX_SPINNER_SPEED) this._holdUntilMs = this.holdMs;
     return true;
   }
 

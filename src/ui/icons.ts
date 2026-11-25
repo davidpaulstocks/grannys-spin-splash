@@ -53,3 +53,18 @@ export function drawPlayIcon(g: Phaser.GameObjects.Graphics, radius: number, col
   const triRadius = radius * 0.5;
   g.fillTriangle(-triRadius * 0.6, -triRadius, -triRadius * 0.6, triRadius, triRadius, 0);
 }
+
+/** Draws a gold coin centred on (0, 0): rim, face and a highlight, so it reads as money at any size. */
+export function drawCoinIcon(
+  g: Phaser.GameObjects.Graphics,
+  radius: number,
+  face: number,
+  rim: number,
+): void {
+  g.fillStyle(rim, 1);
+  g.fillCircle(0, 0, radius);
+  g.fillStyle(face, 1);
+  g.fillCircle(0, 0, radius * 0.78);
+  g.fillStyle(0xffffff, 0.55);
+  g.fillEllipse(-radius * 0.28, -radius * 0.3, radius * 0.42, radius * 0.24);
+}

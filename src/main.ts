@@ -9,9 +9,10 @@ import { OrchestraGraph } from './audio/orchestra/OrchestraGraph';
 import { sampleBank } from './audio/orchestra/SampleBank';
 import { resolveScore } from './audio/scores';
 import { BACKGROUND_COLOUR, SCALE_CONFIG } from './config';
+import type { BotSim } from './dev/botSim';
 import * as poki from './poki';
 import { BootScene } from './scenes/BootScene';
-import { GameOverScene } from './scenes/GameOverScene';
+import { ResultsScene } from './scenes/ResultsScene';
 import { GameScene } from './scenes/GameScene';
 import { HUDScene } from './scenes/HUDScene';
 import { PauseScene } from './scenes/PauseScene';
@@ -23,6 +24,8 @@ declare global {
     __gameForDebug?: Phaser.Game;
     /** Dev-only: the live audio singletons and classes. Stripped from prod builds. */
     __audioForDebug?: Record<string, unknown>;
+    /** Dev-only: the balance harness (src/dev/botSim.ts). */
+    __bot?: BotSim;
   }
 }
 
@@ -70,7 +73,7 @@ async function boot(): Promise<void> {
     // bar beside the canvas ate a slot, so "hold move button + tap to fire"
     // silently dropped the fire tap. Spare Pointer objects are cheap.
     input: { activePointers: 4 },
-    scene: [BootScene, SplashScene, GameScene, HUDScene, GameOverScene, PauseScene],
+    scene: [BootScene, SplashScene, GameScene, HUDScene, ResultsScene, PauseScene],
   });
 
   if (import.meta.env.DEV) {
@@ -86,6 +89,11 @@ async function boot(): Promise<void> {
       OrchestraGraph,
       resolveScore,
     };
+    // The balance harness: see src/dev/botSim.ts. Dynamically imported so it
+    // is never in a production bundle.
+    void import('./dev/botSim').then(({ installBotSim }) => {
+      window.__bot = installBotSim(game);
+    });
   }
 }
 

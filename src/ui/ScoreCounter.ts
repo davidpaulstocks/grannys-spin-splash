@@ -16,14 +16,14 @@
 
 import Phaser from 'phaser';
 
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
-import { drawStarIcon } from './icons';
+import { drawCoinIcon } from './icons';
 import { textStyle } from '../utils/typography';
 
 const PILL_WIDTH = 158;
 const PILL_HEIGHT = 56;
-const STAR_RADIUS = 15;
+const COIN_RADIUS = 15;
 /** How quickly the displayed number races to catch up to the real score — higher = snappier. */
 const CATCH_UP_RATE = 10;
 /** Below this gap the counter just snaps — avoids an endless fractional crawl on the last ~1 point. */
@@ -34,7 +34,7 @@ const SETTLE_MS = 160;
 
 export class ScoreCounter {
   private readonly _text: Phaser.GameObjects.Text;
-  private readonly _starGfx: Phaser.GameObjects.Graphics;
+  private readonly _coinGfx: Phaser.GameObjects.Graphics;
   private _displayed = 0;
   private _lastTarget = 0;
   private _lastRendered = -1;
@@ -47,8 +47,9 @@ export class ScoreCounter {
     bg.lineStyle(4, COLOUR.ink, 1);
     bg.strokeRoundedRect(x - PILL_WIDTH / 2, y - PILL_HEIGHT / 2, PILL_WIDTH, PILL_HEIGHT, radius);
 
-    this._starGfx = scene.add.graphics().setPosition(x - PILL_WIDTH / 2 + 26, y);
-    drawStarIcon(this._starGfx, STAR_RADIUS, COLOUR.sunnyGold);
+    this._coinGfx = scene.add.graphics().setPosition(x - PILL_WIDTH / 2 + 26, y);
+    drawCoinIcon(this._coinGfx, COIN_RADIUS + 3, COLOUR.ink, COLOUR.ink);
+    drawCoinIcon(this._coinGfx, COIN_RADIUS, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
 
     this._text = scene.add
       .text(

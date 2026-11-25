@@ -9,7 +9,7 @@
  * user feedback: "I'm not seeing a point and gold tally add up as I'm
  * playing, I want to see that currency get earned and be excited about how
  * much gold I'm earning") — this supersedes story 2.5's original design,
- * which hid score until GameOverScene revealed it at the end.
+ * which hid score until ResultsScene revealed it at the end.
  */
 
 import Phaser from 'phaser';
@@ -80,6 +80,7 @@ export class HUDScene extends Phaser.Scene {
     this._frenzyProgress.update(
       data.spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
       data.spinners.length,
+      data.stars,
     );
     this._frenzyMeterUI.update(data.spinners);
     this._urgencyOverlay.update(data.secondsRemaining);

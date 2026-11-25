@@ -52,3 +52,60 @@ export function computeGridPositions(
   }
   return positions;
 }
+
+/** A band never needs more rows than this; walls are wider than they are tall. */
+const MAX_PER_ROW = 5;
+/** Small bands get big spinners, up to this multiple of their designed size. */
+const MAX_BAND_FIT = 1.9;
+
+export interface BandLayout {
+  readonly positions: readonly GridPoint[];
+  /** The widest row, and the row count — what a spinner has to fit inside. */
+  readonly cols: number;
+  readonly rows: number;
+}
+
+/**
+ * Lays out any number of spinners as centred rows — a trio in a line, nine
+ * as five over four, sixteen as a square. Unlike {@link computeGridPositions}
+ * the count need not fill a rectangle, which is what lets a band grow one
+ * musician at a time. Row-major, top row first.
+ */
+export function layoutBand(
+  count: number,
+  areaX: number,
+  areaY: number,
+  areaWidth: number,
+  areaHeight: number,
+): BandLayout {
+  const rows = Math.max(1, Math.ceil(count / MAX_PER_ROW));
+  const cols = Math.ceil(count / rows);
+  const cellWidth = areaWidth / cols;
+  const cellHeight = areaHeight / rows;
+  const positions: GridPoint[] = [];
+  let remaining = count;
+  for (let row = 0; row < rows; row++) {
+    const inRow = Math.ceil(remaining / (rows - row));
+    remaining -= inRow;
+    const rowStart = areaX + (areaWidth - inRow * cellWidth) / 2;
+    for (let col = 0; col < inRow; col++) {
+      positions.push({
+        x: rowStart + cellWidth * (col + 0.5),
+        y: areaY + cellHeight * (row + 0.5),
+      });
+    }
+  }
+  return { positions, cols, rows };
+}
+
+/** As {@link fitScaleForGrid}, but allowed to scale *up*: three spinners should fill the wall, not huddle in it. */
+export function fitScaleForBand(
+  cols: number,
+  rows: number,
+  areaWidth: number,
+  areaHeight: number,
+  maxRadius: number,
+): number {
+  const shorterCellSide = Math.min(areaWidth / cols, areaHeight / rows);
+  return Math.min(MAX_BAND_FIT, (shorterCellSide * FIT_FRACTION) / maxRadius);
+}

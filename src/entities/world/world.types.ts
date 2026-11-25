@@ -17,7 +17,8 @@ export interface WorldDef {
   /** Round length in seconds. */
   readonly time: number;
   /** Stars required to unlock; 0 means available from first run. */
-  readonly unlockThreshold: number;
+  /** Total stars across the whole tour needed to open this venue. 0 = open from the start. */
+  readonly starsToOpen: number;
   /** A few spinners drift side to side instead of holding position (Funfair). */
   readonly movingTargets?: boolean;
   /** Bonus Golden Spinner spawns more often (every 12-20s instead of 25-40s) — Disco. */

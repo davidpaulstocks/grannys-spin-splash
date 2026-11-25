@@ -26,4 +26,6 @@ export interface HudRefreshData {
    * during play, not hidden until game over as story 2.5 originally had it).
    */
   readonly score: number;
+  /** Stars locked in so far this gig, 0–3. */
+  readonly stars: number;
 }

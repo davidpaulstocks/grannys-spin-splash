@@ -2,7 +2,7 @@
  * Core gameplay loop — orchestrates spinners, Granny, water, combo, and
  * Frenzy for a single 30-second run (CLAUDE.md §7.2, story 1.5). HUDScene
  * runs alongside it as a parallel overlay (CLAUDE.md §7.2) — GameScene
- * feeds it fresh state once per frame; GameOverScene takes over once the
+ * feeds it fresh state once per frame; ResultsScene takes over once the
  * round ends.
  */
 
@@ -13,7 +13,6 @@ import {
   COUNTDOWN_TICK_SHAKE_DURATION_MS,
   COUNTDOWN_TICK_SHAKE_INTENSITY,
   FINAL_COUNTDOWN_SECONDS,
-  FRENZY_BONUS_STARS,
   FRENZY_DURATION_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
@@ -33,13 +32,15 @@ import {
   WORLD_DEFS,
 } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
+import { gigFor, type GigDef } from '../entities/world/gigs.data';
 import { buildObstacles, buildWall, wallAreaFor } from '../entities/world/wallBuilder';
+import { currentGig, MAX_STARS_PER_GIG, recordGig } from '../systems/Progress';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
 import { playRoundIntro, type RoundIntro } from '../entities/granny/roundIntro';
 import { Gun } from '../entities/gun/Gun';
-import { Spinner, STATE_ORDINAL } from '../entities/spinner/Spinner';
+import { Spinner } from '../entities/spinner/Spinner';
 import { GoldenSpinnerSpawner, type GoldenClaim } from '../entities/spinner/GoldenSpinnerSpawner';
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
 import {
@@ -53,7 +54,6 @@ import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
 import { saveManager } from '../systems/SaveManager';
-import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
 import { audioBus } from '../audio/AudioBus';
 import { audioOrchestra } from '../audio/AudioOrchestra';
@@ -62,10 +62,9 @@ import * as SFX from '../audio/SFX';
 import { waterSound } from '../audio/WaterSound';
 import { WaterJet } from '../entities/waterParticle/WaterJet';
 import { spawnNoteGlyph } from '../ui/NoteGlyph';
-import { EASE } from '../utils/tween';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
-import type { GameOverData, GameSceneData } from '../types/sceneData';
+import type { GigResultData, GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
 import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { spawnFloatingText } from '../ui/FloatingText';
@@ -106,7 +105,12 @@ const ENCOURAGEMENT_CHANCE = 0.18;
  * firing flat out. Only a fraction spawn their own text/sparks — at up to 60
  * hits a second the screen would otherwise be unreadable confetti.
  */
-const FRENZY_HIT_STARS = 2;
+/** A spinner climbing a tier pays this many coins, times the combo. */
+const COINS_PER_LEVEL_UP = 1;
+/** Each star reached in a gig pays this many coins on the spot. */
+const COINS_PER_STAR = 10;
+/** The encore — everything after FULL BAND — pays one coin per this much Frenzy time. */
+const ENCORE_COIN_INTERVAL_MS = 500;
 const FRENZY_HIT_FLOURISH_CHANCE = 0.14;
 
 /** Floating "+N ★" colour by combo multiplier tier — escalates with the combo, matching the prototype's `awardStars`. */
@@ -125,11 +129,18 @@ const NOTE_GLYPH_MIN_INTERVAL_MS = 420;
 /** Gap below a spinner for its musician's name, clear of the "+N ★" text that rises from above it. */
 const MUSICIAN_NAME_OFFSET = 18;
 
+/** Where the "one star!" call-outs appear, each a step lower so two earned at once don't overprint. */
+const STAR_TEXT_Y = GAME_HEIGHT * 0.2;
+const STAR_TEXT_STEP_Y = 34;
+const STAR_LABELS = ['ONE STAR!', 'TWO STARS!', 'THREE STARS!'] as const;
+
 const FRENZY_FLASH_MS = 220;
 const FRENZY_ZOOM = 1.045;
 const FRENZY_ZOOM_IN_MS = 110;
 const FRENZY_ZOOM_HOLD_MS = 90;
 const FRENZY_ZOOM_OUT_MS = 380;
+/** Camera effects only accept Phaser's named eases, not the tween module's custom curves. */
+const CAMERA_EASE = 'Quad.easeOut';
 const FRENZY_CONFETTI_EVERY = 2;
 const FRENZY_CONFETTI_COLOURS = [
   COLOUR.grannyPink,
@@ -137,6 +148,13 @@ const FRENZY_CONFETTI_COLOURS = [
   COLOUR.waterBlue,
   COLOUR.mintGreen,
 ] as const;
+
+const STATE_TIER: Readonly<Record<SpinnerState, number>> = {
+  [SpinnerState.STOPPED]: 0,
+  [SpinnerState.SLOW]: 1,
+  [SpinnerState.MEDIUM]: 2,
+  [SpinnerState.FULL]: 3,
+};
 
 /** The orchestra's answer to a spinner climbing a tier — bigger for each step up. */
 const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
@@ -155,7 +173,6 @@ export class GameScene extends Phaser.Scene {
   private _waterPool!: Phaser.GameObjects.Group;
   private _frenzyMeter = new FrenzyMeter();
   private _combo = new ComboTracker();
-  private _unlocks = new UnlockManager(saveManager);
   private _world!: WorldDef;
   private _grannyId!: string;
   private _gun!: GunDef;
@@ -172,9 +189,16 @@ export class GameScene extends Phaser.Scene {
   /** The scripted-moments tutorial captions (direct user request, 2026-09-12) — null unless this is the player's very first run. */
   private _tutorial: TutorialSequence | null = null;
   private _timeRemainingMs = 0;
+  private _gig!: GigDef;
+  /** Stars earned so far this gig (0–3) — they lock in the moment they are reached. */
+  private _stars = 0;
+  /** Frenzy time not yet paid out as encore coins. */
+  private _encoreUnpaidMs = 0;
   private _jet!: WaterJet;
   /** Spinners whose musician has already been introduced by name this round. */
   private readonly _joined = new Set<number>();
+  /** Highest tier each spinner has reached this gig — coins are paid once per tier, per spinner. */
+  private readonly _bestTier = new Map<number, number>();
   private readonly _lastNoteGlyphAt = new Map<number, number>();
   private _started = false;
   private _roundOver = false;
@@ -213,15 +237,16 @@ export class GameScene extends Phaser.Scene {
     this._grannyId = data.grannyId ?? DEFAULT_GRANNY_ID;
     const gunId = data.gunId ?? DEFAULT_GUN_ID;
     this._gun = GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0];
+    this._gig = gigFor(this._world, data.gig ?? currentGig(saveManager.load(), this._world.id));
   }
 
   create(): void {
-    this._timeRemainingMs = this._world.time * 1000;
+    this._timeRemainingMs = this._gig.seconds * 1000;
     this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
 
     drawWorldBackground(this, this._world.id);
-    this._spinners = buildWall(this, this._world);
-    this._obstacles = buildObstacles(this, this._world, this._spinners);
+    this._spinners = buildWall(this, this._world, this._gig);
+    this._obstacles = buildObstacles(this, this._world, this._gig, this._spinners);
     this._golden = new GoldenSpinnerSpawner(
       this,
       this._world.goldenFrequent === true,
@@ -245,6 +270,7 @@ export class GameScene extends Phaser.Scene {
     this._cannon = new WaterCannon(this, this._gun, this._waterPool);
     this._jet = new WaterJet(this, this._waterPool);
     this._joined.clear();
+    this._bestTier.clear();
     this._lastNoteGlyphAt.clear();
 
     this._createOverlays();
@@ -260,10 +286,14 @@ export class GameScene extends Phaser.Scene {
     // audit) — wired to the same encouragement-toast beat as a spinner
     // reaching FULL, just with their own specific lines since these are
     // meaningful wall-wide milestones, not a per-spinner moment.
-    this._frenzyMeter.on('miniLow', () => this._onMiniFrenzy("You're on fire!"));
+    this._frenzyMeter.on('miniLow', () => {
+      this._onMiniFrenzy("You're on fire!");
+      this._awardStars(1);
+    });
     this._frenzyMeter.on('miniHigh', () => {
       this._onMiniFrenzy('Almost there!!');
       audioOrchestra.onFrenzyNear();
+      this._awardStars(2);
     });
 
     // A brief turn-to-face-the-wall before play, skipped by any input. The
@@ -324,7 +354,7 @@ export class GameScene extends Phaser.Scene {
     // Second, independent audio axis: how far through the round we are, which
     // drives the crescendo (AudioOrchestra.setRoundProgress). Charge decides
     // which instruments play; this decides how big the room sounds.
-    const roundMs = this._world.time * 1000;
+    const roundMs = this._gig.seconds * 1000;
     audioOrchestra.setRoundProgress(roundMs > 0 ? 1 - this._timeRemainingMs / roundMs : 0);
     const claim = this._golden.update(time, delta);
     if (claim) this._onGoldenClaimed(claim);
@@ -384,6 +414,7 @@ export class GameScene extends Phaser.Scene {
     this._reactToMusic(time);
     this._updateWaterCollisions();
     this._combo.update(delta);
+    this._payEncore(delta);
     this._updateFrenzyWindow(time);
 
     if (this._started) {
@@ -430,12 +461,14 @@ export class GameScene extends Phaser.Scene {
     createPauseButton(this, this._input, () => this._pauseGame());
   }
 
-  /** Resets every field a fresh round needs — covers first boot and a GameOverScene "Play Again" restart alike. */
+  /** Resets every field a fresh round needs — covers first boot and a ResultsScene "Play Again" restart alike. */
   private _resetRoundState(): void {
     this._spinners = [];
     this._obstacles = [];
 
     this._score = 0;
+    this._stars = 0;
+    this._encoreUnpaidMs = 0;
     this._started = false;
     this._roundOver = false;
     this._frenzyActive = false;
@@ -565,7 +598,7 @@ export class GameScene extends Phaser.Scene {
       // no seat, so it is skipped.
       const seat = this._spinners.indexOf(hitSpinner);
       if (seat >= 0) audioOrchestra.onSpinnerHit(seat);
-      if (this._frenzyActive) this._payOutFrenzyHit(hitSpinner);
+      if (this._frenzyActive) this._celebrateEncoreHit(hitSpinner);
       const comboBefore = this._combo.combo;
       const comboAfter = this._combo.registerHit(hitSpinner.id);
       if (comboAfter !== comboBefore) {
@@ -581,11 +614,16 @@ export class GameScene extends Phaser.Scene {
 
   /** Stars are awarded only on an upward state transition (CLAUDE.md §2) — never per-hit, never on decay. */
   private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState, time: number): void {
-    const levelBonus = Math.max(0, STATE_ORDINAL[newState] - 1);
     // Double Stars power-up stacks on top of the combo multiplier (prototype: `awardStars`'s `dsMult`).
     const doubleStarsActive = time < this._doubleStarsEndAt;
     const multiplier = this._combo.multiplier * (doubleStarsActive ? 2 : 1);
-    const total = (spinner.def.stars + levelBonus) * multiplier;
+    // Coins only for a tier this spinner has not reached before in this gig.
+    // Paying every re-climb made letting spinners wind down and bringing them
+    // back the most profitable way to play.
+    const tier = STATE_TIER[newState];
+    const isNewBest = tier > (this._bestTier.get(spinner.id) ?? 0);
+    if (isNewBest) this._bestTier.set(spinner.id, tier);
+    const total = isNewBest ? COINS_PER_LEVEL_UP * multiplier : 0;
     this._score += total;
     audioOrchestra.accent(LEVEL_UP_ACCENT[newState]);
     // Restored 2026-09-12 from the prototype's `awardStars` — direct user
@@ -594,14 +632,16 @@ export class GameScene extends Phaser.Scene {
     // transient combat text at the point of action, distinct from
     // HUDScene's persistent running tally (ScoreCounter) — the two
     // complement each other rather than one replacing the other.
-    const label = multiplier > 1 ? `+${total} ★ ×${multiplier}` : `+${total} ★`;
-    spawnFloatingText(
-      this,
-      spinner.x,
-      spinner.y - spinner.def.r - 12,
-      label,
-      hitTextColour(multiplier),
-    );
+    if (total > 0) {
+      const label = multiplier > 1 ? `+${total} ×${multiplier}` : `+${total}`;
+      spawnFloatingText(
+        this,
+        spinner.x,
+        spinner.y - spinner.def.r - 12,
+        label,
+        hitTextColour(multiplier),
+      );
+    }
 
     // Spark burst on the spinner itself — a state upgrade is the single
     // most rewarding moment in the loop and previously had no VFX beyond
@@ -625,20 +665,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Pays out a hit landed during the Frenzy window — see FRENZY_HIT_STARS
-   * for why the climax previously rewarded nothing at all.
+   * Keeps the encore loud: nothing can level up while the whole band is
+   * locked at full, so without this the climax would be the one stretch of
+   * the gig with no sparks and no chime. The coins themselves are paid by
+   * the clock (`_payEncore`), not per hit — a fast gun lands sixty hits a
+   * second, and paying each one emptied the shop in two rounds.
    */
-  private _payOutFrenzyHit(spinner: Spinner): void {
-    const total = FRENZY_HIT_STARS * this._combo.multiplier;
-    this._score += total;
+  private _celebrateEncoreHit(spinner: Spinner): void {
     if (Math.random() < FRENZY_HIT_FLOURISH_CHANCE) {
-      spawnFloatingText(
-        this,
-        spinner.x,
-        spinner.y - spinner.def.r - 12,
-        `+${total} ★`,
-        COLOUR_HEX.sunnyGold,
-      );
       spawnSparks(this, spinner.x, spinner.y, COLOUR.sunnyGold);
       // The bright upgrade chime is what actually made hits feel rewarding,
       // and it stopped dead at Frenzy because nothing could level up any
@@ -742,7 +776,7 @@ export class GameScene extends Phaser.Scene {
       this,
       claim.x,
       claim.y - claim.radius - 12,
-      `GOLDEN! +${claim.stars} ★`,
+      `GOLDEN! +${claim.stars}`,
       COLOUR_HEX.sunnyGold,
     );
     audioOrchestra.accent('golden');
@@ -752,7 +786,6 @@ export class GameScene extends Phaser.Scene {
     this._frenzyActive = true;
     this._reachedFrenzy = true;
     this._frenzyEndAt = this.time.now + FRENZY_DURATION_MS;
-    this._score += FRENZY_BONUS_STARS;
     for (const spinner of this._spinners) {
       spinner.maxOut();
       spinner.locked = true;
@@ -763,23 +796,14 @@ export class GameScene extends Phaser.Scene {
       GAME_HEIGHT / 2,
       'SPLASH FRENZY!',
     );
-    // The single biggest star award in a run had no number attached to it
-    // anywhere on screen (found by spec audit) — every other scoring site
-    // gets a floating "+N ★", this is the one that most deserves it.
-    spawnFloatingText(
-      this,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2 + 70,
-      `+${FRENZY_BONUS_STARS} ★`,
-      COLOUR_HEX.sunnyGold,
-    );
+    this._awardStars(MAX_STARS_PER_GIG);
     audioOrchestra.onFrenzyStart();
     // The drop should hit the eyes as hard as the ears: a flash, a punch of
     // zoom, and confetti off the whole wall.
     this.cameras.main.flash(FRENZY_FLASH_MS, 255, 244, 200);
-    this.cameras.main.zoomTo(FRENZY_ZOOM, FRENZY_ZOOM_IN_MS, EASE.standardOut, true);
+    this.cameras.main.zoomTo(FRENZY_ZOOM, FRENZY_ZOOM_IN_MS, CAMERA_EASE, true);
     this.time.delayedCall(FRENZY_ZOOM_IN_MS + FRENZY_ZOOM_HOLD_MS, () => {
-      this.cameras.main.zoomTo(1, FRENZY_ZOOM_OUT_MS, EASE.standardOut, true);
+      this.cameras.main.zoomTo(1, FRENZY_ZOOM_OUT_MS, CAMERA_EASE, true);
     });
     this._spinners.forEach((spinner, i) => {
       spinner.pulse(1);
@@ -793,6 +817,35 @@ export class GameScene extends Phaser.Scene {
   private _onMiniFrenzy(message: string): void {
     showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.36, message);
     audioOrchestra.accent('cheer');
+  }
+
+  /**
+   * Locks in stars up to `reached` (1–3). Stars never drop back: the rating
+   * is the best the band sounded at any one moment, so a child who gets
+   * there and then loses the wall has still won it.
+   */
+  private _awardStars(reached: number): void {
+    while (this._stars < reached) {
+      this._stars++;
+      this._score += COINS_PER_STAR;
+      spawnFloatingText(
+        this,
+        GAME_WIDTH / 2,
+        STAR_TEXT_Y + this._stars * STAR_TEXT_STEP_Y,
+        STAR_LABELS[this._stars - 1] ?? '',
+        COLOUR_HEX.sunnyGold,
+      );
+    }
+  }
+
+  /** The encore: while Frenzy runs, the clock pays coins. See `_celebrateEncoreHit` for why not per hit. */
+  private _payEncore(deltaMs: number): void {
+    if (!this._frenzyActive) return;
+    this._encoreUnpaidMs += deltaMs;
+    while (this._encoreUnpaidMs >= ENCORE_COIN_INTERVAL_MS) {
+      this._encoreUnpaidMs -= ENCORE_COIN_INTERVAL_MS;
+      this._score += 1;
+    }
   }
 
   private _updateFrenzyWindow(time: number): void {
@@ -889,22 +942,27 @@ export class GameScene extends Phaser.Scene {
     poki.gameplayStop();
     adManager.recordRunCompleted();
 
-    this._unlocks.addStars(this._score);
-    const save = saveManager.load();
+    // Bank the gig: best rating kept, coins added, newly earned stars paid.
+    const result = recordGig(
+      saveManager.load(),
+      this._world.id,
+      this._gig.index,
+      this._stars,
+      this._score,
+    );
+    const save = result.save;
     const previousBest = save.bestByWorld[this._world.id] ?? 0;
     const isNewBest = this._score > previousBest;
-    if (isNewBest || this._score > save.highScore) {
-      saveManager.save({
-        ...save,
-        highScore: Math.max(save.highScore, this._score),
-        bestByWorld: isNewBest
-          ? { ...save.bestByWorld, [this._world.id]: this._score }
-          : save.bestByWorld,
-      });
-    }
+    saveManager.save({
+      ...save,
+      highScore: Math.max(save.highScore, this._score),
+      bestByWorld: isNewBest
+        ? { ...save.bestByWorld, [this._world.id]: this._score }
+        : save.bestByWorld,
+    });
 
     this.scene.stop('HUDScene');
-    const gameOverData: GameOverData = {
+    const resultData: GigResultData = {
       score: this._score,
       worldId: this._world.id,
       previousBest,
@@ -912,8 +970,12 @@ export class GameScene extends Phaser.Scene {
       peakFullSpinners: this._peakFullSpinners,
       totalSpinners: this._spinners.length,
       reachedFrenzy: this._reachedFrenzy,
+      gig: this._gig.index,
+      stars: this._stars,
+      newStars: result.newStars,
+      starCoins: result.starCoins,
     };
-    this.scene.start('GameOverScene', gameOverData);
+    this.scene.start('ResultsScene', resultData);
   }
 
   private _refreshHud(): void {
@@ -929,6 +991,7 @@ export class GameScene extends Phaser.Scene {
         currentState: s.currentState,
       })),
       score: this._score,
+      stars: this._stars,
     };
     this._hud.refresh(data);
   }

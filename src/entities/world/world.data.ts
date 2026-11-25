@@ -7,12 +7,10 @@
  * Grid/types/obstacles/movingTargets/goldenFrequent are extracted
  * verbatim from the reference prototype's `WORLDS` table
  * (`game prototype/granny-spin-splash.html`) per CLAUDE.md §2's
- * extraction instructions. `unlockThreshold` values are new — the
- * prototype's own world picker was unlock-free (a flat menu, since it
- * existed to demo all 5 at once) but this game already has a Vault/star
- * economy driving granny + gun unlocks, so worlds unlock into that same
- * curve instead of introducing a second, inconsistent "everything free"
- * system. Ordered by the prototype's own escalating spinner count/
+ * extraction instructions. `starsToOpen` is this game's own: venues open on
+ * total stars earned across the tour (docs/ENGAGEMENT_DESIGN.md §4), never
+ * on coins, so replaying a gig for a better rating always moves the tour
+ * forward. Ordered by the prototype's own escalating spinner count/
  * mechanic complexity (12 → 15 → 16 → 16 → 20 spinners; no obstacles →
  * obstacles → double obstacles → moving targets → golden fever), with
  * Workshop/Disco's costs matching the original C1/C2 post-launch plan
@@ -32,7 +30,7 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     types: ['pinwheel', 'fan', 'windmill'],
     obstacles: [],
     time: ROUND_LENGTH_SECONDS,
-    unlockThreshold: 0,
+    starsToOpen: 0,
     // The fence panel itself, between the framing posts and above the grass.
     wallArea: { x: 110, y: 130, width: 1060, height: 360 },
   },
@@ -44,7 +42,7 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     types: ['cog', 'propeller', 'whirligig', 'disco', 'fan', 'windmill'],
     obstacles: ['cat', 'umbrella', 'umbrella', 'duck'],
     time: ROUND_LENGTH_SECONDS,
-    unlockThreshold: 500,
+    starsToOpen: 12,
     // The pegboard — tools already hang here, so spinners read as hung too.
     wallArea: { x: 265, y: 130, width: 800, height: 320 },
   },
@@ -56,7 +54,7 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     types: ['whirligig', 'cog', 'windmill', 'fan'],
     obstacles: ['cat', 'cat', 'umbrella'],
     time: ROUND_LENGTH_SECONDS,
-    unlockThreshold: 1000,
+    starsToOpen: 30,
     // Lower shelf + tiled backsplash, clear of the pink side walls and counter.
     wallArea: { x: 165, y: 120, width: 950, height: 390 },
   },
@@ -68,7 +66,7 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     types: ['propeller', 'pinwheel', 'fan', 'windmill'],
     obstacles: ['umbrella', 'umbrella'],
     time: ROUND_LENGTH_SECONDS,
-    unlockThreshold: 1500,
+    starsToOpen: 54,
     movingTargets: true,
     // Tent canvas between the poles, above the sawdust floor.
     wallArea: { x: 120, y: 190, width: 1040, height: 350 },
@@ -88,7 +86,7 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     featureSpinner: { type: 'disco', x: 648, y: 106, r: 75 },
     obstacles: ['umbrella', 'duck'],
     time: ROUND_LENGTH_SECONDS,
-    unlockThreshold: 2000,
+    starsToOpen: 80,
     goldenFrequent: true,
     // Back wall in the light pools — below the mirror ball, above the dance floor.
     wallArea: { x: 165, y: 165, width: 950, height: 370 },

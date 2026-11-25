@@ -103,6 +103,21 @@ export const GARDEN_SCORE: Score = {
     }),
   ],
 
+  lineup: [
+    'harp',
+    'bass',
+    'flute',
+    'percussion',
+    'glock',
+    'cellos',
+    'pizzicato',
+    'violins',
+    'clarinet',
+    'marimba',
+    'horn',
+    'violas',
+  ],
+
   finale: drivingFinale(67, 36),
   frenzy: tuttiFrenzy(60, 72, 36),
 };

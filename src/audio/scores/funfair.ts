@@ -100,6 +100,25 @@ export const FUNFAIR_SCORE: Score = {
     }),
   ],
 
+  lineup: [
+    'tuba',
+    'clarinets',
+    'organ',
+    'snare',
+    'bassdrum',
+    'xylophone',
+    'glock',
+    'piccolo',
+    'bass',
+    'trumpet',
+    'spiccato',
+    'marimba',
+    'bassoon',
+    'horn',
+    'strings',
+    'violas',
+  ],
+
   finale: drivingFinale(65, 36),
   frenzy: tuttiFrenzy(60, 72, 36),
 };

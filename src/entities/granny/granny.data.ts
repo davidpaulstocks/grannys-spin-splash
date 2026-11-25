@@ -9,7 +9,7 @@ import type { GrannyDef } from './granny.types';
 export const GRANNY_DEFS: readonly GrannyDef[] = [
   { id: 'classic', name: 'Classic Granny', spriteKey: 'granny_classic', unlockCost: 0 },
   { id: 'squirt', name: 'The Squirt Sister', spriteKey: 'granny_squirt', unlockCost: 0 },
-  { id: 'punk', name: 'Punk Granny', spriteKey: 'granny_punk', unlockCost: 500 },
+  { id: 'punk', name: 'Punk Granny', spriteKey: 'granny_punk', unlockCost: 600 },
 ];
 
 /** First-run default — appears selected on splash screen for new players. */

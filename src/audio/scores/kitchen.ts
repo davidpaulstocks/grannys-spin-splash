@@ -113,6 +113,25 @@ export const KITCHEN_SCORE: Score = {
     }),
   ],
 
+  lineup: [
+    'bass',
+    'pizzicato',
+    'clarinet',
+    'whisk',
+    'marimba',
+    'pots',
+    'harp',
+    'glock',
+    'cellos',
+    'flute',
+    'violins',
+    'bassoon',
+    'xylophone',
+    'trumpet',
+    'horn',
+    'violas',
+  ],
+
   finale: drivingFinale(64, 36),
   frenzy: tuttiFrenzy(60, 72, 36),
 };

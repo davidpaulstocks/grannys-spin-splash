@@ -1,6 +1,6 @@
 /**
  * Granny + Gun carousels, vault display, PLAY (CLAUDE.md §7.2, §10,
- * story 5.3). First scene the player ever sees; GameOverScene's Play
+ * story 5.3). First scene the player ever sees; ResultsScene's Play
  * Again returns here too (full loop: splash → game → game over → splash,
  * Sprint 5 exit criteria) so progression/unlocks are always visible
  * between runs, not just once at boot.
@@ -214,7 +214,7 @@ export class SplashScene extends Phaser.Scene {
         id: w.id,
         label: w.name,
         unlocked: this._unlocks.isWorldUnlocked(w.id),
-        cost: w.unlockThreshold,
+        cost: w.starsToOpen,
         swatchColour: WORLD_SWATCH[w.id] ?? COLOUR.softSlate,
         ...(bgKey ? { swatchTextureKey: bgKey } : {}),
       };
@@ -245,9 +245,10 @@ export class SplashScene extends Phaser.Scene {
     if (!def) return;
     this._attemptUnlock({
       alreadyUnlocked: this._unlocks.isWorldUnlocked(id),
-      cost: def.unlockThreshold,
+      cost: def.starsToOpen,
       name: def.name,
-      unlock: () => this._unlocks.unlockWorld(id),
+      // Venues open on stars earned across the tour; there is nothing to buy.
+      unlock: () => false,
       select: () => this._unlocks.selectWorld(id),
       refresh: () => this._loadoutStage.setItems(this._worldItems()),
     });

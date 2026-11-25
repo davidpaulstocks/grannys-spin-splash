@@ -97,8 +97,15 @@ export interface Score {
   readonly swing: number;
   /** Always playing, very quietly: the harmonic floor that makes any one musician sound like music. */
   readonly bed: readonly Line[];
-  /** One part per spinner, in wall order: left to right, top row first. */
+  /** Every musician in the band, grouped by section for readability. */
   readonly seats: readonly Part[];
+  /**
+   * Seat ids in the order musicians join the band as gigs grow
+   * (docs/ENGAGEMENT_DESIGN.md §3). A gig with a band of five seats the
+   * first five. The first three must already sound like music: a bass, a
+   * harmony instrument and a tune.
+   */
+  readonly lineup: readonly string[];
   /** Joins for the final third of the round, whatever the wall looks like. */
   readonly finale: readonly Line[];
   /** Joins for the Splash Frenzy window. */

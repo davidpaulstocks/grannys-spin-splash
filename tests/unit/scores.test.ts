@@ -7,7 +7,6 @@ import type { SampleBank } from '../../src/audio/orchestra/SampleBank';
 import { BARS_PER_FORM } from '../../src/audio/orchestra/score.types';
 import { isInScale, pitchClass } from '../../src/audio/orchestra/theory';
 import { resolveScore, SCORES } from '../../src/audio/scores';
-import { WORLD_DEFS } from '../../src/entities/world/world.data';
 
 interface Played {
   readonly instrument: string;
@@ -77,14 +76,4 @@ describe.each(SCORES.map((score) => [score.id, score] as const))('score: %s', (i
     expect(new Set(ids).size).toBe(ids.length);
     expect(score.seats.every((seat) => seat.name.length > 0)).toBe(true);
   });
-});
-
-describe('seating', () => {
-  it.each(WORLD_DEFS.map((world) => [world.id, world] as const))(
-    '%s has a musician for every spinner on its wall',
-    (id, world) => {
-      const spinners = world.grid.cols * world.grid.rows + (world.featureSpinner ? 1 : 0);
-      expect(resolveScore(id).seats.length).toBeGreaterThanOrEqual(spinners);
-    },
-  );
 });

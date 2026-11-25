@@ -93,6 +93,24 @@ export const WORKSHOP_SCORE: Score = {
     }),
   ],
 
+  lineup: [
+    'marimba',
+    'tuba',
+    'clarinet',
+    'woodblocks',
+    'xylophone',
+    'cellos',
+    'pizzicato',
+    'snare',
+    'bassoon',
+    'glock',
+    'spiccato',
+    'trumpet',
+    'horn',
+    'flute',
+    'violas',
+  ],
+
   finale: drivingFinale(64, 36),
   frenzy: tuttiFrenzy(57, 72, 36),
 };

@@ -53,7 +53,7 @@ export class AdManager {
     this._enabled = options.enabled ?? ADS_ENABLED;
   }
 
-  /** Call once each time a run ends (GameScene → GameOverScene), regardless of whether an ad is about to show. */
+  /** Call once each time a run ends (GameScene → ResultsScene), regardless of whether an ad is about to show. */
   recordRunCompleted(): void {
     this._runsSinceLastCommercialBreak++;
   }

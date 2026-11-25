@@ -58,6 +58,25 @@
  * identical bot at the old 136/s reaches it zero times with only 4 of 12
  * ever FULL — so the ladder, not the bot, is what unlocks the mechanic.
  *
+ * **Fourth pass (2026-11-25), with the gig ladder.** The third pass solved
+ * "Frenzy is unreachable on a twelve-spinner wall" by making every gun so
+ * strong that a spinner went from stopped to full in a quarter of a second.
+ * Measured with a bot playing like a child (retargets every 0.9 s, lands 80%
+ * of the time): three stars on every Garden wall inside five seconds, and
+ * the round then had nothing left in it. It also flattened the orchestra —
+ * a musician's three tiers (outline, full part, ornament) flashed past
+ * unheard — and left the six guns within 1.7x of each other, so buying one
+ * changed nothing you could feel.
+ *
+ * The ladder removes the original problem at its root: the first gig is a
+ * trio, not twelve, and `gigs.data.ts` slows each spinner's wind-down as the
+ * band grows. So powers come back down to where a spinner takes about a
+ * second to bring in with the starter gun, and the guns spread to 2.5x:
+ * effective DPS 118 -> 140 -> 175 -> 200 -> 246 -> 300. Same child bot,
+ * starter gun: trio full at ~5 s, six-piece at ~15 s, and the twelve-piece
+ * Grand Concert gives one star to the child and three to a sharp player
+ * near the end — which is what a better gun is then for.
+ *
  * **Why the top end is compressed to 1.7x rather than the ~2.5x spread a
  * straight power-scaling suggested.** At 846/s a mid-tier gun hit Frenzy
  * 8 times in one Disco round and Inferno at 1018/s hit it 12 times in
@@ -90,7 +109,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 150,
     drain: 1,
     interval: 220,
-    power: 90,
+    power: 26,
     streams: 1,
     sz: 6,
     type: 'water',
@@ -110,7 +129,7 @@ export const GUN_DEFS: readonly GunDef[] = [
     tank: 160,
     drain: 1,
     interval: 200,
-    power: 92,
+    power: 28,
     streams: 1,
     sz: 8,
     type: 'water',
@@ -122,11 +141,11 @@ export const GUN_DEFS: readonly GunDef[] = [
     name: 'Garden Hose',
     spriteKey: 'gun_hose',
     tier: 2,
-    cost: 200,
+    cost: 150,
     tank: 395,
     drain: 2,
     interval: 160,
-    power: 83,
+    power: 28,
     streams: 1,
     sz: 10,
     type: 'water',
@@ -138,11 +157,11 @@ export const GUN_DEFS: readonly GunDef[] = [
     name: 'Splash Jr',
     spriteKey: 'gun_splashjr',
     tier: 2,
-    cost: 500,
+    cost: 400,
     tank: 420,
     drain: 2,
     interval: 150,
-    power: 43,
+    power: 15,
     streams: 2,
     sz: 8,
     type: 'water',
@@ -155,11 +174,11 @@ export const GUN_DEFS: readonly GunDef[] = [
     name: 'Soaker 3000',
     spriteKey: 'gun_soaker3000',
     tier: 3,
-    cost: 1200,
+    cost: 900,
     tank: 490,
     drain: 2,
     interval: 130,
-    power: 40,
+    power: 16,
     streams: 2,
     sz: 10,
     type: 'water',
@@ -171,11 +190,11 @@ export const GUN_DEFS: readonly GunDef[] = [
     name: 'Inferno',
     spriteKey: 'gun_inferno',
     tier: 4,
-    cost: 5000,
+    cost: 2000,
     tank: 865,
     drain: 3,
     interval: 110,
-    power: 77,
+    power: 33,
     streams: 1,
     sz: 12,
     type: 'fire',

@@ -105,11 +105,13 @@ export class AudioOrchestra {
   /**
    * Starts the music. With a `worldId` this is a new round: the score is
    * (re)seated across the wall, `pans` giving each spinner's left-right
-   * position (−1..1) so the orchestra is laid out where the spinners are.
+   * position (−1..1) so the orchestra is laid out where the spinners are — and
+   * their number is the size of the band for this gig.
    * Without one it resumes exactly where `stop()` left off (un-pause).
    * Requires `audioBus.init()` on a user gesture first; otherwise a no-op.
    */
   start(worldId?: string, pans: readonly number[] = []): void {
+    const band = pans.length > 0 ? pans.length : undefined;
     audioBus.resume();
     const ctx = audioBus.context;
     const master = audioBus.master;
@@ -122,7 +124,7 @@ export class AudioOrchestra {
     if (!graph) return;
 
     if (worldId || !this._conductor) {
-      this._conductor = new Conductor(resolveScore(worldId ?? ''), sampleBank);
+      this._conductor = new Conductor(resolveScore(worldId ?? ''), sampleBank, band);
       graph.resetChannels();
       for (let seat = 0; seat < this._conductor.seatCount; seat++) {
         const pan = pans[seat] ?? 0;

@@ -101,8 +101,6 @@ export const DEFAULT_FIRE_POWER = 6;
 
 /** How long the SPLASH FRENZY bonus window locks spinners at FULL, in ms (CLAUDE.md §2). */
 export const FRENZY_DURATION_MS = 5000;
-/** Bonus stars awarded the instant SPLASH FRENZY triggers (prototype `triggerFrenzy`). */
-export const FRENZY_BONUS_STARS = 25;
 /** Camera shake on Frenzy trigger — duration ms + intensity (prototype: `shake(500, 0.012)`). */
 export const FRENZY_SHAKE_DURATION_MS = 500;
 export const FRENZY_SHAKE_INTENSITY = 0.012;

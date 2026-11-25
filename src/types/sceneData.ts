@@ -5,10 +5,12 @@ export interface GameSceneData {
   readonly grannyId: string;
   readonly gunId: string;
   readonly worldId: string;
+  /** 0-based gig on the venue's ladder. Omitted = the first gig not yet passed. */
+  readonly gig?: number;
 }
 
-/** GameScene → GameOverScene: the just-finished run's result. */
-export interface GameOverData {
+/** GameScene → ResultsScene: the just-finished run's result. */
+export interface GigResultData {
   readonly score: number;
   /** Which world was played — so the end screen can name the best it's comparing against. */
   readonly worldId: string;
@@ -21,4 +23,10 @@ export interface GameOverData {
   readonly totalSpinners: number;
   /** Whether SPLASH FRENZY triggered at least once. */
   readonly reachedFrenzy: boolean;
+  /** 0-based gig just played, the stars earned on it (0–3), and how many of those were new. */
+  readonly gig: number;
+  readonly stars: number;
+  readonly newStars: number;
+  /** Coins paid for the new stars, on top of `score`. */
+  readonly starCoins: number;
 }

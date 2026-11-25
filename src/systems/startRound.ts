@@ -1,7 +1,7 @@
 /**
  * The one place a new round is gated behind the between-runs commercial
  * break (CLAUDE.md §3 SDK step 5, §11.1). Shared by SplashScene's PLAY and
- * GameOverScene's PLAY AGAIN so the two can never drift apart — Poki
+ * ResultsScene's PLAY AGAIN so the two can never drift apart — Poki
  * requires `commercialBreak()` between runs with audio muted for its
  * duration, whichever button started the next one.
  *

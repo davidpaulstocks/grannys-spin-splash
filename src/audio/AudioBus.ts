@@ -93,7 +93,7 @@ const AD_FADE_IN_MS = 300;
 /**
  * The `AdHooks` every `adManager.play*()` call site should pass — one
  * definition instead of re-typing the same fade calls at each of the
- * three call sites (SplashScene's commercial break, GameOverScene's
+ * three call sites (SplashScene's commercial break, ResultsScene's
  * double-score reward, GameScene's mid-run refill reward).
  */
 export const AD_MUTE_HOOKS = {

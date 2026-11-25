@@ -17,14 +17,14 @@ describe('UnlockManager', () => {
 
   it('starts with an empty vault and every 0★ launch item already unlocked', () => {
     expect(unlocks.getVault()).toBe(0);
-    expect(unlocks.isGrannyUnlocked('classic')).toBe(true); // 0★ cost
-    expect(unlocks.isGrannyUnlocked('squirt')).toBe(true); // also 0★ cost
-    expect(unlocks.isGrannyUnlocked('punk')).toBe(false); // 500★ cost
-    expect(unlocks.isGunUnlocked('pistol')).toBe(true); // 0★ cost
-    expect(unlocks.isGunUnlocked('squirter')).toBe(true); // also 0★ cost
-    expect(unlocks.isGunUnlocked('hose')).toBe(false); // 200★ cost
-    expect(unlocks.isWorldUnlocked('garden')).toBe(true); // 0★ cost
-    expect(unlocks.isWorldUnlocked('workshop')).toBe(false); // 500★ cost
+    expect(unlocks.isGrannyUnlocked('classic')).toBe(true); // free
+    expect(unlocks.isGrannyUnlocked('squirt')).toBe(true); // also free
+    expect(unlocks.isGrannyUnlocked('punk')).toBe(false); // 600 coins
+    expect(unlocks.isGunUnlocked('pistol')).toBe(true); // free
+    expect(unlocks.isGunUnlocked('squirter')).toBe(true); // also free
+    expect(unlocks.isGunUnlocked('hose')).toBe(false); // 150 coins
+    expect(unlocks.isWorldUnlocked('garden')).toBe(true); // open from the start
+    expect(unlocks.isWorldUnlocked('workshop')).toBe(false); // needs stars
   });
 
   it('addStars() accumulates into the vault and persists', () => {
@@ -41,10 +41,10 @@ describe('UnlockManager', () => {
   });
 
   it('unlockGranny() fails when the vault is short, succeeds once it is enough', () => {
-    unlocks.addStars(499);
+    unlocks.addStars(599);
     expect(unlocks.unlockGranny('punk')).toBe(false);
     expect(unlocks.isGrannyUnlocked('punk')).toBe(false);
-    expect(unlocks.getVault()).toBe(499); // nothing deducted on failure
+    expect(unlocks.getVault()).toBe(599); // nothing deducted on failure
 
     unlocks.addStars(1);
     expect(unlocks.unlockGranny('punk')).toBe(true);
@@ -91,20 +91,23 @@ describe('UnlockManager', () => {
     unlocks.selectGranny('punk'); // locked — ignored
     expect(unlocks.getSelectedGrannyId()).toBe('classic');
 
-    unlocks.addStars(500);
+    unlocks.addStars(600);
     unlocks.unlockGranny('punk');
     unlocks.selectGranny('punk');
     expect(unlocks.getSelectedGrannyId()).toBe('punk');
   });
 
-  it('unlockWorld()/selectWorld() follow the same vault-gated pattern as grannies/guns', () => {
+  it('opens venues on stars earned, never on coins', () => {
     unlocks.selectWorld('workshop'); // locked — ignored
     expect(unlocks.getSelectedWorldId()).toBe('garden');
 
-    expect(unlocks.unlockWorld('workshop')).toBe(false); // vault short
-    unlocks.addStars(500);
-    expect(unlocks.unlockWorld('workshop')).toBe(true);
-    expect(unlocks.getVault()).toBe(0);
+    unlocks.addStars(100000); // any amount of coins changes nothing
+    expect(unlocks.isWorldUnlocked('workshop')).toBe(false);
+
+    // Three stars on four Garden gigs is the twelve the Workshop asks for.
+    save.save({ ...save.load(), gigStars: { garden: [3, 3, 3, 3] } });
+    expect(unlocks.isWorldUnlocked('workshop')).toBe(true);
+    expect(unlocks.getVault()).toBe(100000);
 
     unlocks.selectWorld('workshop');
     expect(unlocks.getSelectedWorldId()).toBe('workshop');

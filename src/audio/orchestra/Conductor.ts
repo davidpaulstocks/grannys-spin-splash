@@ -83,7 +83,8 @@ export class Conductor {
   private readonly _finale: readonly CompiledLine[];
   private readonly _frenzy: readonly CompiledLine[];
 
-  constructor(score: Score, bank: SampleBank) {
+  /** `band` is how many musicians are on the wall for this gig — the first that many of the score's line-up. */
+  constructor(score: Score, bank: SampleBank, band = score.lineup.length) {
     this.score = score;
     this._bank = bank;
     this.stepSeconds = 60 / score.bpm / 4;
@@ -97,7 +98,12 @@ export class Conductor {
       return [chord(first), chord(second)];
     });
 
-    this._seats = score.seats.map((part) => {
+    const byId = new Map(score.seats.map((part) => [part.id, part]));
+    const seated = score.lineup
+      .slice(0, Math.max(1, band))
+      .map((id) => byId.get(id))
+      .filter((part): part is Part => part !== undefined);
+    this._seats = seated.map((part) => {
       const full = compileLine(part);
       return {
         part,

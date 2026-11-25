@@ -9,6 +9,7 @@ import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import type { SaveManager } from './SaveManager';
+import { isVenueOpen } from './Progress';
 
 export class UnlockManager {
   constructor(private readonly _save: SaveManager) {}
@@ -26,8 +27,10 @@ export class UnlockManager {
     return this._save.load().unlockedGuns.includes(id);
   }
 
+  /** Venues open on total stars earned, never on coins (docs/ENGAGEMENT_DESIGN.md §4). */
   isWorldUnlocked(id: string): boolean {
-    return this._save.load().unlockedWorlds.includes(id);
+    const venue = WORLD_DEFS.find((w) => w.id === id);
+    return venue !== undefined && isVenueOpen(this._save.load(), venue);
   }
 
   getSelectedGrannyId(): string {
@@ -61,13 +64,6 @@ export class UnlockManager {
     const def = GUN_DEFS.find((g) => g.id === id);
     if (!def) return false;
     return this._unlock(id, def.cost, 'unlockedGuns');
-  }
-
-  /** Spends vault stars to unlock a world. Returns false if already unlocked or vault is short. */
-  unlockWorld(id: string): boolean {
-    const def = WORLD_DEFS.find((w) => w.id === id);
-    if (!def) return false;
-    return this._unlock(id, def.unlockThreshold, 'unlockedWorlds');
   }
 
   /** Grants a gun for free — a successful rewarded-ad watch (CLAUDE.md §11.1/§11.4), never a purchase. */
@@ -109,11 +105,7 @@ export class UnlockManager {
     this._save.save({ ...save, selectedWorldId: id });
   }
 
-  private _unlock(
-    id: string,
-    cost: number,
-    field: 'unlockedGrannies' | 'unlockedGuns' | 'unlockedWorlds',
-  ): boolean {
+  private _unlock(id: string, cost: number, field: 'unlockedGrannies' | 'unlockedGuns'): boolean {
     const save = this._save.load();
     if (save[field].includes(id)) return false;
     if (save.vault < cost) return false;

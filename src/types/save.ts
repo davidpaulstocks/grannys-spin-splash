@@ -9,7 +9,6 @@ export interface SaveData {
   vault: number;
   unlockedGrannies: readonly string[];
   unlockedGuns: readonly string[];
-  unlockedWorlds: readonly string[];
   selectedGrannyId: string;
   selectedGunId: string;
   selectedWorldId: string;
@@ -27,6 +26,12 @@ export interface SaveData {
    * no migration is needed.
    */
   bestByWorld: Record<string, number>;
+  /**
+   * Best star rating (0–3) on each gig, by venue id — the tour's progress
+   * (docs/ENGAGEMENT_DESIGN.md). Absent from older saves; the default-merge
+   * fills in `{}`, which reads as "no gig passed yet".
+   */
+  gigStars: Record<string, readonly number[]>;
   /**
    * False until the player fires for the first time. Drives the one-time
    * onboarding in CLAUDE.md §6.5 (splash hint + in-game ghost finger) and
