@@ -12,6 +12,7 @@
 import Phaser from 'phaser';
 
 import { PUMP_REFILL_MS, SOAKER_EXTRA_WOBBLE } from '../../config';
+import { audioOrchestra } from '../../audio/AudioOrchestra';
 import * as SFX from '../../audio/SFX';
 import type { GunDef } from '../gun/gun.types';
 import type { Spinner } from '../spinner/Spinner';
@@ -165,7 +166,7 @@ export class WaterCannon {
     if (this._isPumping && time >= this._pumpEndAt) {
       this._isPumping = false;
       this._tank = this._gun.tank;
-      SFX.playRefill();
+      audioOrchestra.accent('refill');
       return 'completed';
     }
     return null;

@@ -90,3 +90,84 @@ export function playClosingChord(
     });
   });
 }
+
+/**
+ * Short musical answers to things the player does — a spinner levelling up, a
+ * combo climbing, a pickup. Voiced by the orchestra, in the current chord, so
+ * feedback is part of the music instead of a beep on top of it.
+ */
+export type Accent =
+  | 'wake'
+  | 'spin'
+  | 'full'
+  | 'combo'
+  | 'powerup'
+  | 'golden'
+  | 'goldenMissed'
+  | 'refill'
+  | 'cheer';
+
+/** How far up the chord a combo accent reaches, by combo level 1–5. */
+const COMBO_TONES = [0, 1, 2, 4, 4] as const;
+
+export function playAccent(
+  conductor: Conductor,
+  ctx: BaseAudioContext,
+  graph: OrchestraGraph,
+  accent: Accent,
+  step: number,
+  at: number,
+  level = 1,
+): void {
+  const sixteenth = conductor.stepSeconds;
+  const run = (
+    instrument: 'harp' | 'glock' | 'marimba' | 'xylo',
+    tones: readonly number[],
+    floor: number,
+    gain: number,
+    spacing = sixteenth,
+  ): void => {
+    tones.forEach((tone, i) => {
+      conductor.stinger(ctx, graph, instrument, step, at + i * spacing, { tone, floor, gain });
+    });
+  };
+
+  switch (accent) {
+    case 'wake':
+      run('harp', [0], 67, 0.3);
+      break;
+    case 'spin':
+      run('harp', [0, 2], 67, 0.32);
+      break;
+    case 'full':
+      run('glock', [0, 2, 4], 72, 0.3);
+      conductor.stinger(ctx, graph, 'triangle', step, at, { gain: 0.3 });
+      break;
+    case 'combo':
+      run(
+        'xylo',
+        [COMBO_TONES[Math.min(level, COMBO_TONES.length) - 1] ?? 0],
+        72 + (level >= 5 ? 12 : 0),
+        0.34,
+      );
+      break;
+    case 'powerup':
+      run('harp', [0, 1, 2, 4], 60, 0.4, sixteenth / 2);
+      run('harp', [0, 1, 2, 4], 72, 0.36, sixteenth / 2);
+      break;
+    case 'golden':
+      conductor.stinger(ctx, graph, 'bell_tree', step, at, { gain: 0.4 });
+      run('glock', [2, 4], 79, 0.3);
+      break;
+    case 'goldenMissed':
+      run('marimba', [2, 0], 55, 0.3);
+      break;
+    case 'refill':
+      run('harp', [0, 1, 2, 4], 67, 0.34, sixteenth / 2);
+      break;
+    case 'cheer':
+      conductor.stinger(ctx, graph, 'triangle', step, at, { gain: 0.34 });
+      run('glock', [4], 72, 0.24);
+      break;
+  }
+}

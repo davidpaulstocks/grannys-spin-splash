@@ -17,6 +17,7 @@ import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { saveManager } from '../systems/SaveManager';
+import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
 import type { CarouselItem } from '../ui/Carousel';
@@ -387,14 +388,12 @@ export class SplashScene extends Phaser.Scene {
     if (this._isStartingRun) return; // guards against a double-tap firing two commercial breaks
     this._isStartingRun = true;
 
-    if (adManager.shouldShowCommercialBreak()) {
-      await adManager.playCommercialBreak(AD_MUTE_HOOKS);
-    }
-
-    this.scene.start('GameScene', {
-      grannyId: this._unlocks.getSelectedGrannyId(),
-      gunId: this._unlocks.getSelectedGunId(),
-      worldId: this._unlocks.getSelectedWorldId(),
-    });
+    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, () =>
+      this.scene.start('GameScene', {
+        grannyId: this._unlocks.getSelectedGrannyId(),
+        gunId: this._unlocks.getSelectedGunId(),
+        worldId: this._unlocks.getSelectedWorldId(),
+      }),
+    );
   }
 }

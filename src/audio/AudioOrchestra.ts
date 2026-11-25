@@ -24,7 +24,13 @@ import { audioBus } from './AudioBus';
 import { Conductor, seatChannel, sprayChannel } from './orchestra/Conductor';
 import { OrchestraGraph } from './orchestra/OrchestraGraph';
 import { sampleBank } from './orchestra/SampleBank';
-import { playAnticipation, playClosingChord, playFanfare } from './orchestra/setPieces';
+import {
+  playAccent,
+  playAnticipation,
+  playClosingChord,
+  playFanfare,
+  type Accent,
+} from './orchestra/setPieces';
 import { resolveScore } from './scores';
 
 /** How far ahead of the audio clock notes are scheduled, and how often that is topped up. */
@@ -237,6 +243,40 @@ export class AudioOrchestra {
     this._frenzy = true;
     const step = this._nextStep(ctx.currentTime + SPRAY_MIN_LEAD_SECONDS, 1);
     playFanfare(conductor, ctx, graph, step, conductor.timeOfStep(step, this._origin));
+  }
+
+  /**
+   * A short musical answer to something the player did, on the next
+   * sixteenth and in the current chord. `level` is the combo level for
+   * `'combo'`, ignored otherwise.
+   */
+  accent(accent: Accent, level = 1): void {
+    const ctx = this._ctx;
+    const graph = this._graph;
+    const conductor = this._conductor;
+    if (!this._running || !ctx || !graph || !conductor) return;
+    const step = this._nextStep(ctx.currentTime + SPRAY_MIN_LEAD_SECONDS, 1);
+    playAccent(
+      conductor,
+      ctx,
+      graph,
+      accent,
+      step,
+      conductor.timeOfStep(step, this._origin),
+      level,
+    );
+  }
+
+  /** The final-countdown tick. Unquantised: it has to agree with the clock on screen, not the bar line. */
+  tick(final: boolean): void {
+    const ctx = this._ctx;
+    const graph = this._graph;
+    const conductor = this._conductor;
+    if (!this._running || !ctx || !graph || !conductor) return;
+    const at = ctx.currentTime + SPRAY_MIN_LEAD_SECONDS;
+    conductor.stinger(ctx, graph, 'claves', this._step, at, { gain: final ? 0.5 : 0.34 });
+    if (final)
+      conductor.stinger(ctx, graph, 'timpani', this._step, at, { tone: 0, floor: 36, gain: 0.4 });
   }
 
   onFrenzyEnd(): void {

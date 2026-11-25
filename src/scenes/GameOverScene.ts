@@ -10,10 +10,11 @@
  * number ticks up rather than appearing, and the rank lands after it with a
  * bounce and its own colour.
  *
- * Play Again returns to SplashScene, not straight into GameScene — the loop
- * is splash → game → game over → splash so newly-earned vault stars are
- * visible before the next run. `commercialBreak()` before restart is
- * SplashScene's job (story 6.1), not this scene's.
+ * Play Again restarts GameScene directly (same world/granny/gun) — Poki's
+ * playtime gate needs several rounds per sitting, so the menu detour was the
+ * biggest friction. It runs the same commercial-break gate as SplashScene's
+ * PLAY via systems/startRound.ts. A secondary MENU button returns to the
+ * splash screen for loadout changes and the vault.
  */
 
 import Phaser from 'phaser';
@@ -24,8 +25,9 @@ import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import * as SFX from '../audio/SFX';
 import { saveManager } from '../systems/SaveManager';
+import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
-import type { GameOverData } from '../types/sceneData';
+import type { GameOverData, GameSceneData } from '../types/sceneData';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { showBanner } from '../ui/Banner';
 import { createButton } from '../ui/Button';
@@ -43,6 +45,10 @@ const FRENZY_LINE_Y = GAME_HEIGHT * 0.655;
 const VAULT_Y = GAME_HEIGHT * 0.6;
 const PLAY_AGAIN_Y = GAME_HEIGHT * 0.73;
 const DOUBLE_SCORE_Y = GAME_HEIGHT * 0.86;
+/** MENU sits in the top-left corner: out of the PLAY AGAIN / reward column so it can never steal a tap from either. */
+const MENU_X = 130;
+const MENU_Y = 56;
+const MENU_MIN_WIDTH = 150;
 /**
  * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
  * to the rewarded button beside/above it. The reward label — "Watch an ad
@@ -66,12 +72,17 @@ export class GameOverScene extends Phaser.Scene {
   private _rankLabel!: Phaser.GameObjects.Text;
   private _rankDesc!: Phaser.GameObjects.Text;
   private _doubleScoreButton: Phaser.GameObjects.Container | null = null;
+  private _isStartingRun = false;
 
   constructor() {
     super('GameOverScene');
   }
 
   create(data: GameOverData): void {
+    // Phaser reuses this instance — see SplashScene.create() for the bug a
+    // stale `true` here would cause (a dead PLAY AGAIN from the 2nd visit).
+    this._isStartingRun = false;
+
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud).setOrigin(0);
 
     this.add
@@ -115,13 +126,46 @@ export class GameOverScene extends Phaser.Scene {
       // Wide enough to stay ≥ the reward button below it, per CLAUDE.md
       // §11.3 — see PLAY_AGAIN_MIN_WIDTH's own comment.
       minWidth: PLAY_AGAIN_MIN_WIDTH,
-      onClick: () => this.scene.start('SplashScene'),
+      onClick: () => void this._onPlayAgain(data),
+    });
+    createButton(this, {
+      x: MENU_X,
+      y: MENU_Y,
+      label: 'MENU',
+      variant: 'secondary',
+      minWidth: MENU_MIN_WIDTH,
+      onClick: () => this._onMenu(),
     });
 
     this._buildBestLine(data);
     this._buildFrenzyLine(data);
     this._buildDoubleScoreButton(data.score);
     this._countUpTo(data.score);
+  }
+
+  /**
+   * One-tap replay: same world, and the granny/gun still equipped (the
+   * selection lives in the save and cannot change mid-run, so reading it
+   * back is equivalent to what GameScene was started with). Goes through the
+   * same ad gate as SplashScene's PLAY.
+   */
+  private async _onPlayAgain(data: GameOverData): Promise<void> {
+    if (this._isStartingRun) return; // double-tap guard while the ad promise is pending
+    this._isStartingRun = true;
+    const next: GameSceneData = {
+      grannyId: this._unlocks.getSelectedGrannyId(),
+      gunId: this._unlocks.getSelectedGunId(),
+      worldId: data.worldId,
+    };
+    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, () =>
+      this.scene.start('GameScene', next),
+    );
+  }
+
+  private _onMenu(): void {
+    if (this._isStartingRun) return; // a replay (and its ad) is already in flight
+    this._isStartingRun = true;
+    this.scene.start('SplashScene');
   }
 
   /**

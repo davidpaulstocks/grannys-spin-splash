@@ -57,7 +57,9 @@ import { UnlockManager } from '../systems/UnlockManager';
 import { adManager } from '../systems/AdManager';
 import { audioBus } from '../audio/AudioBus';
 import { audioOrchestra } from '../audio/AudioOrchestra';
+import type { Accent } from '../audio/orchestra/setPieces';
 import * as SFX from '../audio/SFX';
+import { waterSound } from '../audio/WaterSound';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
@@ -110,6 +112,14 @@ function hitTextColour(multiplier: number): string {
   if (multiplier >= 2) return COLOUR_HEX.sunnyGold;
   return COLOUR_HEX.waterBlue;
 }
+
+/** The orchestra's answer to a spinner climbing a tier — bigger for each step up. */
+const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
+  [SpinnerState.STOPPED]: 'wake',
+  [SpinnerState.SLOW]: 'wake',
+  [SpinnerState.MEDIUM]: 'spin',
+  [SpinnerState.FULL]: 'full',
+};
 
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];
@@ -247,6 +257,7 @@ export class GameScene extends Phaser.Scene {
       // Covers every way this scene can end — round over, quit from pause,
       // or a direct scene.stop() — so the music can never outlive the run.
       audioOrchestra.stop();
+      waterSound.setFiring(false);
     });
   }
 
@@ -328,6 +339,8 @@ export class GameScene extends Phaser.Scene {
         : null,
       soakerActive: time < this._soakerEndAt,
     });
+    // The hiss of the jet: on only while water is actually leaving the gun.
+    waterSound.setFiring(firing && !this._cannon.isPumping && this._cannon.tank > 0);
     this._onPumpEvent(this._cannon.updatePump(time));
     this._updateWaterCollisions();
     this._combo.update(delta);
@@ -361,7 +374,7 @@ export class GameScene extends Phaser.Scene {
     this._lastUrgentSecond = seconds;
 
     const final = seconds <= FINAL_COUNTDOWN_SECONDS;
-    SFX.playTick(final);
+    audioOrchestra.tick(final);
     this.cameras.main.shake(
       final ? COUNTDOWN_TICK_SHAKE_DURATION_MS.final : COUNTDOWN_TICK_SHAKE_DURATION_MS.normal,
       final ? COUNTDOWN_TICK_SHAKE_INTENSITY.final : COUNTDOWN_TICK_SHAKE_INTENSITY.normal,
@@ -472,7 +485,7 @@ export class GameScene extends Phaser.Scene {
       }
       if (usingGoldenSplash) this._goldenSplashPending = false;
 
-      SFX.playHit(hitSpinner.currentSpeed);
+      waterSound.splash((hitX / GAME_WIDTH) * 2 - 1);
       // The squirt plays the instrument (CLAUDE.md §9): the musician seated
       // at this spinner answers on the next sixteenth. A Golden Spinner has
       // no seat, so it is skipped.
@@ -482,7 +495,7 @@ export class GameScene extends Phaser.Scene {
       const comboBefore = this._combo.combo;
       const comboAfter = this._combo.registerHit(hitSpinner.id);
       if (comboAfter !== comboBefore) {
-        SFX.playCombo(comboAfter);
+        audioOrchestra.accent('combo', comboAfter);
         // Escalating shake on a hot streak (prototype: combo>=4) — never on
         // every single hit, only when the combo itself actually climbs.
         if (comboAfter >= COMBO_SHAKE_THRESHOLD) {
@@ -500,7 +513,7 @@ export class GameScene extends Phaser.Scene {
     const multiplier = this._combo.multiplier * (doubleStarsActive ? 2 : 1);
     const total = (spinner.def.stars + levelBonus) * multiplier;
     this._score += total;
-    SFX.playUpgrade(STATE_ORDINAL[newState]);
+    audioOrchestra.accent(LEVEL_UP_ACCENT[newState]);
     // Restored 2026-09-12 from the prototype's `awardStars` — direct user
     // feedback that per-hit feedback ("toasts when the player hit
     // targets") was part of what made hits feel rewarding. This is
@@ -557,7 +570,7 @@ export class GameScene extends Phaser.Scene {
       // and it stopped dead at Frenzy because nothing could level up any
       // more. Riding the same chance keeps it celebratory without turning
       // 60 hits a second into a siren.
-      SFX.playUpgrade(STATE_ORDINAL[SpinnerState.FULL]);
+      audioOrchestra.accent('full');
     }
   }
 
@@ -575,7 +588,7 @@ export class GameScene extends Phaser.Scene {
   private _maybeEncourage(): void {
     if (Math.random() >= ENCOURAGEMENT_CHANCE) return;
     showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, pickEncouragementPhrase());
-    SFX.playEncouragement();
+    audioOrchestra.accent('cheer');
   }
 
   /**
@@ -625,7 +638,7 @@ export class GameScene extends Phaser.Scene {
     const def = POWERUP_DEFS.find((d) => d.effect === effect);
     if (!def) return;
     spawnFloatingText(this, x, y - 30, `${def.name}!`, COLOUR_HEX.sunnyGold);
-    SFX.playPowerup();
+    audioOrchestra.accent('powerup');
     this.cameras.main.shake(200, 0.007);
 
     switch (effect) {
@@ -658,7 +671,7 @@ export class GameScene extends Phaser.Scene {
       `GOLDEN! +${claim.stars} ★`,
       COLOUR_HEX.sunnyGold,
     );
-    SFX.playUpgrade(STATE_ORDINAL[SpinnerState.FULL]);
+    audioOrchestra.accent('golden');
   }
 
   private _onFrenzyStart(): void {
@@ -686,14 +699,13 @@ export class GameScene extends Phaser.Scene {
       `+${FRENZY_BONUS_STARS} ★`,
       COLOUR_HEX.sunnyGold,
     );
-    SFX.playFrenzy();
     audioOrchestra.onFrenzyStart();
   }
 
   /** The wall crosses 60%/80% of spinners at FULL — a quiet, quick encouragement beat (CLAUDE.md §1's mini-frenzy). */
   private _onMiniFrenzy(message: string): void {
     showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.36, message);
-    SFX.playEncouragement();
+    audioOrchestra.accent('cheer');
   }
 
   private _updateFrenzyWindow(time: number): void {
@@ -776,6 +788,7 @@ export class GameScene extends Phaser.Scene {
     poki.gameplayStop();
     audioBus.fadeOut(100);
     audioOrchestra.stop();
+    waterSound.setFiring(false);
     this.scene.pause();
     this.scene.launch('PauseScene');
   }
@@ -785,6 +798,7 @@ export class GameScene extends Phaser.Scene {
     // Resolve on a closing chord rather than cutting the music dead; the
     // SHUTDOWN handler's stop() leaves a finishing orchestra to ring.
     audioOrchestra.finish();
+    waterSound.setFiring(false);
     poki.gameplayStop();
     adManager.recordRunCompleted();
 

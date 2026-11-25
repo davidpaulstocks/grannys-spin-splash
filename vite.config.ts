@@ -25,7 +25,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    sourcemap: true,
+    sourcemap: false,
     // Inline small assets directly into JS to avoid extra network requests.
     assetsInlineLimit: 4096,
     rollupOptions: {

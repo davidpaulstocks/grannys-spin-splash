@@ -16,7 +16,7 @@ import Phaser from 'phaser';
 import { showToast } from '../../ui/Toast';
 import { distance } from '../../utils/math';
 import { DURATION, EASE } from '../../utils/tween';
-import * as SFX from '../../audio/SFX';
+import { audioOrchestra } from '../../audio/AudioOrchestra';
 import { GOLDEN_LIFETIME_MS, GOLDEN_SPAWN_DELAY_MS } from '../world/world.data';
 import type { WallArea } from '../world/wallBuilder';
 import { SPINNER_DEFS } from './spinner.data';
@@ -106,7 +106,7 @@ export class GoldenSpinnerSpawner {
     this._spinner = new Spinner(this._scene, x, y, def);
     this._lifetimeMs = GOLDEN_LIFETIME_MS;
     showToast(this._scene, x, y - def.r - 20, 'Golden Spinner appeared!');
-    SFX.playGoldenAppear();
+    audioOrchestra.accent('golden');
   }
 
   private _despawn(playExpireSfx: boolean): void {
@@ -123,7 +123,7 @@ export class GoldenSpinnerSpawner {
       ease: EASE.standardIn,
       onComplete: () => golden.destroy(),
     });
-    if (playExpireSfx) SFX.playGoldenExpire();
+    if (playExpireSfx) audioOrchestra.accent('goldenMissed');
     this._scheduleNext();
   }
 
