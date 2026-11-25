@@ -63,7 +63,7 @@ export class MusicReactions {
           spinner.x,
           spinner.y - spinner.def.r - INTRO_LABEL_GAP,
           'NEW',
-          textStyle('bodyL', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
+          textStyle('buttonS', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
         )
         .setOrigin(0.5, 1)
         .setDepth(INTRO_LABEL_DEPTH);
@@ -72,7 +72,7 @@ export class MusicReactions {
           spinner.x,
           spinner.y + spinner.def.r + INTRO_LABEL_GAP,
           name,
-          textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
+          textStyle('buttonS', COLOUR_HEX.cloud, COLOUR_HEX.ink),
         )
         .setOrigin(0.5, 0)
         .setDepth(INTRO_LABEL_DEPTH);

@@ -32,6 +32,22 @@ const GUN_ANGLES: readonly GunAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
 const BAR_WIDTH = 480;
 const BAR_HEIGHT = 20;
 
+/**
+ * A review link: `?venue=kitchen&gig=2` opens that gig directly, whatever the
+ * save says is unlocked. It exists so a venue's band can be heard without
+ * first earning the stars to reach it (2026-11-25: the Kitchen's jazz combo
+ * sits behind 30 stars). It grants nothing and saves nothing unusual — the
+ * gig is banked like any other — but it does bypass the tour, so it is listed
+ * in BACKLOG.md as something to remove before submission.
+ */
+export function reviewLink(search: string): { worldId: string; gig: number } | null {
+  const params = new URLSearchParams(search);
+  const venue = WORLD_DEFS.find((w) => w.id === params.get('venue'));
+  if (!venue) return null;
+  const gig = Number.parseInt(params.get('gig') ?? '1', 10);
+  return { worldId: venue.id, gig: Number.isFinite(gig) ? Math.max(0, gig - 1) : 0 };
+}
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
@@ -75,6 +91,15 @@ export class BootScene extends Phaser.Scene {
     // how many visitors reach their first input, and a menu before play costs
     // some of them. Everyone else lands on Home.
     const save = saveManager.load();
+    const review = reviewLink(window.location.search);
+    if (review) {
+      this.scene.start('GameScene', {
+        grannyId: save.selectedGrannyId,
+        gunId: save.selectedGunId,
+        ...review,
+      } satisfies GameSceneData);
+      return;
+    }
     if (save.hasPlayed) {
       this.scene.start('HomeScene');
       return;

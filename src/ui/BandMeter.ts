@@ -35,6 +35,8 @@ const STAR_OUTLINE_PX = 4;
 /** Stars sit this far above the track's centre, on a short stalk down to their light. */
 const STAR_LIFT = 36;
 const STALK_WIDTH = 3;
+/** Centre-to-centre spacing of stars that share one light. */
+const SHARED_STAR_PITCH = 36;
 const STAR_POP_SCALE = 1.8;
 const STAR_POP_MS = 320;
 
@@ -133,15 +135,20 @@ export class BandMeter {
       this._lights.push(light);
       this._container.add(light);
     }
-    for (const needed of awakeNeededForStars(total)) {
-      const x = xOf(needed - 1);
+    const thresholds = awakeNeededForStars(total);
+    thresholds.forEach((needed, i) => {
+      // In a small band two stars can be earned by the same light; they then
+      // stand side by side above it instead of one hiding the other.
+      const sharing = thresholds.filter((other) => other === needed).length;
+      const place = thresholds.slice(0, i).filter((other) => other === needed).length;
+      const x = xOf(needed - 1) + (place - (sharing - 1) / 2) * SHARED_STAR_PITCH;
       const star = this._scene.add.graphics({ x, y: -STAR_LIFT });
       star.fillStyle(COLOUR.ink, 1);
       star.fillRect(-STALK_WIDTH / 2, STAR_RADIUS * 0.5, STALK_WIDTH, STAR_LIFT - TRACK_HEIGHT / 2);
       this._drawStar(star, false);
       this._stars.push(star);
       this._container.add(star);
-    }
+    });
   }
 
   private _drawStar(star: Phaser.GameObjects.Graphics, lit: boolean): void {
