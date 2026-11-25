@@ -9,7 +9,7 @@
  *
  *   await __bot.ladder('garden')                    // all eight gigs, both bots
  *   await __bot.ladder('workshop', 'hose', [0, 3, 7])
- *   __bot.play('garden', 7, __bot.KEEN, 'pistol')   // one gig, one bot
+ *   await __bot.ready(); __bot.play('garden', 7, __bot.KEEN, 'pistol')   // one gig, one bot
  *
  * The harness stops Phaser's own frame loop and steps it by hand, so a
  * browser tab that throttles animation frames cannot corrupt a reading. Reload
@@ -24,6 +24,16 @@ const FRAME_MS = 1000 / 60;
 const MAX_FRAMES = 4000;
 /** A topped-up spinner is "done" for the bot from here, just short of the maximum. */
 const TOPPED_UP_SPEED = 97;
+/** Any of these being active means loading is over. */
+const PLAYABLE_SCENES = [
+  'HomeScene',
+  'GameScene',
+  'ResultsScene',
+  'TourScene',
+  'ShopScene',
+] as const;
+const READY_POLL_MS = 16;
+const READY_MAX_POLLS = 1500;
 /** Where a missed shot lands relative to its target. */
 const MISS_OFFSET = { x: 150, y: 60 } as const;
 
@@ -59,6 +69,8 @@ interface SceneView {
 export interface BotSim {
   readonly CHILD: BotProfile;
   readonly KEEN: BotProfile;
+  /** Resolves when the game has loaded. `ladder` calls it; call it yourself before a bare `play`. */
+  ready(): Promise<void>;
   play(worldId: string, gig: number, bot: BotProfile, gunId?: string): string;
   ladder(worldId: string, gunId?: string, gigs?: readonly number[]): Promise<string[]>;
 }
@@ -79,7 +91,27 @@ export function installBotSim(game: Phaser.Game): BotSim {
     }
   };
 
+  const isLoaded = (): boolean => PLAYABLE_SCENES.some((key) => game.scene.isActive(key));
+
+  /**
+   * Resolves once the game has finished loading. Drives the frame loop itself
+   * while it waits: Phaser's loader only pulls its next batch of files on a
+   * frame, so in a tab that throttles animation frames (any background tab,
+   * and the Claude browser pane) loading otherwise stalls part-way.
+   */
+  const ready = async (): Promise<void> => {
+    for (let i = 0; i < READY_MAX_POLLS && !isLoaded(); i++) {
+      if (!stopped) game.loop.step(performance.now());
+      await new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
+    }
+    if (!isLoaded()) throw new Error('game did not finish loading');
+  };
+
   const play = (worldId: string, gig: number, bot: BotProfile, gunId = 'pistol'): string => {
+    // Starting before the first screen is up would stop BootScene mid-load
+    // and leave half the assets missing. `ladder()` waits; a bare `play()`
+    // must be preceded by `await __bot.ready()`.
+    if (!isLoaded()) return 'still loading - await __bot.ready() first';
     audioBus.init();
     audioBus.mute();
     step(10);
@@ -144,6 +176,7 @@ export function installBotSim(game: Phaser.Game): BotSim {
     gunId = 'pistol',
     gigs: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7],
   ): Promise<string[]> => {
+    await ready();
     const lines: string[] = [];
     for (const gig of gigs) {
       lines.push(
@@ -155,5 +188,5 @@ export function installBotSim(game: Phaser.Game): BotSim {
     return lines;
   };
 
-  return { CHILD, KEEN, play, ladder };
+  return { CHILD, KEEN, ready, play, ladder };
 }

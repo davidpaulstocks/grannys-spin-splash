@@ -62,8 +62,13 @@ const SECONDS_BY_GIG = [20, 20, 25, 25, 30, 30, 30, 30] as const;
  */
 const FULL_DECAY_BAND = 4;
 const DECAY_FALLOFF = 1.2;
-/** Each venue after the first winds down this much faster again. */
-const DECAY_GAIN_PER_VENUE = 0.06;
+/**
+ * Later venues do not wind down any faster. They are already harder in ways
+ * Garden is not — obstacles that block water, whirligigs that deflect it,
+ * drifting targets — and stacking a faster wind-down on top left the
+ * Workshop's middle gigs at one star for every bot, with any gun.
+ */
+const DECAY_GAIN_PER_VENUE = 0;
 /** How long a topped-up spinner holds before winding down at all. */
 const HOLD_MS = 2500;
 
