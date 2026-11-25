@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on (2026-11-25):** the "Granny's Grand Tour" transformation — turning a solid 30-second prototype into a game with a journey, a real band per venue and a reason to play the next round (Poki's first gate needs average playtime over 3 minutes). **Done:** the orchestra on real instruments with written scores; slice 1 (gig ladder, stars, results, coins, balance harness); slice 2 (Home, Tour, Shop; `e6ab381`); WebP art; the balance reading for all five venues (`525c192`); slice 3, part built (one rolling mission and the daily gift; `73cd7ab`); the `GameScene` split into `src/scenes/game/` (`9b8fb00`); the UI pass (sharp text at device density, new `Button`/`IconButton`/`Panel`, Results/Home/Tour/Shop/Pause re-laid); goal clarity ("wake the whole band": sleeping spinners, `BandMeter`, `GoalCard`); and the first non-orchestral band, the Kitchen jazz combo (slice 4 begun). **Next:** the rest of slice 3 (Jam mode, new-musician solo, "ten more seconds") and the remaining bands (Funfair, Workshop, Disco). **Plans:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md), [`docs/BANDS.md`](docs/BANDS.md). The older narrative that used to sit here is under "History" at the bottom.
+**Currently working on (2026-11-25):** the "Granny's Grand Tour" transformation — turning a solid 30-second prototype into a game with a journey, a real band per venue and a reason to play the next round (Poki's first gate needs average playtime over 3 minutes). **Done:** the orchestra on real instruments with written scores; slice 1 (gig ladder, stars, results, coins, balance harness); slice 2 (Home, Tour, Shop; `e6ab381`); WebP art; the balance reading for all five venues (`525c192`); slice 3, part built (one rolling mission and the daily gift; `73cd7ab`); the `GameScene` split into `src/scenes/game/` (`9b8fb00`); the UI pass (sharp text at device density, new `Button`/`IconButton`/`Panel`, Results/Home/Tour/Shop/Pause re-laid); goal clarity ("wake the whole band": sleeping spinners, `BandMeter`, `GoalCard`); and a band for every venue (Kitchen jazz combo, then Workshop garage rock, Funfair brass band and Disco funk band, `9707eee` and `f04ef3c`; slice 4 built bar the listening). **Next:** David's listen to the three new bands and the own-voice squirt answer, then the rest of slice 3 (Jam mode, new-musician solo, "ten more seconds") and per-band fanfares and accents. **Plans:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md), [`docs/BANDS.md`](docs/BANDS.md). The older narrative that used to sit here is under "History" at the bottom.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -15,7 +15,7 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 
 - [x] Orchestra engine: sample sprite builder (`npm run samples`), `SampleBank`, `Conductor`, `OrchestraGraph`, notation + theory helpers, spray notes, tiers, round shape (finale / Frenzy fanfare / closing chord) — CLAUDE.md §9
 - [x] Real instruments — VSCO-2 Community Edition (CC0): 37 instruments, 119 notes, about 955 KB
-- [x] Five scores. **Garden is the reference**; Workshop, Funfair and Disco are orchestral stand-ins in the right key, tempo and feel until their bands are built; the Kitchen now has its own jazz combo (below)
+- [x] Five scores. **Garden is the reference**; each of the other four venues now has its own band (see the band entries below)
 - [x] Water sound (`WaterSound.ts`): spray, splash, droplet
 - [x] Orchestra-voiced feedback accents (level-ups, combos, pickups, golden spinners, refills, cheer)
 - [x] One-tap replay from the results screen (between-runs ad gate shared in `systems/startRound.ts`)
@@ -29,6 +29,8 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 - [x] **UI pass (`27a5b2b`, `7a024b7`)** — the canvas renders at device pixel density up to 2x (`RENDER_SCALE` in `src/config.ts`, `fitCameraToLogicalSize`), text outlines cut to about a tenth of the type size, one `Button` (face on a lip, three sizes, gold `reward` look), `IconButton`, shared `Panel` with a ribbon; Results, Home (`GigCard`, `GigMissionBand`), Tour (`TourNode`), Shop and Pause re-laid
 - [x] **Goal clarity (`7a024b7`)** — "wake the whole band, and keep them all awake at once": a stopped spinner shows drifting "z z z", an awake one about to drop out nods, the HUD is a `BandMeter` (one light per musician, stars above the lights that earn them; replaced `FrenzyProgress`), and a `GoalCard` shows before each gig. Tutorial captions reworded
 - [x] **Kitchen jazz combo (`7e3e1af`)** — the first band that is not an orchestra (C major, 116 BPM, swung). The loader loads one extra sprite per band (`public/audio/bands/kitchen.{mp3,json}`, 16 instruments, 363 KB); the builder is generalised with `tools/bands/*.manifest.json` and refuses unapproved repositories (`npm run samples -- kitchen`)
+- [x] **Workshop, Funfair and Disco bands (`9707eee`, `f04ef3c`)** — Workshop garage rock (A minor, 132 BPM, 15 seats), Funfair fairground brass band (F major, 120 BPM, 16 seats, no strings), Disco funk/disco band (D minor, 118 BPM, 21 seats including the mirror ball). New shared `kit` sprite (`public/audio/bands/kit.{mp3,json}`, 13 instruments, about 200 KB, from VCSL and the Karoryfer repositories; `npm run samples -- kit`). New guitar amp (`Part.drive` through `OrchestraGraph._amp`) turns the clean jazz guitar into rock guitars. Measured, not heard: every band within the Garden's loudness range with no clipping (full-band RMS Garden 0.189, Workshop 0.165, Disco 0.176, Funfair 0.158); the balance bot played the first and last gig of each venue with no errors.
+- [x] **Each instrument answers a squirt in its own voice (`9707eee`)** — held instruments answer in their own sustained voice, struck ones with their `spray` instrument; the first splash on a sleeping musician plays a wake-up call; the squirted musician takes the spotlight. Answers David's note that instruments sounded like "different tones of the same sound". Not yet heard by him.
 
 **Not done**
 
@@ -36,8 +38,8 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 - [ ] **New-musician solo** at the gig intro (only name labels exist)
 - [ ] **"Ten more seconds" rewarded option** (slice 3)
 - [ ] **Band album** (slice 3; the Band page listing every musician met)
-- [ ] **Funfair, Workshop and Disco bands** — still orchestral stand-ins in the right key and tempo (slice 4, `docs/BANDS.md`)
-- [ ] **Per-band fanfare and accents** — the set pieces and feedback accents (`setPieces.ts`) are still orchestral in every venue
+- [ ] **David's listen** to the Workshop, Funfair and Disco bands and to the own-voice squirt answer, wake-up call and spotlight (`9707eee`, `f04ef3c`); notes may mean retuning a band
+- [ ] **Per-band fanfare and accents** — the set pieces and feedback accents (`setPieces.ts`) are still orchestral in every venue (Funfair's frenzy is still the shared `tuttiFrenzy`)
 - [ ] **A real playtest of the difficulty curve with children** — the harness bot has near-perfect aim and no power-ups
 - [ ] **Touch-layout check of the new screens** (Home, Tour, Shop, Results, goal card)
 - [ ] **The pause screen has not been looked at since its re-lay**
@@ -78,7 +80,7 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 2. ✅ **Production sourcemap no longer ships** — `vite.config.ts` has `sourcemap: false` (since `8cec83d`; `dist` went from 18 MB to 7.9 MB on disk, the budgeted payload is unchanged at about 7.3 MB). Was a blocker; resolved.
 3. ✅ **Two-finger pause gesture** — removed 2026-09-12 at the owner's request ("if two fingers touch the screen on touch, it pauses the game. very annoying!"): touch gets a visible pause button (`ui/PauseButton.ts`), desktop keeps ESC. It had been the direct cause of the run-soft-locking critical bug. Not a blocker — a permanent improvement; CLAUDE.md §6.3 now matches.
 4. **Real-device pass** (7.2) and **studio name** (7.0) still outstanding.
-5. **Size headroom:** 2.98 MB under Poki's 8 MB at `113bf62` (5.02 MB built; `npm run build && npm run budget`). The Kitchen band cost 363 KB. Three bands remain at roughly 300–500 KB each, so per-venue band loading is still the plan to stay clear of the cap.
+5. **Size headroom:** 2.78 MB under Poki's 8 MB (5.22 MB built; `npm run build && npm run budget`). All five bands are in: the orchestra sprite is about 955 KB, Kitchen 363 KB and the shared `kit` 200 KB. Loading only the current venue's band would save about 560 KB at boot but is not needed today.
 
 ---
 
@@ -86,7 +88,7 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 
 - ⚠️ **Files over CLAUDE.md §7.3 rule 1's 300-line cap** (`wc -l` at `113bf62`): `src/entities/spinner/spinnerRenderers.ts` 520, `src/scenes/GameScene.ts` 472 (down from 1,068 after the split), `src/scenes/ResultsScene.ts` 382, `src/audio/AudioOrchestra.ts` 367, `src/scenes/ShopScene.ts` 363. Also `tools/build-orchestra-samples.ts` 711 (tooling). Close to the cap: `src/ui/LoadoutStage.ts` 298.
 - ⚠️ **Venues beyond Garden are only lightly tuned** — the harness has read the first and last gig of each, not the middle gigs, and no child has played them.
-- ⚠️ **Only Garden and the Kitchen have their own sound.** Workshop, Funfair and Disco play orchestral stand-ins until their bands are built.
+- ⚠️ **The Workshop, Funfair and Disco bands, and the own-voice squirt answer, are measured but not heard.** David has listened to Garden and the Kitchen only. The Frenzy fanfare, closing chord and accents are still orchestral in every venue.
 - ⚠️ The audit's minor findings list (2026-09-12) of §7.3-style nitpicks (magic numbers off the 8px grid, a few raw hex literals, missing JSDoc on some public methods) is still not acted on.
 - ⚠️ **Real human playtest still outstanding** for Frenzy reachability and gig difficulty: the bot has perfect-ish aim and uses no power-ups. The harness (`window.__bot`) measures; a real seven-year-old confirms.
 

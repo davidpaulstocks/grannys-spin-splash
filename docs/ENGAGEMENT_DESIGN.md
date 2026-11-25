@@ -161,12 +161,12 @@ UI restraint still applies: no screen has more than one primary action.
 
 ## 7. Build slices
 
-| Slice                    | Contents                                                                                                                                       | Status (2026-11-25)                                                                                                         |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **1. The gig**           | Level data, sized wall layout, line-up seating, star rating on the bar, per-gig difficulty, coin rebalance, results screen with stars and Next | **Built.** All five venues run their eight gigs. Garden tuned gig by gig; the other four checked at first and last gig only |
-| **2. The tour**          | Home, gig intro, Tour map, Shop, save fields, first launch straight to gig 1                                                                   | **Built.** The gig intro names new musicians on their spinners; it does not yet play them a solo                            |
-| **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                   | **Part built:** one rolling mission and the daily gift. Not built: Jam mode, the album, "ten more seconds"                  |
-| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                               | **Not started** — waiting on Garden's sound being signed off and sources approved, see `BANDS.md`                           |
+| Slice                    | Contents                                                                                                                                       | Status (2026-11-25)                                                                                                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. The gig**           | Level data, sized wall layout, line-up seating, star rating on the bar, per-gig difficulty, coin rebalance, results screen with stars and Next | **Built.** All five venues run their eight gigs. Garden tuned gig by gig; the other four checked at first and last gig only                                                   |
+| **2. The tour**          | Home, gig intro, Tour map, Shop, save fields, first launch straight to gig 1                                                                   | **Built.** The gig intro names new musicians on their spinners; it does not yet play them a solo                                                                              |
+| **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                   | **Part built:** one rolling mission and the daily gift. Not built: Jam mode, the album, "ten more seconds"                                                                    |
+| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                               | **All five bands built** (garage rock, brass band and funk band added). The Frenzy fanfare and feedback accents are still orchestral. Awaiting David's listen, see `BANDS.md` |
 
 Each slice ends with lint, tests, build, budget, a live playthrough, a commit
 and a push.
@@ -200,7 +200,7 @@ submission.
 These have working defaults and do not block the build:
 
 1. **Names.** "Gig", "venue", "Grand Concert", "coins". Easy to change.
-2. **The sound** — heard and liked by David on 2026-11-25. A second listen is due after the wake-up call, spotlight and section badges, before the remaining bands are built.
-3. **Extra sample libraries** for rock and disco — see `BANDS.md`.
+2. **The sound** — Garden and the Kitchen heard and liked by David on 2026-11-25. Not yet heard: the Workshop, Funfair and Disco bands, and the change that makes each instrument answer a squirt in its own voice.
+3. **Per-band set pieces** — the Frenzy fanfare, closing chord and feedback accents are still orchestral in every venue; see `BANDS.md`.
 4. **Spinner art.** Procedural spinners now sit on backing discs and read
    well, but painted sprites would match the rest of the art.
