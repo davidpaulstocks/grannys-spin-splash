@@ -8,34 +8,16 @@
 
 import Phaser from 'phaser';
 
-import {
-  AIM_SNAP_RADIUS,
-  COUNTDOWN_TICK_SHAKE_DURATION_MS,
-  COUNTDOWN_TICK_SHAKE_INTENSITY,
-  FINAL_COUNTDOWN_SECONDS,
-  FRENZY_DURATION_MS,
-  GAME_HEIGHT,
-  GAME_WIDTH,
-  GRANNY_Y_FROM_BOTTOM,
-  URGENT_COUNTDOWN_SECONDS,
-  WATER_PARTICLE_MAX_POOL,
-} from '../config';
+import { GAME_HEIGHT, GAME_WIDTH, GRANNY_Y_FROM_BOTTOM, WATER_PARTICLE_MAX_POOL } from '../config';
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
 import { Obstacle } from '../entities/obstacle/Obstacle';
-import { POWERUP_DEFS, type PowerUpEffect } from '../entities/powerup/powerup.data';
 import { PowerUpSpawner } from '../entities/powerup/PowerUpSpawner';
 import { MAX_SPINNER_SPEED } from '../entities/spinner/spinner.data';
-import {
-  DEFAULT_WORLD_ID,
-  EASTER_EGG_CHANCE,
-  WORLD_EASTER_EGG,
-  WORLD_DEFS,
-} from '../entities/world/world.data';
+import { DEFAULT_WORLD_ID, WORLD_DEFS } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
-import { musiciansJoining } from '../audio/scores';
-import { gigFor, newMusicianCount, type GigDef } from '../entities/world/gigs.data';
+import { gigFor, type GigDef } from '../entities/world/gigs.data';
 import { buildObstacles, buildWall, wallAreaFor } from '../entities/world/wallBuilder';
-import { currentGig, MAX_STARS_PER_GIG, recordGig } from '../systems/Progress';
+import { currentGig } from '../systems/Progress';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
@@ -44,12 +26,7 @@ import { Gun } from '../entities/gun/Gun';
 import { Spinner } from '../entities/spinner/Spinner';
 import { GoldenSpinnerSpawner, type GoldenClaim } from '../entities/spinner/GoldenSpinnerSpawner';
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
-import {
-  FIRE_DENSITY_SCALE,
-  WaterCannon,
-  type PumpEvent,
-} from '../entities/waterParticle/WaterCannon';
-import { spawnConfetti, spawnSparks, spawnSplash } from '../entities/waterParticle/splashVFX';
+import { WaterCannon } from '../entities/waterParticle/WaterCannon';
 import * as poki from '../poki';
 import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
@@ -59,111 +36,29 @@ import { adManager } from '../systems/AdManager';
 import { audioBus } from '../audio/AudioBus';
 import { audioOrchestra } from '../audio/AudioOrchestra';
 import type { Accent } from '../audio/orchestra/setPieces';
-import * as SFX from '../audio/SFX';
 import { waterSound } from '../audio/WaterSound';
 import { WaterJet } from '../entities/waterParticle/WaterJet';
-import { spawnNoteGlyph } from '../ui/NoteGlyph';
-import { textStyle } from '../utils/typography';
-import { EASE } from '../utils/tween';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
-import type { GigResultData, GameSceneData } from '../types/sceneData';
+import type { GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
-import { hideBanner, playFrenzyCelebration } from '../ui/Banner';
 import { spawnFloatingText } from '../ui/FloatingText';
-import { showGhostFinger } from '../ui/GhostFinger';
 import { createPauseButton } from '../ui/PauseButton';
-import { TutorialSequence } from '../ui/TutorialSequence';
-import { pickEncouragementPhrase } from '../ui/encouragementPhrases';
-import { showToast } from '../ui/Toast';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { distance, resolveAim } from '../utils/math';
+import { COLOUR_HEX } from '../utils/colour';
+import { bankGig } from './game/bankGig';
+import { CountdownUrgency } from './game/CountdownUrgency';
+import { FireControl } from './game/FireControl';
+import { FirstRunGuide } from './game/FirstRunGuide';
+import { FrenzyController } from './game/FrenzyController';
+import { GigScore } from './game/GigScore';
+import { LevelUpFlair } from './game/LevelUpFlair';
+import { MusicReactions } from './game/MusicReactions';
+import { PowerUpEffects } from './game/PowerUpEffects';
+import { WaterCollisions } from './game/WaterCollisions';
 import type { HUDScene } from './HUDScene';
 
 /** How close to the canvas edges a Duck obstacle may wander before bouncing back (prototype: 60px). */
 const DUCK_BOUNCE_MARGIN = 60;
-
-/** Combo tiers ≥ this shake (prototype: `if(combo>=4) shake(150, 0.005*(combo-2))`). */
-const COMBO_SHAKE_THRESHOLD = 4;
-
-/** How often a spinner reaching FULL also gets a spoken "well done!" — rare enough to stay a nice surprise. */
-const ENCOURAGEMENT_CHANCE = 0.18;
-
-/**
- * Stars per landed hit during the SPLASH FRENZY window, and how often those
- * hits are celebrated with their own sparks/text (2026-09-13, direct user
- * feedback: "when you achieve splash frenzy the sounds of hitting the
- * spinners stops so it kinda feels like the excitement is over vs it being a
- * sustained high point").
- *
- * The cause was structural. Frenzy maxes AND locks every spinner, so no
- * spinner can change state for the whole window — and every reward in the
- * game hangs off `_onSpinnerLeveledUp`, which only fires on an upward
- * transition. So the climax paid no stars, spawned no floating "+N ★", threw
- * no sparks and played no upgrade sound: the game's single biggest moment was
- * its only scoring and feedback dead zone. CLAUDE.md §1 calls Frenzy "a
- * 5-second bonus burst worth bonus stars", which is exactly what it wasn't.
- *
- * Every hit now pays, multiplied by the live combo, so the window rewards
- * firing flat out. Only a fraction spawn their own text/sparks — at up to 60
- * hits a second the screen would otherwise be unreadable confetti.
- */
-/** A spinner climbing a tier pays this many coins, times the combo. */
-const COINS_PER_LEVEL_UP = 1;
-/** Each star reached in a gig pays this many coins on the spot. */
-const COINS_PER_STAR = 10;
-/** The encore — everything after FULL BAND — pays one coin per this much Frenzy time. */
-const ENCORE_COIN_INTERVAL_MS = 500;
-const FRENZY_HIT_FLOURISH_CHANCE = 0.14;
-
-/** Floating "+N ★" colour by combo multiplier tier — escalates with the combo, matching the prototype's `awardStars`. */
-function hitTextColour(multiplier: number): string {
-  if (multiplier >= 4) return COLOUR_HEX.grannyPink;
-  if (multiplier >= 2) return COLOUR_HEX.sunnyGold;
-  return COLOUR_HEX.waterBlue;
-}
-
-/** How hard a spinner kicks when water lands on it, when it is sprayed into sounding, and on its own written notes. */
-const HIT_PULSE = 0.3;
-const SPRAY_PULSE = 0.85;
-const NOTE_PULSE = 0.6;
-/** One floating note per spinner at most this often — the pulse carries every note, the glyph only some. */
-const NOTE_GLYPH_MIN_INTERVAL_MS = 420;
-/** Gap below a spinner for its musician's name, clear of the "+N ★" text that rises from above it. */
-const MUSICIAN_NAME_OFFSET = 18;
-
-/** Where the "one star!" call-outs appear, each a step lower so two earned at once don't overprint. */
-const STAR_TEXT_Y = GAME_HEIGHT * 0.2;
-const STAR_TEXT_STEP_Y = 34;
-const STAR_LABELS = ['ONE STAR!', 'TWO STARS!', 'THREE STARS!'] as const;
-
-const INTRO_LABEL_GAP = 14;
-const INTRO_LABEL_DEPTH = 165;
-const INTRO_TAG_BOB_PX = 8;
-const INTRO_TAG_BOB_MS = 520;
-const INTRO_FADE_MS = 260;
-
-const FRENZY_FLASH_MS = 220;
-const FRENZY_ZOOM = 1.045;
-const FRENZY_ZOOM_IN_MS = 110;
-const FRENZY_ZOOM_HOLD_MS = 90;
-const FRENZY_ZOOM_OUT_MS = 380;
-/** Camera effects only accept Phaser's named eases, not the tween module's custom curves. */
-const CAMERA_EASE = 'Quad.easeOut';
-const FRENZY_CONFETTI_EVERY = 2;
-const FRENZY_CONFETTI_COLOURS = [
-  COLOUR.grannyPink,
-  COLOUR.sunnyGold,
-  COLOUR.waterBlue,
-  COLOUR.mintGreen,
-] as const;
-
-const STATE_TIER: Readonly<Record<SpinnerState, number>> = {
-  [SpinnerState.STOPPED]: 0,
-  [SpinnerState.SLOW]: 1,
-  [SpinnerState.MEDIUM]: 2,
-  [SpinnerState.FULL]: 3,
-};
 
 /** The orchestra's answer to a spinner climbing a tier — bigger for each step up. */
 const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
@@ -185,55 +80,57 @@ export class GameScene extends Phaser.Scene {
   private _world!: WorldDef;
   private _grannyId!: string;
   private _gun!: GunDef;
-  private _crosshair!: Phaser.GameObjects.Arc;
   private _hud!: HUDScene;
-  private _frenzyBanner: Phaser.GameObjects.Text | null = null;
 
-  private _score = 0;
   private _cannon!: WaterCannon;
-  /** First-run onboarding gesture (CLAUDE.md §6.5) — null unless this is the player's very first run. */
-  private _dismissGhostFinger: (() => void) | null = null;
   /** The round-opening turn (see roundIntro.ts) — null once it has finished or been skipped. */
   private _intro: RoundIntro | null = null;
-  /** The scripted-moments tutorial captions (direct user request, 2026-09-12) — null unless this is the player's very first run. */
-  private _tutorial: TutorialSequence | null = null;
   private _timeRemainingMs = 0;
   private _gig!: GigDef;
-  /** Stars earned so far this gig (0–3) — they lock in the moment they are reached. */
-  private _stars = 0;
-  /** Frenzy time not yet paid out as encore coins. */
-  private _encoreUnpaidMs = 0;
   private _jet!: WaterJet;
-  /** Spinners whose musician has already been introduced by name this round. */
-  /** The "NEW" tags and names over this gig's new musicians, shown until the first squirt. */
-  private _introLabels: Phaser.GameObjects.Text[] = [];
-  private readonly _joined = new Set<number>();
-  /** Highest tier each spinner has reached this gig — coins are paid once per tier, per spinner. */
-  private readonly _bestTier = new Map<number, number>();
-  private readonly _lastNoteGlyphAt = new Map<number, number>();
   private _started = false;
   private _roundOver = false;
-  private _frenzyActive = false;
-  private _frenzyEndAt = 0;
-  /** Last whole second the final-countdown tick/shake fired for — guards against re-firing every frame within the same second. */
-  private _lastUrgentSecond = -1;
+  private readonly _urgency = new CountdownUrgency(this);
+  // Coins, stars and the rules that pay them (see game/GigScore.ts). `_score` / `_stars` below stay
+  // as read-only views because src/dev/botSim.ts reaches in for them by name.
+  private readonly _gigScore = new GigScore((x, y, message, colourHex) =>
+    spawnFloatingText(this, x, y, message, colourHex),
+  );
+  // Frenzy's start/window/flourish (see game/FrenzyController.ts).
+  private readonly _frenzy = new FrenzyController(
+    this,
+    () => this._spinners,
+    (reached) => this._gigScore.awardStars(reached),
+  );
+  // Built per round in create(), once the world, gig and wall exist.
+  private _music!: MusicReactions;
+  private _guide!: FirstRunGuide;
+  private _flair!: LevelUpFlair;
+  private _collisions!: WaterCollisions;
+  private _fire!: FireControl;
 
   // Bonus Golden Spinner — spawns outside the fixed grid, own lifetime, not part of `_spinners`/FrenzyMeter.
   private _golden!: GoldenSpinnerSpawner;
 
-  // Power-ups (CLAUDE.md §1) — see PowerUpSpawner.ts for spawn/lifetime/collision; these are the
-  // active-effect windows GameScene itself has to track to actually change gameplay.
+  // Power-ups (CLAUDE.md §1) — see PowerUpSpawner.ts for spawn/lifetime/collision and
+  // game/PowerUpEffects.ts for the active-effect windows GameScene has to consult.
   private _powerupSpawner!: PowerUpSpawner;
-  private _soakerEndAt = 0;
-  private _spinlockEndAt = 0;
-  private _doubleStarsEndAt = 0;
-  private _goldenSplashPending = false;
-  /** Peak simultaneous FULL spinners this round, and whether Frenzy ever fired — the end screen's "how close were you". */
+  private _powerups!: PowerUpEffects;
+  /** Peak simultaneous FULL spinners this round — the end screen's "how close were you". */
   private _peakFullSpinners = 0;
-  private _reachedFrenzy = false;
 
   constructor() {
     super('GameScene');
+  }
+
+  /** Coins banked this gig. */
+  private get _score(): number {
+    return this._gigScore.coins;
+  }
+
+  /** Stars earned so far this gig (0–3) — they lock in the moment they are reached. */
+  private get _stars(): number {
+    return this._gigScore.stars;
   }
 
   /**
@@ -265,6 +162,9 @@ export class GameScene extends Phaser.Scene {
       this._spinners,
     );
     this._powerupSpawner = new PowerUpSpawner(this);
+    this._powerups = new PowerUpEffects(this, this._world, this._powerupSpawner, () =>
+      this._cannon.refillInstantly(),
+    );
     this._granny = new Granny(
       this,
       GAME_WIDTH / 2,
@@ -280,9 +180,20 @@ export class GameScene extends Phaser.Scene {
     });
     this._cannon = new WaterCannon(this, this._gun, this._waterPool);
     this._jet = new WaterJet(this, this._waterPool);
-    this._joined.clear();
-    this._bestTier.clear();
-    this._lastNoteGlyphAt.clear();
+    this._music = new MusicReactions(this, this._world, this._gig);
+    this._guide = new FirstRunGuide(this, this._world);
+    this._flair = new LevelUpFlair(this, this._world);
+    this._collisions = new WaterCollisions({
+      scene: this,
+      pool: this._waterPool,
+      obstacles: this._obstacles,
+      spinners: this._spinners,
+      activeSpinners: () => this._activeSpinners(),
+      gun: this._gun,
+      combo: this._combo,
+      frenzy: this._frenzy,
+      powerups: this._powerups,
+    });
 
     this._createOverlays();
 
@@ -291,20 +202,20 @@ export class GameScene extends Phaser.Scene {
 
     this._input.on('first-input', () => this._onFirstInput());
     this._input.on('pause', () => this._pauseGame());
-    this._frenzyMeter.on('full', () => this._onFrenzyStart());
+    this._frenzyMeter.on('full', () => this._frenzy.start());
     // The 60%/80% mini-frenzy thresholds were already emitted by
     // FrenzyMeter but nothing ever listened for them (found by spec
     // audit) — wired to the same encouragement-toast beat as a spinner
     // reaching FULL, just with their own specific lines since these are
     // meaningful wall-wide milestones, not a per-spinner moment.
     this._frenzyMeter.on('miniLow', () => {
-      this._onMiniFrenzy("You're on fire!");
-      this._awardStars(1);
+      this._flair.onMiniFrenzy("You're on fire!");
+      this._gigScore.awardStars(1);
     });
     this._frenzyMeter.on('miniHigh', () => {
-      this._onMiniFrenzy('Almost there!!');
+      this._flair.onMiniFrenzy('Almost there!!');
       audioOrchestra.onFrenzyNear();
-      this._awardStars(2);
+      this._gigScore.awardStars(2);
     });
 
     // A brief turn-to-face-the-wall before play, skipped by any input. The
@@ -314,9 +225,9 @@ export class GameScene extends Phaser.Scene {
       this._intro = null;
     });
 
-    this._showGigIntro();
-    this._maybeShowGhostFinger();
-    this._maybeStartTutorial();
+    this._music.showGigIntro(this._spinners);
+    this._guide.maybeShowGhostFinger(this._spinners);
+    this._guide.maybeStartTutorial();
 
     // Fingers can lift on either side of a pause boundary, and a paused scene
     // never sees those releases at all — so held pointer state is dropped
@@ -379,59 +290,24 @@ export class GameScene extends Phaser.Scene {
         GAME_WIDTH - DUCK_BOUNCE_MARGIN,
       );
     }
-    this._updatePowerups(time, delta);
-
-    const aim = this._updateAim();
-    const grip = this._granny.getGunGripOrigin();
-    this._gunSprite.updateAim(grip.x, grip.y, aim.x, aim.y);
-    // Aim-to-fire (2026-09-12, direct user request: "if that's best, remove
-    // the need to shoot and just have aim via mouse or trackpad"). The player
-    // only ever steers; the water is always on once the round has started.
-    //
-    // It fires unconditionally rather than only when the crosshair is snapped
-    // to a spinner. The snapped-only version was gated to avoid wasting tank
-    // on bare wall — but that reason died when the tank was resized to last
-    // the whole round (gun.data.ts), and measuring the geometry showed what
-    // it actually cost: only 67% of Garden's wall is inside the 96px snap
-    // radius, with 73px-wide dead columns between spinner columns, so roughly
-    // a third of the time a player was sweeping the wall the cannon silently
-    // produced nothing at all. That is a large part of why Splash Frenzy felt
-    // out of reach (direct user feedback: "I seem to be nowhere near getting
-    // a splash frenzy going... it feels like I don't have the power").
-    //
-    // Still gated on `_started` so the round clock and gameplayStart() begin
-    // on a real first input (§3), not on an idle mouse drifting over the wall.
-    const firing = !introPlaying && this._started;
-    this._granny.setFiring(firing);
-    this._cannon.update(time, {
-      firing,
-      origin: this._gunSprite.getNozzleWorldPosition(),
-      aimX: aim.x,
-      aimY: aim.y,
-      target: aim.target
-        ? (this._activeSpinners().find((sp) => sp.id === aim.target?.id) ?? null)
-        : null,
-      soakerActive: time < this._soakerEndAt,
-    });
-    // The hiss of the jet: on only while water is actually leaving the gun.
-    waterSound.setFiring(firing && !this._cannon.isPumping && this._cannon.tank > 0);
-    this._onPumpEvent(this._cannon.updatePump(time));
-    this._jet.update(
+    this._powerups.update(
       time,
-      this._gunSprite.getNozzleWorldPosition(),
-      firing && !this._cannon.isPumping && this._cannon.tank > 0,
-      this._gun.particleColour,
-      this._gun.sz,
+      delta,
+      this._spinners,
+      this._waterPool.getChildren() as WaterParticle[],
+      this._frenzy.active,
     );
-    this._reactToMusic(time);
-    this._updateWaterCollisions();
+
+    this._fire.update(time, this._started, introPlaying);
+    this._music.react(time, this._spinners);
+    this._collisions.update();
     this._combo.update(delta);
-    this._payEncore(delta);
-    this._updateFrenzyWindow(time);
+    this._gigScore.payEncore(delta, this._frenzy.active);
+    this._frenzy.updateWindow(time);
 
     if (this._started) {
       this._timeRemainingMs = Math.max(0, this._timeRemainingMs - delta);
-      this._updateCountdownUrgency();
+      this._urgency.update(this._timeRemainingMs);
       if (this._timeRemainingMs <= 0) {
         this._endRound();
         return;
@@ -441,34 +317,19 @@ export class GameScene extends Phaser.Scene {
     this._refreshHud();
   }
 
-  /**
-   * Final-countdown tick + shake (2026-09-12, restored from the
-   * prototype — direct user feedback: "urgency building as the clock
-   * counts down" was missing). The matching vignette/big-number visuals
-   * live in HUDScene's `UrgencyOverlay`, independently keyed off the same
-   * `secondsRemaining` value every frame — no cross-scene event needed,
-   * since both derive from the same number in the same tick. This method
-   * owns only what only GameScene *can* own: the world camera shake and
-   * the SFX trigger (CLAUDE.md §7.1 — HUDScene stays a pure visual leaf).
-   */
-  private _updateCountdownUrgency(): void {
-    const seconds = Math.ceil(this._timeRemainingMs / 1000);
-    if (seconds > URGENT_COUNTDOWN_SECONDS || seconds === this._lastUrgentSecond) return;
-    this._lastUrgentSecond = seconds;
-
-    const final = seconds <= FINAL_COUNTDOWN_SECONDS;
-    audioOrchestra.tick(final);
-    this.cameras.main.shake(
-      final ? COUNTDOWN_TICK_SHAKE_DURATION_MS.final : COUNTDOWN_TICK_SHAKE_DURATION_MS.normal,
-      final ? COUNTDOWN_TICK_SHAKE_INTENSITY.final : COUNTDOWN_TICK_SHAKE_INTENSITY.normal,
-    );
-  }
-
-  /** Creates the GameScene-owned visual overlays that aren't part of HUDScene: the aim crosshair and the refill prompt. */
+  /** Creates the GameScene-owned visual overlays that aren't part of HUDScene: the aim crosshair and the pause button. */
   private _createOverlays(): void {
-    this._crosshair = this.add
-      .circle(0, 0, 10, COLOUR.softSlate, 0)
-      .setStrokeStyle(3, COLOUR.softSlate);
+    this._fire = new FireControl({
+      scene: this,
+      input: this._input,
+      granny: this._granny,
+      gunSprite: this._gunSprite,
+      cannon: this._cannon,
+      jet: this._jet,
+      gun: this._gun,
+      powerups: this._powerups,
+      activeSpinners: () => this._activeSpinners(),
+    });
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
     createPauseButton(this, this._input, () => this._pauseGame());
   }
@@ -478,24 +339,14 @@ export class GameScene extends Phaser.Scene {
     this._spinners = [];
     this._obstacles = [];
 
-    this._score = 0;
-    this._introLabels = [];
-    this._stars = 0;
-    this._encoreUnpaidMs = 0;
+    this._gigScore.reset();
     this._started = false;
     this._roundOver = false;
-    this._frenzyActive = false;
-    this._frenzyBanner = null;
+    this._frenzy.reset();
     this._frenzyMeter.reset();
     this._combo.reset();
-    this._lastUrgentSecond = -1;
-    this._soakerEndAt = 0;
-    this._spinlockEndAt = 0;
-    this._doubleStarsEndAt = 0;
-    this._goldenSplashPending = false;
+    this._urgency.reset();
     this._peakFullSpinners = 0;
-    this._reachedFrenzy = false;
-    this._tutorial = null;
   }
 
   /** The fixed grid roster plus a live Golden Spinner, if one is currently spawned — for aim/fire/collision only. */
@@ -504,343 +355,26 @@ export class GameScene extends Phaser.Scene {
     return golden ? [...this._spinners, golden] : this._spinners;
   }
 
-  /** Resolves the crosshair position against the spinner wall and updates its visual snap feedback. */
-  private _updateAim(): ReturnType<typeof resolveAim> {
-    const pointer = this._input.getPointer();
-    const targets = this._activeSpinners().map((s) => ({ id: s.id, x: s.x, y: s.y }));
-    const aim = resolveAim(pointer.x, pointer.y, targets, AIM_SNAP_RADIUS);
-
-    this._crosshair.setPosition(aim.x, aim.y);
-    this._crosshair.setScale(aim.snapped ? 1.3 : 1);
-    this._crosshair.setStrokeStyle(3, aim.snapped ? COLOUR.mintGreen : COLOUR.softSlate);
-    return aim;
-  }
-
-  /**
-   * The REFILLED! flourish, off the cannon's own pump cycle.
-   *
-   * The mid-run "watch an ad to refill now" prompt that used to ride along
-   * here was removed 2026-09-12 on direct user feedback ("annoying, very
-   * interruptive"). CLAUDE.md §11.1 lists it as a placement, but the pump
-   * only takes PUMP_REFILL_MS (2s): it offered a full-screen rewarded ad to
-   * skip a two-second wait, roughly twice per 30-second round. That is a bad
-   * trade for a seven-year-old and barely monetises. The other three §11.1
-   * placements — the between-runs commercial break, double-score at game
-   * over, and the free-gun offer on the splash — are all at natural breaks
-   * and are untouched.
-   */
-  private _onPumpEvent(event: PumpEvent): void {
-    if (event === 'completed') {
-      spawnFloatingText(
-        this,
-        this._granny.x,
-        this._granny.y - GRANNY_Y_FROM_BOTTOM,
-        'REFILLED!',
-        COLOUR_HEX.waterBlue,
-      );
-    }
-  }
-
-  /**
-   * Before the first squirt, the musicians who are new at this gig are
-   * labelled on their own spinners — "NEW" above, their name below. At the
-   * first gig that is the whole trio, which is also how a first-time player
-   * learns that the spinners are a band.
-   */
-  private _showGigIntro(): void {
-    const joining = newMusicianCount(this._world, this._gig.index);
-    const firstNew = this._gig.band - joining;
-    const names = musiciansJoining(this._world.id, firstNew, this._gig.band);
-    names.forEach((name, i) => {
-      const spinner = this._spinners[firstNew + i];
-      if (!spinner) return;
-      const tag = this.add
-        .text(
-          spinner.x,
-          spinner.y - spinner.def.r - INTRO_LABEL_GAP,
-          'NEW',
-          textStyle('bodyL', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
-        )
-        .setOrigin(0.5, 1)
-        .setDepth(INTRO_LABEL_DEPTH);
-      const label = this.add
-        .text(
-          spinner.x,
-          spinner.y + spinner.def.r + INTRO_LABEL_GAP,
-          name,
-          textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
-        )
-        .setOrigin(0.5, 0)
-        .setDepth(INTRO_LABEL_DEPTH);
-      this.tweens.add({
-        targets: tag,
-        y: tag.y - INTRO_TAG_BOB_PX,
-        duration: INTRO_TAG_BOB_MS,
-        ease: EASE.standardOut,
-        yoyo: true,
-        repeat: -1,
-      });
-      this._introLabels.push(tag, label);
-    });
-  }
-
-  private _dismissGigIntro(): void {
-    for (const label of this._introLabels) {
-      this.tweens.killTweensOf(label);
-      this.tweens.add({
-        targets: label,
-        alpha: 0,
-        duration: INTRO_FADE_MS,
-        onComplete: () => label.destroy(),
-      });
-    }
-    this._introLabels = [];
-  }
-
-  /**
-   * Makes the wall move with the music: each note a musician plays kicks its
-   * own spinner and, now and then, sends a little note floating off it. The
-   * first time a spinner sounds in a round, its musician is introduced by name.
-   */
-  private _reactToMusic(time: number): void {
-    for (const note of audioOrchestra.pollNotes()) {
-      const spinner = this._spinners[note.spinner];
-      if (!spinner) continue;
-      spinner.pulse(note.spray ? SPRAY_PULSE : NOTE_PULSE * note.velocity);
-
-      if (!this._joined.has(spinner.id)) {
-        this._joined.add(spinner.id);
-        spawnFloatingText(
-          this,
-          spinner.x,
-          spinner.y + spinner.def.r + MUSICIAN_NAME_OFFSET,
-          audioOrchestra.seatName(note.spinner),
-          COLOUR_HEX.cloud,
-        );
-      }
-      const last = this._lastNoteGlyphAt.get(spinner.id) ?? -Infinity;
-      if (time - last < NOTE_GLYPH_MIN_INTERVAL_MS) continue;
-      this._lastNoteGlyphAt.set(spinner.id, time);
-      spawnNoteGlyph(
-        this,
-        spinner.x + (Math.random() - 0.5) * spinner.def.r,
-        spinner.y - spinner.def.r,
-        Phaser.Display.Color.HexStringToColor(spinner.def.colors[0] ?? '#ffffff').color,
-      );
-    }
-  }
-
-  /** Tests every pooled particle against obstacles first, then its candidate spinner(s); applies hits/combo/score. */
-  private _updateWaterCollisions(): void {
-    const particles = this._waterPool.getChildren() as WaterParticle[];
-    const activeSpinners = this._activeSpinners();
-    for (const particle of particles) {
-      if (!particle.active) continue;
-      if (this._obstacles.some((o) => o.tryBlock(particle))) continue;
-
-      const hitX = particle.x;
-      const hitY = particle.y;
-      const hitSpinner = particle.checkCollision(particle.getCandidates(activeSpinners));
-      if (!hitSpinner) continue;
-
-      // Golden Splash power-up: the next landed hit jumps straight to FULL
-      // instead of its normal power — still routed through hit() so a
-      // whirligig keeps its usual deflect chance (prototype: the effect
-      // only ever fires from inside the "not deflected" branch).
-      const usingGoldenSplash = this._goldenSplashPending;
-      // FIRE_DENSITY_SCALE: each of the N denser particles carries 1/N the
-      // power, so a shot that lands all of them still delivers the exact
-      // total the tuned balance expects — see the constant's doc comment.
-      const power = usingGoldenSplash ? MAX_SPINNER_SPEED : this._gun.power / FIRE_DENSITY_SCALE;
-      const landed = hitSpinner.hit(power);
-      hitSpinner.pulse(HIT_PULSE);
-      spawnSplash(this, hitX, hitY, this._gun.particleColour);
-      if (!landed) {
-        SFX.playDeflect(); // whirligig
-        continue;
-      }
-      if (usingGoldenSplash) this._goldenSplashPending = false;
-
-      waterSound.splash((hitX / GAME_WIDTH) * 2 - 1);
-      // The squirt plays the instrument (CLAUDE.md §9): the musician seated
-      // at this spinner answers on the next sixteenth. A Golden Spinner has
-      // no seat, so it is skipped.
-      const seat = this._spinners.indexOf(hitSpinner);
-      if (seat >= 0) audioOrchestra.onSpinnerHit(seat);
-      if (this._frenzyActive) this._celebrateEncoreHit(hitSpinner);
-      const comboBefore = this._combo.combo;
-      const comboAfter = this._combo.registerHit(hitSpinner.id);
-      if (comboAfter !== comboBefore) {
-        audioOrchestra.accent('combo', comboAfter);
-        // Escalating shake on a hot streak (prototype: combo>=4) — never on
-        // every single hit, only when the combo itself actually climbs.
-        if (comboAfter >= COMBO_SHAKE_THRESHOLD) {
-          this.cameras.main.shake(150, 0.005 * (comboAfter - 2));
-        }
-      }
-    }
-  }
-
   /** Stars are awarded only on an upward state transition (CLAUDE.md §2) — never per-hit, never on decay. */
   private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState, time: number): void {
     // Double Stars power-up stacks on top of the combo multiplier (prototype: `awardStars`'s `dsMult`).
-    const doubleStarsActive = time < this._doubleStarsEndAt;
+    const doubleStarsActive = this._powerups.doubleStarsActive(time);
     const multiplier = this._combo.multiplier * (doubleStarsActive ? 2 : 1);
-    // Coins only for a tier this spinner has not reached before in this gig.
-    // Paying every re-climb made letting spinners wind down and bringing them
-    // back the most profitable way to play.
-    const tier = STATE_TIER[newState];
-    const isNewBest = tier > (this._bestTier.get(spinner.id) ?? 0);
-    if (isNewBest) this._bestTier.set(spinner.id, tier);
-    const total = isNewBest ? COINS_PER_LEVEL_UP * multiplier : 0;
-    this._score += total;
+    const total = this._gigScore.levelUp(spinner.id, newState, multiplier);
     audioOrchestra.accent(LEVEL_UP_ACCENT[newState]);
-    // Restored 2026-09-12 from the prototype's `awardStars` — direct user
-    // feedback that per-hit feedback ("toasts when the player hit
-    // targets") was part of what made hits feel rewarding. This is
-    // transient combat text at the point of action, distinct from
-    // HUDScene's persistent running tally (ScoreCounter) — the two
-    // complement each other rather than one replacing the other.
-    if (total > 0) {
-      const label = multiplier > 1 ? `+${total} ×${multiplier}` : `+${total}`;
-      spawnFloatingText(
-        this,
-        spinner.x,
-        spinner.y - spinner.def.r - 12,
-        label,
-        hitTextColour(multiplier),
-      );
-    }
+    this._gigScore.showCoinText(total, multiplier, spinner.x, spinner.y - spinner.def.r - 12);
 
-    // Spark burst on the spinner itself — a state upgrade is the single
-    // most rewarding moment in the loop and previously had no VFX beyond
-    // the SFX + a flat glow-colour swap (2026-09-12, direct user feedback:
-    // spinners needed more "juice, momentum, sparks"). FULL gets Sunny
-    // Gold sparks (matches its glow); every earlier tier gets the
-    // spinner's own base colour. No scale-punch tween here deliberately —
-    // Spinner._updateWobble() already writes this.scale every frame past
-    // WOBBLE_SPEED_THRESHOLD, which would fight a separate tween on the
-    // same property and read as a flicker rather than a punch.
-    const sparkColour =
-      newState === SpinnerState.FULL
-        ? COLOUR.sunnyGold
-        : Phaser.Display.Color.HexStringToColor(spinner.def.colors[0]).color;
-    spawnSparks(this, spinner.x, spinner.y, sparkColour);
-    this._maybeEasterEgg(spinner);
+    this._flair.sparkBurst(spinner, newState);
+    this._flair.maybeEasterEgg(spinner);
     if (newState === SpinnerState.FULL) {
-      this._maybeEncourage();
-      this._tutorial?.maybeShowPurpose(this);
-    }
-  }
-
-  /**
-   * Keeps the encore loud: nothing can level up while the whole band is
-   * locked at full, so without this the climax would be the one stretch of
-   * the gig with no sparks and no chime. The coins themselves are paid by
-   * the clock (`_payEncore`), not per hit — a fast gun lands sixty hits a
-   * second, and paying each one emptied the shop in two rounds.
-   */
-  private _celebrateEncoreHit(spinner: Spinner): void {
-    if (Math.random() < FRENZY_HIT_FLOURISH_CHANCE) {
-      spawnSparks(this, spinner.x, spinner.y, COLOUR.sunnyGold);
-      // The bright upgrade chime is what actually made hits feel rewarding,
-      // and it stopped dead at Frenzy because nothing could level up any
-      // more. Riding the same chance keeps it celebratory without turning
-      // 60 hits a second into a siren.
-      audioOrchestra.accent('full');
-    }
-  }
-
-  /**
-   * A rare, quiet "well done!" on a spinner reaching FULL (2026-09-12,
-   * direct user request: "as a player gets a spinner spinning, well done,
-   * or let's go... encouragement, perhaps a little sound effect, without
-   * disrupting the actual orchestra sound, which is the hero"). Chanced
-   * rather than constant for the same reason as the world easter eggs —
-   * every FULL transition already has its own spark burst and floating
-   * star text; this is occasional extra warmth on top, not a new habit to
-   * get used to (and never a new SFX layer loud enough to compete with the
-   * orchestra it's meant to sit quietly underneath).
-   */
-  private _maybeEncourage(): void {
-    if (Math.random() >= ENCOURAGEMENT_CHANCE) return;
-    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, pickEncouragementPhrase());
-    audioOrchestra.accent('cheer');
-  }
-
-  /**
-   * This world's rare surprise moment (CLAUDE.md §1's worlds as distinct
-   * playgrounds) — a one-in-ten level-up fires the world's own shout and
-   * confetti palette, so Kitchen's "SIZZLE!" is instantly recognisable as
-   * Kitchen's. Rare by design: at every level-up it'd be wallpaper.
-   */
-  private _maybeEasterEgg(spinner: Spinner): void {
-    if (Math.random() >= EASTER_EGG_CHANCE) return;
-    const egg = WORLD_EASTER_EGG[this._world.id];
-    if (!egg) return;
-    spawnConfetti(this, spinner.x, spinner.y, egg.confetti);
-    spawnFloatingText(this, spinner.x, spinner.y - spinner.def.r - 40, egg.text, egg.textColour);
-  }
-
-  /** Advances every live power-up pickup and applies the effect of any just collected (CLAUDE.md §1). */
-  private _updatePowerups(time: number, delta: number): void {
-    const area = wallAreaFor(this._world);
-    const bounds = {
-      x0: area.x,
-      y0: area.y,
-      x1: area.x + area.width,
-      y1: area.y + area.height,
-    };
-    const particles = this._waterPool.getChildren() as WaterParticle[];
-    const collected = this._powerupSpawner.update(time, delta, bounds, this._spinners, particles);
-    for (const { effect, x, y } of collected) this._applyPowerupEffect(effect, time, x, y);
-
-    // Spin Lock's own release — a plain `time >= endAt` check, same shape as
-    // Frenzy's window (CLAUDE.md §1). The two share `spinner.locked`; both
-    // being active at once is a rare edge case not worth a lock-reason
-    // system for — worst case a spinner stays locked a beat longer.
-    if (this._spinlockEndAt && time >= this._spinlockEndAt) {
-      this._spinlockEndAt = 0;
-      if (!this._frenzyActive) for (const spinner of this._spinners) spinner.locked = false;
-    }
-  }
-
-  /**
-   * Dispatches on the collected effect (prototype: `applyPowerup`) — each
-   * one sets a timed window GameScene itself checks elsewhere (soaker in
-   * `_updateFiring`, spinlock as `spinner.locked`, doubleStars in
-   * `_onSpinnerLeveledUp`) except the two instants, which apply immediately.
-   */
-  private _applyPowerupEffect(effect: PowerUpEffect, time: number, x: number, y: number): void {
-    const def = POWERUP_DEFS.find((d) => d.effect === effect);
-    if (!def) return;
-    spawnFloatingText(this, x, y - 30, `${def.name}!`, COLOUR_HEX.sunnyGold);
-    audioOrchestra.accent('powerup');
-    this.cameras.main.shake(200, 0.007);
-
-    switch (effect) {
-      case 'soaker':
-        this._soakerEndAt = time + def.duration * 1000;
-        return;
-      case 'turbo':
-        this._cannon.refillInstantly();
-        return;
-      case 'spinlock':
-        this._spinlockEndAt = time + def.duration * 1000;
-        for (const spinner of this._spinners) spinner.locked = true;
-        return;
-      case 'goldenSplash':
-        this._goldenSplashPending = true;
-        return;
-      case 'doubleStars':
-        this._doubleStarsEndAt = time + def.duration * 1000;
-        return;
+      this._flair.maybeEncourage();
+      this._guide.onSpinnerFull();
     }
   }
 
   /** Pays out a Golden Spinner the player just took to FULL (CLAUDE.md §1's timed bonus spawn). */
   private _onGoldenClaimed(claim: GoldenClaim): void {
-    this._score += claim.stars;
+    this._gigScore.addCoins(claim.stars);
     spawnFloatingText(
       this,
       claim.x,
@@ -849,83 +383,6 @@ export class GameScene extends Phaser.Scene {
       COLOUR_HEX.sunnyGold,
     );
     audioOrchestra.accent('golden');
-  }
-
-  private _onFrenzyStart(): void {
-    this._frenzyActive = true;
-    this._reachedFrenzy = true;
-    this._frenzyEndAt = this.time.now + FRENZY_DURATION_MS;
-    for (const spinner of this._spinners) {
-      spinner.maxOut();
-      spinner.locked = true;
-    }
-    this._frenzyBanner = playFrenzyCelebration(
-      this,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2,
-      'SPLASH FRENZY!',
-    );
-    this._awardStars(MAX_STARS_PER_GIG);
-    audioOrchestra.onFrenzyStart();
-    // The drop should hit the eyes as hard as the ears: a flash, a punch of
-    // zoom, and confetti off the whole wall.
-    this.cameras.main.flash(FRENZY_FLASH_MS, 255, 244, 200);
-    this.cameras.main.zoomTo(FRENZY_ZOOM, FRENZY_ZOOM_IN_MS, CAMERA_EASE, true);
-    this.time.delayedCall(FRENZY_ZOOM_IN_MS + FRENZY_ZOOM_HOLD_MS, () => {
-      this.cameras.main.zoomTo(1, FRENZY_ZOOM_OUT_MS, CAMERA_EASE, true);
-    });
-    this._spinners.forEach((spinner, i) => {
-      spinner.pulse(1);
-      if (i % FRENZY_CONFETTI_EVERY === 0) {
-        spawnConfetti(this, spinner.x, spinner.y, FRENZY_CONFETTI_COLOURS);
-      }
-    });
-  }
-
-  /** The wall crosses 60%/80% of spinners at FULL — a quiet, quick encouragement beat (CLAUDE.md §1's mini-frenzy). */
-  private _onMiniFrenzy(message: string): void {
-    showToast(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.36, message);
-    audioOrchestra.accent('cheer');
-  }
-
-  /**
-   * Locks in stars up to `reached` (1–3). Stars never drop back: the rating
-   * is the best the band sounded at any one moment, so a child who gets
-   * there and then loses the wall has still won it.
-   */
-  private _awardStars(reached: number): void {
-    while (this._stars < reached) {
-      this._stars++;
-      this._score += COINS_PER_STAR;
-      spawnFloatingText(
-        this,
-        GAME_WIDTH / 2,
-        STAR_TEXT_Y + this._stars * STAR_TEXT_STEP_Y,
-        STAR_LABELS[this._stars - 1] ?? '',
-        COLOUR_HEX.sunnyGold,
-      );
-    }
-  }
-
-  /** The encore: while Frenzy runs, the clock pays coins. See `_celebrateEncoreHit` for why not per hit. */
-  private _payEncore(deltaMs: number): void {
-    if (!this._frenzyActive) return;
-    this._encoreUnpaidMs += deltaMs;
-    while (this._encoreUnpaidMs >= ENCORE_COIN_INTERVAL_MS) {
-      this._encoreUnpaidMs -= ENCORE_COIN_INTERVAL_MS;
-      this._score += 1;
-    }
-  }
-
-  private _updateFrenzyWindow(time: number): void {
-    if (!this._frenzyActive || time < this._frenzyEndAt) return;
-    this._frenzyActive = false;
-    audioOrchestra.onFrenzyEnd();
-    for (const spinner of this._spinners) spinner.locked = false;
-    if (this._frenzyBanner) {
-      hideBanner(this, this._frenzyBanner);
-      this._frenzyBanner = null;
-    }
   }
 
   private _onFirstInput(): void {
@@ -949,42 +406,11 @@ export class GameScene extends Phaser.Scene {
     );
     this._intro?.skip();
     this._intro = null;
-    this._dismissGhostFinger?.();
-    this._dismissGhostFinger = null;
-    this._dismissGigIntro();
+    this._guide.dismissGhostFinger();
+    this._music.dismissGigIntro();
     const save = saveManager.load();
     if (!save.hasPlayed) saveManager.save({ ...save, hasPlayed: true });
     poki.gameplayStart();
-  }
-
-  /**
-   * CLAUDE.md §6.5's tutorial, which is deliberately not a tutorial: on a
-   * first-ever run a ghost finger taps a spinner on a loop until the player
-   * fires. Aimed at the spinner nearest the middle of the wall so the
-   * gesture points at the thing they're meant to hit, not at empty space.
-   */
-  private _maybeShowGhostFinger(): void {
-    if (saveManager.load().hasPlayed || this._spinners.length === 0) return;
-    const area = wallAreaFor(this._world);
-    const midX = area.x + area.width / 2;
-    const midY = area.y + area.height / 2;
-    const target = this._spinners.reduce((best, s) =>
-      distance(s.x, s.y, midX, midY) < distance(best.x, best.y, midX, midY) ? s : best,
-    );
-    this._dismissGhostFinger = showGhostFinger(this, target.x, target.y);
-  }
-
-  /**
-   * The scripted-moments tutorial (direct user request, 2026-09-12) — see
-   * TutorialSequence.ts. Same first-ever-run gate as the ghost finger, but
-   * a separate check: instantiating it here (rather than folding it into
-   * `_maybeShowGhostFinger`) keeps "gesture demo" and "caption sequencing"
-   * as two things this scene wires up, not one thing doing both.
-   */
-  private _maybeStartTutorial(): void {
-    if (saveManager.load().hasPlayed) return;
-    this._tutorial = new TutorialSequence();
-    this._tutorial.playHowToPlay(this);
   }
 
   /**
@@ -1012,39 +438,16 @@ export class GameScene extends Phaser.Scene {
     poki.gameplayStop();
     adManager.recordRunCompleted();
 
-    // Bank the gig: best rating kept, coins added, newly earned stars paid.
-    const result = recordGig(
-      saveManager.load(),
-      this._world.id,
-      this._gig.index,
-      this._stars,
-      this._score,
-    );
-    const save = result.save;
-    const previousBest = save.bestByWorld[this._world.id] ?? 0;
-    const isNewBest = this._score > previousBest;
-    saveManager.save({
-      ...save,
-      highScore: Math.max(save.highScore, this._score),
-      bestByWorld: isNewBest
-        ? { ...save.bestByWorld, [this._world.id]: this._score }
-        : save.bestByWorld,
-    });
-
-    this.scene.stop('HUDScene');
-    const resultData: GigResultData = {
+    const resultData = bankGig({
+      world: this._world,
+      gig: this._gig,
       score: this._score,
-      worldId: this._world.id,
-      previousBest,
-      isNewBest,
+      stars: this._stars,
       peakFullSpinners: this._peakFullSpinners,
       totalSpinners: this._spinners.length,
-      reachedFrenzy: this._reachedFrenzy,
-      gig: this._gig.index,
-      stars: this._stars,
-      newStars: result.newStars,
-      starCoins: result.starCoins,
-    };
+      reachedFrenzy: this._frenzy.reached,
+    });
+    this.scene.stop('HUDScene');
     this.scene.start('ResultsScene', resultData);
   }
 

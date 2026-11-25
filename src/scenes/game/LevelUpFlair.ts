@@ -1,0 +1,91 @@
+/**
+ * The rare, chanced extras layered on top of a level-up or a wall-wide
+ * milestone: a quiet spoken "well done!", the world's easter egg, and the
+ * mini-frenzy encouragement toasts.
+ */
+
+import Phaser from 'phaser';
+
+import { audioOrchestra } from '../../audio/AudioOrchestra';
+import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
+import type { Spinner } from '../../entities/spinner/Spinner';
+import { EASTER_EGG_CHANCE, WORLD_EASTER_EGG } from '../../entities/world/world.data';
+import type { WorldDef } from '../../entities/world/world.types';
+import { SpinnerState } from '../../entities/spinner/spinner.types';
+import { spawnConfetti, spawnSparks } from '../../entities/waterParticle/splashVFX';
+import { pickEncouragementPhrase } from '../../ui/encouragementPhrases';
+import { spawnFloatingText } from '../../ui/FloatingText';
+import { showToast } from '../../ui/Toast';
+import { COLOUR } from '../../utils/colour';
+
+/** How often a spinner reaching FULL also gets a spoken "well done!" — rare enough to stay a nice surprise. */
+const ENCOURAGEMENT_CHANCE = 0.18;
+
+export class LevelUpFlair {
+  constructor(
+    private readonly _scene: Phaser.Scene,
+    private readonly _world: WorldDef,
+  ) {}
+
+  /**
+   * Spark burst on the spinner itself — a state upgrade is the single
+   * most rewarding moment in the loop and previously had no VFX beyond
+   * the SFX + a flat glow-colour swap (2026-09-12, direct user feedback:
+   * spinners needed more "juice, momentum, sparks"). FULL gets Sunny
+   * Gold sparks (matches its glow); every earlier tier gets the
+   * spinner's own base colour. No scale-punch tween here deliberately —
+   * Spinner._updateWobble() already writes this.scale every frame past
+   * WOBBLE_SPEED_THRESHOLD, which would fight a separate tween on the
+   * same property and read as a flicker rather than a punch.
+   */
+  sparkBurst(spinner: Spinner, newState: SpinnerState): void {
+    const sparkColour =
+      newState === SpinnerState.FULL
+        ? COLOUR.sunnyGold
+        : Phaser.Display.Color.HexStringToColor(spinner.def.colors[0]).color;
+    spawnSparks(this._scene, spinner.x, spinner.y, sparkColour);
+  }
+
+  /**
+   * A rare, quiet "well done!" on a spinner reaching FULL (2026-09-12,
+   * direct user request: "as a player gets a spinner spinning, well done,
+   * or let's go... encouragement, perhaps a little sound effect, without
+   * disrupting the actual orchestra sound, which is the hero"). Chanced
+   * rather than constant for the same reason as the world easter eggs —
+   * every FULL transition already has its own spark burst and floating
+   * star text; this is occasional extra warmth on top, not a new habit to
+   * get used to (and never a new SFX layer loud enough to compete with the
+   * orchestra it's meant to sit quietly underneath).
+   */
+  maybeEncourage(): void {
+    if (Math.random() >= ENCOURAGEMENT_CHANCE) return;
+    showToast(this._scene, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, pickEncouragementPhrase());
+    audioOrchestra.accent('cheer');
+  }
+
+  /**
+   * This world's rare surprise moment (CLAUDE.md §1's worlds as distinct
+   * playgrounds) — a one-in-ten level-up fires the world's own shout and
+   * confetti palette, so Kitchen's "SIZZLE!" is instantly recognisable as
+   * Kitchen's. Rare by design: at every level-up it'd be wallpaper.
+   */
+  maybeEasterEgg(spinner: Spinner): void {
+    if (Math.random() >= EASTER_EGG_CHANCE) return;
+    const egg = WORLD_EASTER_EGG[this._world.id];
+    if (!egg) return;
+    spawnConfetti(this._scene, spinner.x, spinner.y, egg.confetti);
+    spawnFloatingText(
+      this._scene,
+      spinner.x,
+      spinner.y - spinner.def.r - 40,
+      egg.text,
+      egg.textColour,
+    );
+  }
+
+  /** The wall crosses 60%/80% of spinners at FULL — a quiet, quick encouragement beat (CLAUDE.md §1's mini-frenzy). */
+  onMiniFrenzy(message: string): void {
+    showToast(this._scene, GAME_WIDTH / 2, GAME_HEIGHT * 0.36, message);
+    audioOrchestra.accent('cheer');
+  }
+}
