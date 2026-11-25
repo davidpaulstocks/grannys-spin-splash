@@ -51,7 +51,12 @@ export class ScoreCounter {
     drawStarIcon(this._starGfx, STAR_RADIUS, COLOUR.sunnyGold);
 
     this._text = scene.add
-      .text(x - PILL_WIDTH / 2 + 48, y, '0', textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud))
+      .text(
+        x - PILL_WIDTH / 2 + 48,
+        y,
+        '0',
+        textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+      )
       .setOrigin(0, 0.5);
   }
 

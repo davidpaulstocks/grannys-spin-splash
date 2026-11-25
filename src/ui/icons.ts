@@ -51,12 +51,5 @@ export function drawPlayIcon(g: Phaser.GameObjects.Graphics, radius: number, col
   g.strokeCircle(0, 0, radius);
   g.fillStyle(colour, 1);
   const triRadius = radius * 0.5;
-  g.fillTriangle(
-    -triRadius * 0.6,
-    -triRadius,
-    -triRadius * 0.6,
-    triRadius,
-    triRadius,
-    0,
-  );
+  g.fillTriangle(-triRadius * 0.6, -triRadius, -triRadius * 0.6, triRadius, triRadius, 0);
 }

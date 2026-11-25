@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --fix && prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "optimise": "bash tools/sprite-optimise.sh"
+    "optimise": "bash tools/sprite-optimise.sh",
+    "samples": "node tools/build-orchestra-samples.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"

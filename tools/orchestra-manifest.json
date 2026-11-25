@@ -1,0 +1,752 @@
+{
+  "source": {
+    "repo": "sgossner/VSCO-2-CE",
+    "branch": "master",
+    "license": "CC0-1.0",
+    "note": "role = intended SOUNDING note (scientific, C4 = middle C = MIDI 60). File-name octaves are NOT trusted: the build measures the real pitch and reports the difference to the role."
+  },
+  "instruments": {
+    "bass_pizz": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.2,
+      "samples": [
+        {
+          "role": "E1",
+          "file": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E0_v3_rr1.wav"
+        },
+        {
+          "role": "A1",
+          "file": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_A#0_v3_rr1.wav"
+        },
+        {
+          "role": "D2",
+          "file": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_D1_v1_rr1.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_G#1_v1_rr1.wav"
+        }
+      ]
+    },
+    "cello_pizz": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.2,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Strings/Cello Section/pizzT/pizzT_C1_v2_RR1.wav",
+          "subharmonicRatio": 0.03
+        },
+        {
+          "role": "G2",
+          "file": "Strings/Cello Section/pizzT/pizzT_G1_v2_RR1.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Strings/Cello Section/pizzT/pizzT_D2_v2_RR1.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Strings/Cello Section/pizzT/pizzT_A2_v2_RR1.wav"
+        }
+      ]
+    },
+    "violin_pizz": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 0.8,
+      "samples": [
+        {
+          "role": "G3",
+          "file": "Strings/Violin Section/Pizz/VlnEns_Pizz_G2_v2_rr1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Strings/Violin Section/Pizz/VlnEns_Pizz_D3_v2_rr1.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Strings/Violin Section/Pizz/VlnEns_Pizz_A3_v2_rr1.wav"
+        },
+        {
+          "role": "E5",
+          "file": "Strings/Violin Section/Pizz/VlnEns_Pizz_E4_v2_rr1.wav"
+        }
+      ]
+    },
+    "violin_spic": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 0.7,
+      "samples": [
+        {
+          "role": "G3",
+          "file": "Strings/Violin Section/Spic/VlnEns_Spic_G2_v2_rr1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Strings/Violin Section/Spic/VlnEns_Spic_D3_v2_rr1.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Strings/Violin Section/Spic/VlnEns_Spic_A3_v2_rr1.wav"
+        },
+        {
+          "role": "E5",
+          "file": "Strings/Violin Section/Spic/VlnEns_Spic_E4_v2_rr1.wav"
+        },
+        {
+          "role": "B5",
+          "file": "Strings/Violin Section/Spic/VlnEns_Spic_B4_v2_rr1.wav"
+        }
+      ]
+    },
+    "harp": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.6,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Strings/Harp/KSHarp_B1_mf.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Strings/Harp/KSHarp_F2_mf.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Strings/Harp/KSHarp_C3_mf.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Strings/Harp/KSHarp_G3_mf.wav"
+        },
+        {
+          "role": "E4",
+          "file": "Strings/Harp/KSHarp_F4_mf.wav"
+        },
+        {
+          "role": "B4",
+          "file": "Strings/Harp/KSHarp_C5_mf.wav"
+        },
+        {
+          "role": "F#5",
+          "file": "Strings/Harp/KSHarp_G5_mf.wav"
+        },
+        {
+          "role": "C6",
+          "file": "Strings/Harp/KSHarp_B5_mf.wav"
+        }
+      ]
+    },
+    "flute_stac": {
+      "priority": "P2",
+      "pitched": true,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "G4",
+          "file": "Woodwinds/Flute/stac/LDFlute_stac_A3_v2_rr1.wav"
+        },
+        {
+          "role": "D5",
+          "file": "Woodwinds/Flute/stac/LDFlute_stac_C4_v2_rr1.wav"
+        },
+        {
+          "role": "A5",
+          "file": "Woodwinds/Flute/stac/LDFlute_stac_A4_v2_rr1.wav"
+        },
+        {
+          "role": "E6",
+          "file": "Woodwinds/Flute/stac/LDFlute_stac_E5_v2_rr1.wav"
+        }
+      ]
+    },
+    "clarinet_stac": {
+      "priority": "P2",
+      "pitched": true,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "D3",
+          "file": "Woodwinds/Clarinet/stac/DCClar_stac_D2_v3_rr1_sum.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Woodwinds/Clarinet/stac/DCClar_stac_A#2_v2_rr1_sum.wav"
+        },
+        {
+          "role": "E4",
+          "file": "Woodwinds/Clarinet/stac/DCClar_stac_F3_v2_rr1_sum.wav"
+        },
+        {
+          "role": "B4",
+          "file": "Woodwinds/Clarinet/stac/DCClar_stac_A#3_v2_rr1_sum.wav"
+        }
+      ]
+    },
+    "bassoon_stac": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 0.6,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Woodwinds/Bassoon/stac/PSBassoon_A#0_v2_rr1.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Woodwinds/Bassoon/stac/PSBassoon_F1_v2_rr1.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Woodwinds/Bassoon/stac/PSBassoon_D#2_v2_rr1.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Woodwinds/Bassoon/stac/PSBassoon_A2_v2_rr1.wav"
+        }
+      ]
+    },
+    "trumpet_stac": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 0.7,
+      "samples": [
+        {
+          "role": "G3",
+          "file": "Brass/Trumpet/stac/Sum_SHTrumpet_stac_F2_v2_rr1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Brass/Trumpet/stac/Sum_SHTrumpet_stac_D#3_v2_rr1.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Brass/Trumpet/stac/Sum_SHTrumpet_stac_A#3_v2_rr1.wav"
+        },
+        {
+          "role": "E5",
+          "file": "Brass/Trumpet/stac/Sum_SHTrumpet_stac_F4_v2_rr1.wav"
+        }
+      ]
+    },
+    "trombone_stac": {
+      "priority": "P3",
+      "pitched": true,
+      "maxLength": 0.7,
+      "samples": [
+        {
+          "role": "C3",
+          "file": "Brass/Tenor Trombone/stac/tenortbn_stac_A#1_v3_rr1.wav"
+        },
+        {
+          "role": "G3",
+          "file": "Brass/Tenor Trombone/stac/tenortbn_stac_F2_v3_rr1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Brass/Tenor Trombone/stac/tenortbn_stac_D3_v3_rr1.wav"
+        }
+      ]
+    },
+    "tuba_stac": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 0.8,
+      "samples": [
+        {
+          "role": "A#1",
+          "file": "Brass/Tuba/stac/Tuba3_stac_A#0_v2_rr1_Sum.wav"
+        },
+        {
+          "role": "D#2",
+          "file": "Brass/Tuba/stac/Tuba3_stac_D#1_v2_rr1_Sum.wav"
+        },
+        {
+          "role": "A#2",
+          "file": "Brass/Tuba/stac/Tuba3_stac_A#1_v2_rr1_Sum.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Brass/Tuba/stac/Tuba3_stac_D2_v2_rr1_Sum.wav"
+        }
+      ]
+    },
+    "glock": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.5,
+      "samples": [
+        {
+          "role": "G5",
+          "file": "Percussion/Glock/glock_medium_G4.wav"
+        },
+        {
+          "role": "G6",
+          "file": "Percussion/Glock/glock_medium_G5.wav"
+        },
+        {
+          "role": "C7",
+          "file": "Percussion/Glock/glock_medium_C6.wav"
+        },
+        {
+          "role": "G7",
+          "file": "Percussion/Glock/glock_medium_G6.wav"
+        }
+      ],
+      "octaveCheck": false
+    },
+    "marimba": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1,
+      "samples": [
+        {
+          "role": "C3",
+          "file": "Percussion/Marimba/Marimba_hit_Outrigger_C2_loud_01.wav"
+        },
+        {
+          "role": "C4",
+          "file": "Percussion/Marimba/Marimba_hit_Outrigger_B2_loud_01.wav"
+        },
+        {
+          "role": "G4",
+          "file": "Percussion/Marimba/Marimba_hit_Outrigger_F3_loud_01.wav"
+        },
+        {
+          "role": "C5",
+          "file": "Percussion/Marimba/Marimba_hit_Outrigger_C4_loud_01.wav"
+        },
+        {
+          "role": "C6",
+          "file": "Percussion/Marimba/Marimba_hit_Outrigger_B4_loud_01.wav"
+        }
+      ],
+      "octaveCheck": false
+    },
+    "xylo": {
+      "priority": "P2",
+      "pitched": true,
+      "maxLength": 0.6,
+      "samples": [
+        {
+          "role": "G4",
+          "file": "Percussion/Xylo/Xylo_Medium_G3_ff_01_far.wav"
+        },
+        {
+          "role": "G5",
+          "file": "Percussion/Xylo/Xylo_Medium_G4_ff_01_far.wav"
+        },
+        {
+          "role": "G6",
+          "file": "Percussion/Xylo/Xylo_Medium_G5_ff_01_far.wav"
+        },
+        {
+          "role": "G7",
+          "file": "Percussion/Xylo/Xylo_Medium_G6_ff_01_far.wav"
+        }
+      ],
+      "octaveCheck": false
+    },
+    "timpani": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 2,
+      "samples": [
+        {
+          "role": "timp1",
+          "file": "Percussion/Timpani/Timpani1_Hit_v3_rr1_Sum.wav"
+        },
+        {
+          "role": "timp5",
+          "file": "Percussion/Timpani/Timpani5_Hit_v3_rr1_Sum.wav"
+        }
+      ],
+      "octaveCheck": false
+    },
+    "cello_sus": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Strings/Cello Section/susvib/susvib_C1_v3_1.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Strings/Cello Section/susvib/susvib_G1_v3_1.wav"
+        },
+        {
+          "role": "D3",
+          "file": "Strings/Cello Section/susvib/susvib_D2_v3_1.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Strings/Cello Section/susvib/susvib_A2_v3_1.wav"
+        }
+      ]
+    },
+    "viola_sus": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "C3",
+          "file": "Strings/Viola Section/susvib/ViolaEns_susvib_C2_v2_1.wav"
+        },
+        {
+          "role": "G3",
+          "file": "Strings/Viola Section/susvib/ViolaEns_susvib_G2_v2_1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Strings/Viola Section/susvib/ViolaEns_susvib_D3_v2_1.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Strings/Viola Section/susvib/ViolaEns_susvib_A3_v2_1.wav"
+        }
+      ]
+    },
+    "violin_sus": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "G3",
+          "file": "Strings/Violin Section/susVib/VlnEns_susVib_G2_v2.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Strings/Violin Section/susVib/VlnEns_susVib_D3_v2.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Strings/Violin Section/susVib/VlnEns_susVib_A3_v2.wav"
+        },
+        {
+          "role": "E5",
+          "file": "Strings/Violin Section/susVib/VlnEns_susVib_E4_v2.wav"
+        },
+        {
+          "role": "B5",
+          "file": "Strings/Violin Section/susVib/VlnEns_susVib_B4_v2.wav"
+        }
+      ]
+    },
+    "flute_sus": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "C4",
+          "file": "Woodwinds/Flute/susvib/LDFlute_susvib_C3_v1_1.wav"
+        },
+        {
+          "role": "G4",
+          "file": "Woodwinds/Flute/susvib/LDFlute_susvib_A3_v1_1.wav"
+        },
+        {
+          "role": "D5",
+          "file": "Woodwinds/Flute/susvib/LDFlute_susvib_C4_v1_1.wav"
+        },
+        {
+          "role": "A5",
+          "file": "Woodwinds/Flute/susvib/LDFlute_susvib_A4_v1_1.wav"
+        },
+        {
+          "role": "E6",
+          "file": "Woodwinds/Flute/susvib/LDFlute_susvib_E5_v1_1.wav"
+        }
+      ]
+    },
+    "clarinet_sus": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "D3",
+          "file": "Woodwinds/Clarinet/susLong/DCClar_susLong_D2_v2_rr1_sum.wav"
+        },
+        {
+          "role": "A3",
+          "file": "Woodwinds/Clarinet/susLong/DCClar_susLong_A#2_v2_rr1_sum.wav"
+        },
+        {
+          "role": "E4",
+          "file": "Woodwinds/Clarinet/susLong/DCClar_susLong_F3_v2_rr1_sum.wav"
+        },
+        {
+          "role": "B4",
+          "file": "Woodwinds/Clarinet/susLong/DCClar_susLong_A#3_v2_rr1_sum.wav"
+        },
+        {
+          "role": "F5",
+          "file": "Woodwinds/Clarinet/susLong/DCClar_susLong_F4_v2_rr1_sum.wav"
+        }
+      ]
+    },
+    "oboe_sus": {
+      "priority": "P3",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "C4",
+          "file": "Woodwinds/Oboe/Vib/Oboe_Vib_A#2_v3_Main.wav"
+        },
+        {
+          "role": "G4",
+          "file": "Woodwinds/Oboe/Vib/Oboe_Vib_F3_v3_Main.wav"
+        },
+        {
+          "role": "D5",
+          "file": "Woodwinds/Oboe/Vib/Oboe_Vib_D4_v3_Main.wav"
+        }
+      ]
+    },
+    "horn_sus": {
+      "priority": "P1",
+      "pitched": true,
+      "maxLength": 1.9,
+      "samples": [
+        {
+          "role": "F2",
+          "file": "Brass/F Horn/sus/MOHorn_sus_D#1_v2_1.wav"
+        },
+        {
+          "role": "C3",
+          "file": "Brass/F Horn/sus/MOHorn_sus_A#1_v2_1.wav"
+        },
+        {
+          "role": "G3",
+          "file": "Brass/F Horn/sus/MOHorn_sus_F2_v2_1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Brass/F Horn/sus/MOHorn_sus_C3_v2_1.wav"
+        }
+      ]
+    },
+    "organ": {
+      "priority": "P2",
+      "pitched": true,
+      "maxLength": 1.5,
+      "samples": [
+        {
+          "role": "C3",
+          "file": "Keys/Organ/Loud/Rode_Man3Open_25.wav",
+          "subharmonicRatio": 0.03
+        },
+        {
+          "role": "G3",
+          "file": "Keys/Organ/Loud/Rode_Man3Open_31.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Keys/Organ/Loud/Rode_Man3Open_40.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Keys/Organ/Loud/Rode_Man3Open_46.wav"
+        }
+      ]
+    },
+    "bass_drum": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 0.9,
+      "samples": [
+        {
+          "role": "v5_rr1",
+          "file": "Percussion/BDrumNewhit_v5_rr1_Sum.wav"
+        },
+        {
+          "role": "v5_rr2",
+          "file": "Percussion/BDrumNewhit_v5_rr2_Sum.wav"
+        }
+      ]
+    },
+    "snare": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 0.45,
+      "samples": [
+        {
+          "role": "v5_rr1",
+          "file": "Percussion/Snare2-HitSN_v5_rr1_Sum.wav"
+        },
+        {
+          "role": "v5_rr2",
+          "file": "Percussion/Snare2-HitSN_v5_rr2_Sum.wav"
+        },
+        {
+          "role": "v7_rr1",
+          "file": "Percussion/Snare2-HitSN_v7_rr1_Sum.wav"
+        }
+      ]
+    },
+    "snare_roll": {
+      "priority": "P2",
+      "pitched": false,
+      "maxLength": 1.6,
+      "samples": [
+        {
+          "role": "roll",
+          "file": "Percussion/Snare2-rollSN_v3_rr1_Sum.wav"
+        }
+      ]
+    },
+    "timpani_roll": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 2.4,
+      "samples": [
+        {
+          "role": "roll",
+          "file": "Percussion/Timpani/Rolls/Timpani2_Roll_v3_rr1_Sum.wav"
+        }
+      ]
+    },
+    "cymbal_crash": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 2.4,
+      "samples": [
+        {
+          "role": "crash",
+          "file": "VSCO 1 Percussion/varMetal/Cymbals/clash/crash_hit_fff_loose.wav"
+        }
+      ]
+    },
+    "cymbal_swell": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 2.4,
+      "samples": [
+        {
+          "role": "swell",
+          "file": "VSCO 1 Percussion/varMetal/Cymbals/susp/susp_hit_softmall_roll2_cresc.wav"
+        }
+      ]
+    },
+    "triangle": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 0.9,
+      "samples": [
+        {
+          "role": "v1_rr1",
+          "file": "Percussion/Triangle3-Hit_v1_rr1_Sum.wav"
+        },
+        {
+          "role": "v1_rr2",
+          "file": "Percussion/Triangle3-Hit_v1_rr2_Sum.wav"
+        }
+      ]
+    },
+    "tambourine": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 0.4,
+      "samples": [
+        {
+          "role": "v2_rr1",
+          "file": "Percussion/Tamb1-Hit_v2_rr1_Sum.wav"
+        },
+        {
+          "role": "v2_rr2",
+          "file": "Percussion/Tamb1-Hit_v2_rr2_Sum.wav"
+        }
+      ]
+    },
+    "shaker": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 0.25,
+      "samples": [
+        {
+          "role": "shake1",
+          "file": "VSCO 1 Percussion/varWood/Camo's Shaker/shake1.wav"
+        },
+        {
+          "role": "shake3",
+          "file": "VSCO 1 Percussion/varWood/Camo's Shaker/shake3.wav"
+        },
+        {
+          "role": "shake6",
+          "file": "VSCO 1 Percussion/varWood/Camo's Shaker/shake6.wav"
+        }
+      ]
+    },
+    "claves": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 0.3,
+      "samples": [
+        {
+          "role": "v2_rr1",
+          "file": "Percussion/Claves1_Hit_v2_rr1_Sum.wav"
+        },
+        {
+          "role": "v2_rr2",
+          "file": "Percussion/Claves1_Hit_v2_rr2_Sum.wav"
+        }
+      ]
+    },
+    "cowbell": {
+      "priority": "P2",
+      "pitched": false,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "hit",
+          "file": "Percussion/Cowbell1_Hit_v2_rr1_Sum.wav"
+        }
+      ]
+    },
+    "anvil": {
+      "priority": "P2",
+      "pitched": false,
+      "maxLength": 0.8,
+      "samples": [
+        {
+          "role": "hit",
+          "file": "Percussion/Anvil_Hit1_v2_Sum.wav"
+        }
+      ]
+    },
+    "bell_tree": {
+      "priority": "P1",
+      "pitched": false,
+      "maxLength": 2.2,
+      "samples": [
+        {
+          "role": "stroke",
+          "file": "Percussion/BellTree_Stroke4_v1_Sum.wav",
+          "onsetDb": -25
+        }
+      ]
+    },
+    "sleighbells": {
+      "priority": "P3",
+      "pitched": false,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "hit",
+          "file": "Percussion/Sleighbells_Hit_v1_rr1_Mid.wav"
+        }
+      ]
+    }
+  }
+}

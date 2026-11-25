@@ -219,7 +219,10 @@ export class GameScene extends Phaser.Scene {
     // reaching FULL, just with their own specific lines since these are
     // meaningful wall-wide milestones, not a per-spinner moment.
     this._frenzyMeter.on('miniLow', () => this._onMiniFrenzy("You're on fire!"));
-    this._frenzyMeter.on('miniHigh', () => this._onMiniFrenzy('Almost there!!'));
+    this._frenzyMeter.on('miniHigh', () => {
+      this._onMiniFrenzy('Almost there!!');
+      audioOrchestra.onFrenzyNear();
+    });
 
     // A brief turn-to-face-the-wall before play, skipped by any input. The
     // round clock doesn't start until first input, so this costs the player
@@ -470,6 +473,11 @@ export class GameScene extends Phaser.Scene {
       if (usingGoldenSplash) this._goldenSplashPending = false;
 
       SFX.playHit(hitSpinner.currentSpeed);
+      // The squirt plays the instrument (CLAUDE.md §9): the musician seated
+      // at this spinner answers on the next sixteenth. A Golden Spinner has
+      // no seat, so it is skipped.
+      const seat = this._spinners.indexOf(hitSpinner);
+      if (seat >= 0) audioOrchestra.onSpinnerHit(seat);
       if (this._frenzyActive) this._payOutFrenzyHit(hitSpinner);
       const comboBefore = this._combo.combo;
       const comboAfter = this._combo.registerHit(hitSpinner.id);
@@ -712,7 +720,12 @@ export class GameScene extends Phaser.Scene {
     // The orchestra can only start once there's an AudioContext, which is
     // this gesture — so the run's music begins on the player's first shot
     // rather than on scene load (CLAUDE.md §9).
-    audioOrchestra.start(this._world.id);
+    // Seated where the spinners are: each musician is panned to its own
+    // spinner's position across the wall.
+    audioOrchestra.start(
+      this._world.id,
+      this._spinners.map((s) => (s.x / GAME_WIDTH) * 2 - 1),
+    );
     this._intro?.skip();
     this._intro = null;
     this._dismissGhostFinger?.();
@@ -769,6 +782,9 @@ export class GameScene extends Phaser.Scene {
 
   private _endRound(): void {
     this._roundOver = true;
+    // Resolve on a closing chord rather than cutting the music dead; the
+    // SHUTDOWN handler's stop() leaves a finishing orchestra to ring.
+    audioOrchestra.finish();
     poki.gameplayStop();
     adManager.recordRunCompleted();
 

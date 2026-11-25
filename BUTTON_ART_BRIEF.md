@@ -1,17 +1,18 @@
 # Art Brief — Mobile/Tablet Move Buttons
 
 > **✅ Delivered and wired in, 2026-09-12.** All four buttons (both required
-> + both optional pressed states) were generated, cut out, and are live in
-> `MobileMoveButtons.ts`. The art arrived as checkerboard-flattened JPEG
-> exports with no alpha channel, so transparency was reconstructed rather
-> than used as-is: threshold the near-neutral light checkerboard, erode 3 px
-> to drop JPEG-blended boundary pixels, then resample through premultiplied
-> alpha so no background grey bleeds into the soft edges (verified — 0% of
-> semi-transparent edge pixels read grey; they average the Ink outline
-> colour). Palette-quantised to 128 colours: 270 KB → 90 KB total, mean
-> per-channel delta 1.7/255. **If regenerating these, export true
-> transparent PNGs and this whole step disappears.** The brief below is
-> retained as the spec for any future button art.
+>
+> - both optional pressed states) were generated, cut out, and are live in
+>   `MobileMoveButtons.ts`. The art arrived as checkerboard-flattened JPEG
+>   exports with no alpha channel, so transparency was reconstructed rather
+>   than used as-is: threshold the near-neutral light checkerboard, erode 3 px
+>   to drop JPEG-blended boundary pixels, then resample through premultiplied
+>   alpha so no background grey bleeds into the soft edges (verified — 0% of
+>   semi-transparent edge pixels read grey; they average the Ink outline
+>   colour). Palette-quantised to 128 colours: 270 KB → 90 KB total, mean
+>   per-channel delta 1.7/255. **If regenerating these, export true
+>   transparent PNGs and this whole step disappears.** The brief below is
+>   retained as the spec for any future button art.
 
 **For:** generating custom art for the on-screen ◀ / ▶ move buttons with Nano
 Banana (Gemini 2.5 Flash Image), matching the granny/gun/world art already
@@ -43,10 +44,10 @@ no character. This brief gets you there.
 
 **2 images, 256×256 px each, transparent PNG:**
 
-| Button | Filename | Prompt seed |
-|---|---|---|
-| Move left | `move_left.png` | "A chunky, rounded, hand-painted watercolour button shaped like a friendly rounded-square badge, Mint Green (#7FD9A8) fill with a thick Ink (#1F2138) outline, containing one bold arrow pointing LEFT. Playful kids'-game style, single upper-left light source, soft shadow lower-right inside the badge, no gradient soup, no text. Transparent background. Think: a big satisfying button a 6-year-old would love to mash." |
-| Move right | `move_right.png` | Same seed, mirrored — arrow points RIGHT. Generate as a true mirror of `move_left.png` (or regenerate with the same locked reference image, flipping only the arrow direction) so the two buttons read as one consistent pair, not two independent designs. |
+| Button     | Filename         | Prompt seed                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Move left  | `move_left.png`  | "A chunky, rounded, hand-painted watercolour button shaped like a friendly rounded-square badge, Mint Green (#7FD9A8) fill with a thick Ink (#1F2138) outline, containing one bold arrow pointing LEFT. Playful kids'-game style, single upper-left light source, soft shadow lower-right inside the badge, no gradient soup, no text. Transparent background. Think: a big satisfying button a 6-year-old would love to mash." |
+| Move right | `move_right.png` | Same seed, mirrored — arrow points RIGHT. Generate as a true mirror of `move_left.png` (or regenerate with the same locked reference image, flipping only the arrow direction) so the two buttons read as one consistent pair, not two independent designs.                                                                                                                                                                     |
 
 Optional stretch (not required for launch, only if you want extra polish):
 a **pressed/active variant** of each (`move_left_pressed.png` /

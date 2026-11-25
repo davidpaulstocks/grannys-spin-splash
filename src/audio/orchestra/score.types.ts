@@ -1,0 +1,106 @@
+/**
+ * The shape of a world's score. A score is a short piece of real music —
+ * key, tempo, an eight-bar chord progression — and one written part per
+ * musician. Each spinner on the wall is seated at one part (CLAUDE.md §9):
+ * waking the spinner brings that musician in, and a full wall is the full
+ * arrangement.
+ */
+
+import type { Mode } from './theory';
+
+/** Every instrument in the sample sprite — see tools/orchestra-manifest.json. */
+export type InstrumentId =
+  | 'bass_pizz'
+  | 'cello_pizz'
+  | 'violin_pizz'
+  | 'violin_spic'
+  | 'harp'
+  | 'flute_stac'
+  | 'clarinet_stac'
+  | 'bassoon_stac'
+  | 'trumpet_stac'
+  | 'trombone_stac'
+  | 'tuba_stac'
+  | 'glock'
+  | 'marimba'
+  | 'xylo'
+  | 'timpani'
+  | 'cello_sus'
+  | 'viola_sus'
+  | 'violin_sus'
+  | 'flute_sus'
+  | 'clarinet_sus'
+  | 'oboe_sus'
+  | 'horn_sus'
+  | 'organ'
+  | 'bass_drum'
+  | 'snare'
+  | 'snare_roll'
+  | 'timpani_roll'
+  | 'cymbal_crash'
+  | 'cymbal_swell'
+  | 'triangle'
+  | 'tambourine'
+  | 'shaker'
+  | 'claves'
+  | 'cowbell'
+  | 'anvil'
+  | 'bell_tree'
+  | 'sleighbells';
+
+/** One line of notation per bar; lengths of 1, 2, 4 or 8 bars loop against the eight-bar form. */
+export type Bars = readonly string[];
+
+export interface Line {
+  readonly instrument: InstrumentId;
+  /** Lowest MIDI note the line's chord tones and tonic are placed at or above. */
+  readonly floor: number;
+  /** Mix level, 0–1, before the spinner's own charge is applied. */
+  readonly level: number;
+  /** Notes are held for their written length (bowed/blown) rather than left to ring (plucked/struck). */
+  readonly sustain?: boolean;
+  readonly bars: Bars;
+}
+
+export interface Part extends Line {
+  /** Stable id, unique within the score. */
+  readonly id: string;
+  /** Shown to the player the first time this musician joins: "Flute", "Harp". */
+  readonly name: string;
+  /** What a barely-spinning musician plays. Defaults to the beat-only outline of `bars`. */
+  readonly light?: Bars;
+  /** Lines that always sound alongside the full part — a percussionist's second instrument. */
+  readonly with?: readonly Line[];
+  /** An extra line that joins only at full speed — an octave doubling, a harmony, a flourish. */
+  readonly ornament?: Line;
+  /**
+   * The instrument that sounds when water is landing on this spinner. Short
+   * and percussive, so a bowed musician answers the squirt with a pluck.
+   * Defaults to the part's own instrument.
+   */
+  readonly spray?: InstrumentId;
+  /** Floor for spray notes; defaults to `floor`. Lets a bass answer an octave up, where it is audible. */
+  readonly sprayFloor?: number;
+}
+
+export const BARS_PER_FORM = 8;
+
+export interface Score {
+  readonly id: string;
+  readonly bpm: number;
+  /** Tonic note name, e.g. `G` or `Bb`. */
+  readonly tonic: string;
+  readonly mode: Mode;
+  /** Eight chord symbols, one per bar. Write `"C D"` to change chord on beat three. */
+  readonly chords: readonly string[];
+  /** Fraction of a beat by which every off-beat eighth is delayed. 0 is straight, 1/6 is triplet swing. */
+  readonly swing: number;
+  /** Always playing, very quietly: the harmonic floor that makes any one musician sound like music. */
+  readonly bed: readonly Line[];
+  /** One part per spinner, in wall order: left to right, top row first. */
+  readonly seats: readonly Part[];
+  /** Joins for the final third of the round, whatever the wall looks like. */
+  readonly finale: readonly Line[];
+  /** Joins for the Splash Frenzy window. */
+  readonly frenzy: readonly Line[];
+}

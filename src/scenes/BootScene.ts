@@ -13,6 +13,7 @@ import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { SPRITE_KEYS } from '../assets/keys';
+import { audioOrchestra } from '../audio/AudioOrchestra';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import type { GrannyPose } from '../entities/granny/granny.types';
 import { GUN_DEFS } from '../entities/gun/gun.data';
@@ -36,6 +37,9 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     this._buildLoadingBar();
+    // The orchestra's instruments decode in the background and never hold
+    // the loading bar — play starts as soon as the art is in.
+    audioOrchestra.preload();
 
     for (const g of GRANNY_DEFS) {
       for (const pose of GRANNY_POSES) {

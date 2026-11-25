@@ -1,0 +1,1027 @@
+{
+  "version": 1,
+  "file": "orchestra.mp3",
+  "sampleRate": 32000,
+  "syncMarker": 0.1,
+  "duration": 153.4881,
+  "instruments": {
+    "bass_pizz": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 28,
+          "cents": -2,
+          "start": 0.402,
+          "duration": 1.2,
+          "rms": 0.111
+        },
+        {
+          "midi": 34,
+          "cents": 4,
+          "start": 1.682,
+          "duration": 1.2,
+          "rms": 0.155
+        },
+        {
+          "midi": 38,
+          "cents": 9,
+          "start": 2.962,
+          "duration": 1.2,
+          "rms": 0.341
+        },
+        {
+          "midi": 44,
+          "cents": 22,
+          "start": 4.242,
+          "duration": 1.2,
+          "rms": 0.16
+        }
+      ]
+    },
+    "cello_pizz": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 36,
+          "cents": -4,
+          "start": 5.522,
+          "duration": 1.2,
+          "rms": 0.15
+        },
+        {
+          "midi": 43,
+          "cents": 0,
+          "start": 6.802,
+          "duration": 1.2,
+          "rms": 0.134
+        },
+        {
+          "midi": 50,
+          "cents": 0,
+          "start": 8.082,
+          "duration": 1.2,
+          "rms": 0.09
+        },
+        {
+          "midi": 57,
+          "cents": -3,
+          "start": 9.362,
+          "duration": 1.2,
+          "rms": 0.109
+        }
+      ]
+    },
+    "violin_pizz": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 55,
+          "cents": -5,
+          "start": 10.642,
+          "duration": 0.8,
+          "rms": 0.133
+        },
+        {
+          "midi": 62,
+          "cents": -2,
+          "start": 11.522,
+          "duration": 0.8,
+          "rms": 0.09
+        },
+        {
+          "midi": 69,
+          "cents": -6,
+          "start": 12.402,
+          "duration": 0.8,
+          "rms": 0.106
+        },
+        {
+          "midi": 76,
+          "cents": 3,
+          "start": 13.282,
+          "duration": 0.8,
+          "rms": 0.091
+        }
+      ]
+    },
+    "violin_spic": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 55,
+          "cents": 1,
+          "start": 14.162,
+          "duration": 0.7,
+          "rms": 0.124
+        },
+        {
+          "midi": 62,
+          "cents": -2,
+          "start": 14.942,
+          "duration": 0.7,
+          "rms": 0.104
+        },
+        {
+          "midi": 69,
+          "cents": 1,
+          "start": 15.722,
+          "duration": 0.7,
+          "rms": 0.14
+        },
+        {
+          "midi": 76,
+          "cents": -2,
+          "start": 16.502,
+          "duration": 0.5624,
+          "rms": 0.11
+        },
+        {
+          "midi": 83,
+          "cents": 0,
+          "start": 17.1444,
+          "duration": 0.7,
+          "rms": 0.086
+        }
+      ]
+    },
+    "harp": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 35,
+          "cents": -15,
+          "start": 17.9244,
+          "duration": 1.6,
+          "rms": 0.213
+        },
+        {
+          "midi": 41,
+          "cents": -8,
+          "start": 19.6044,
+          "duration": 1.6,
+          "rms": 0.168
+        },
+        {
+          "midi": 48,
+          "cents": -2,
+          "start": 21.2844,
+          "duration": 1.6,
+          "rms": 0.179
+        },
+        {
+          "midi": 55,
+          "cents": -8,
+          "start": 22.9644,
+          "duration": 1.6,
+          "rms": 0.173
+        },
+        {
+          "midi": 65,
+          "cents": -1,
+          "start": 24.6444,
+          "duration": 1.6,
+          "rms": 0.173
+        },
+        {
+          "midi": 72,
+          "cents": -11,
+          "start": 26.3244,
+          "duration": 1.6,
+          "rms": 0.073
+        },
+        {
+          "midi": 79,
+          "cents": -6,
+          "start": 28.0044,
+          "duration": 1.6,
+          "rms": 0.071
+        },
+        {
+          "midi": 83,
+          "cents": -8,
+          "start": 29.6844,
+          "duration": 1.6,
+          "rms": 0.104
+        }
+      ]
+    },
+    "flute_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 69,
+          "cents": -7,
+          "start": 31.3644,
+          "duration": 0.5,
+          "rms": 0.125
+        },
+        {
+          "midi": 72,
+          "cents": -1,
+          "start": 31.9444,
+          "duration": 0.5,
+          "rms": 0.151
+        },
+        {
+          "midi": 81,
+          "cents": -4,
+          "start": 32.5244,
+          "duration": 0.5,
+          "rms": 0.129
+        },
+        {
+          "midi": 88,
+          "cents": -3,
+          "start": 33.1044,
+          "duration": 0.5,
+          "rms": 0.13
+        }
+      ]
+    },
+    "clarinet_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 50,
+          "cents": -21,
+          "start": 33.6844,
+          "duration": 0.5,
+          "rms": 0.103
+        },
+        {
+          "midi": 58,
+          "cents": -39,
+          "start": 34.2644,
+          "duration": 0.5,
+          "rms": 0.112
+        },
+        {
+          "midi": 65,
+          "cents": -27,
+          "start": 34.8444,
+          "duration": 0.5,
+          "rms": 0.164
+        },
+        {
+          "midi": 70,
+          "cents": -12,
+          "start": 35.4244,
+          "duration": 0.5,
+          "rms": 0.13
+        }
+      ]
+    },
+    "bassoon_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 34,
+          "cents": 0,
+          "start": 36.0044,
+          "duration": 0.6,
+          "rms": 0.108
+        },
+        {
+          "midi": 41,
+          "cents": -1,
+          "start": 36.6844,
+          "duration": 0.6,
+          "rms": 0.176
+        },
+        {
+          "midi": 51,
+          "cents": 0,
+          "start": 37.3644,
+          "duration": 0.6,
+          "rms": 0.169
+        },
+        {
+          "midi": 57,
+          "cents": 1,
+          "start": 38.0444,
+          "duration": 0.6,
+          "rms": 0.206
+        }
+      ]
+    },
+    "trumpet_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 53,
+          "cents": 2,
+          "start": 38.7244,
+          "duration": 0.7,
+          "rms": 0.095
+        },
+        {
+          "midi": 63,
+          "cents": -1,
+          "start": 39.5044,
+          "duration": 0.7,
+          "rms": 0.088
+        },
+        {
+          "midi": 70,
+          "cents": -2,
+          "start": 40.2844,
+          "duration": 0.7,
+          "rms": 0.088
+        },
+        {
+          "midi": 77,
+          "cents": 4,
+          "start": 41.0644,
+          "duration": 0.7,
+          "rms": 0.124
+        }
+      ]
+    },
+    "trombone_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 46,
+          "cents": 2,
+          "start": 41.8444,
+          "duration": 0.7,
+          "rms": 0.053
+        },
+        {
+          "midi": 53,
+          "cents": 1,
+          "start": 42.6244,
+          "duration": 0.7,
+          "rms": 0.086
+        },
+        {
+          "midi": 62,
+          "cents": -1,
+          "start": 43.4044,
+          "duration": 0.7,
+          "rms": 0.117
+        }
+      ]
+    },
+    "tuba_stac": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 34,
+          "cents": -12,
+          "start": 44.1844,
+          "duration": 0.8,
+          "rms": 0.092
+        },
+        {
+          "midi": 39,
+          "cents": 2,
+          "start": 45.0644,
+          "duration": 0.8,
+          "rms": 0.106
+        },
+        {
+          "midi": 46,
+          "cents": -9,
+          "start": 45.9444,
+          "duration": 0.8,
+          "rms": 0.106
+        },
+        {
+          "midi": 50,
+          "cents": -5,
+          "start": 46.8244,
+          "duration": 0.6717,
+          "rms": 0.141
+        }
+      ]
+    },
+    "glock": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 79,
+          "cents": -1,
+          "start": 47.5761,
+          "duration": 1.5,
+          "rms": 0.065
+        },
+        {
+          "midi": 91,
+          "cents": 12,
+          "start": 49.1561,
+          "duration": 1.5,
+          "rms": 0.056
+        },
+        {
+          "midi": 96,
+          "cents": 19,
+          "start": 50.7361,
+          "duration": 1.5,
+          "rms": 0.044
+        },
+        {
+          "midi": 103,
+          "cents": 24,
+          "start": 52.3161,
+          "duration": 1.5,
+          "rms": 0.065
+        }
+      ]
+    },
+    "marimba": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 48,
+          "cents": 4,
+          "start": 53.8961,
+          "duration": 1,
+          "rms": 0.101
+        },
+        {
+          "midi": 59,
+          "cents": 2,
+          "start": 54.9761,
+          "duration": 1,
+          "rms": 0.197
+        },
+        {
+          "midi": 65,
+          "cents": 0,
+          "start": 56.0561,
+          "duration": 1,
+          "rms": 0.157
+        },
+        {
+          "midi": 72,
+          "cents": 5,
+          "start": 57.1361,
+          "duration": 1,
+          "rms": 0.112
+        },
+        {
+          "midi": 83,
+          "cents": 1,
+          "start": 58.2161,
+          "duration": 1,
+          "rms": 0.128
+        }
+      ]
+    },
+    "xylo": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 67,
+          "cents": 1,
+          "start": 59.2961,
+          "duration": 0.6,
+          "rms": 0.061
+        },
+        {
+          "midi": 79,
+          "cents": 16,
+          "start": 59.9761,
+          "duration": 0.6,
+          "rms": 0.127
+        },
+        {
+          "midi": 91,
+          "cents": 2,
+          "start": 60.6561,
+          "duration": 0.6,
+          "rms": 0.074
+        },
+        {
+          "midi": 103,
+          "cents": 27,
+          "start": 61.3361,
+          "duration": 0.6,
+          "rms": 0.086
+        }
+      ]
+    },
+    "timpani": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 30,
+          "cents": -22,
+          "start": 62.0161,
+          "duration": 2,
+          "rms": 0.113
+        },
+        {
+          "midi": 42,
+          "cents": -3,
+          "start": 64.0961,
+          "duration": 2,
+          "rms": 0.046
+        }
+      ]
+    },
+    "cello_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 36,
+          "cents": -1,
+          "start": 66.1761,
+          "duration": 1.9,
+          "rms": 0.194
+        },
+        {
+          "midi": 43,
+          "cents": -1,
+          "start": 68.1561,
+          "duration": 1.9,
+          "rms": 0.238
+        },
+        {
+          "midi": 50,
+          "cents": 0,
+          "start": 70.1361,
+          "duration": 1.9,
+          "rms": 0.207
+        },
+        {
+          "midi": 57,
+          "cents": -2,
+          "start": 72.1161,
+          "duration": 1.9,
+          "rms": 0.181
+        }
+      ]
+    },
+    "viola_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 48,
+          "cents": 0,
+          "start": 74.0961,
+          "duration": 1.9,
+          "rms": 0.26
+        },
+        {
+          "midi": 55,
+          "cents": 1,
+          "start": 76.0761,
+          "duration": 1.9,
+          "rms": 0.162
+        },
+        {
+          "midi": 62,
+          "cents": 3,
+          "start": 78.0561,
+          "duration": 1.9,
+          "rms": 0.193
+        },
+        {
+          "midi": 69,
+          "cents": 1,
+          "start": 80.0361,
+          "duration": 1.9,
+          "rms": 0.195
+        }
+      ]
+    },
+    "violin_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 55,
+          "cents": 0,
+          "start": 82.0161,
+          "duration": 1.9,
+          "rms": 0.161
+        },
+        {
+          "midi": 62,
+          "cents": 0,
+          "start": 83.9961,
+          "duration": 1.9,
+          "rms": 0.165
+        },
+        {
+          "midi": 69,
+          "cents": 2,
+          "start": 85.9761,
+          "duration": 1.9,
+          "rms": 0.213
+        },
+        {
+          "midi": 76,
+          "cents": 0,
+          "start": 87.9561,
+          "duration": 1.9,
+          "rms": 0.131
+        },
+        {
+          "midi": 83,
+          "cents": 1,
+          "start": 89.9361,
+          "duration": 1.9,
+          "rms": 0.177
+        }
+      ]
+    },
+    "flute_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 60,
+          "cents": 1,
+          "start": 91.9161,
+          "duration": 1.9,
+          "rms": 0.185
+        },
+        {
+          "midi": 69,
+          "cents": 5,
+          "start": 93.8961,
+          "duration": 1.9,
+          "rms": 0.191
+        },
+        {
+          "midi": 72,
+          "cents": 2,
+          "start": 95.8761,
+          "duration": 1.9,
+          "rms": 0.242
+        },
+        {
+          "midi": 81,
+          "cents": 4,
+          "start": 97.8561,
+          "duration": 1.9,
+          "rms": 0.312
+        },
+        {
+          "midi": 88,
+          "cents": 1,
+          "start": 99.8361,
+          "duration": 1.9,
+          "rms": 0.282
+        }
+      ]
+    },
+    "clarinet_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 50,
+          "cents": 3,
+          "start": 101.8161,
+          "duration": 1.9,
+          "rms": 0.217
+        },
+        {
+          "midi": 58,
+          "cents": 1,
+          "start": 103.7961,
+          "duration": 1.9,
+          "rms": 0.309
+        },
+        {
+          "midi": 65,
+          "cents": 6,
+          "start": 105.7761,
+          "duration": 1.9,
+          "rms": 0.388
+        },
+        {
+          "midi": 70,
+          "cents": 3,
+          "start": 107.7561,
+          "duration": 1.9,
+          "rms": 0.419
+        },
+        {
+          "midi": 77,
+          "cents": 5,
+          "start": 109.7361,
+          "duration": 1.9,
+          "rms": 0.252
+        }
+      ]
+    },
+    "oboe_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 58,
+          "cents": 5,
+          "start": 111.7161,
+          "duration": 1.9,
+          "rms": 0.173
+        },
+        {
+          "midi": 65,
+          "cents": 3,
+          "start": 113.6961,
+          "duration": 1.9,
+          "rms": 0.247
+        },
+        {
+          "midi": 74,
+          "cents": 0,
+          "start": 115.6761,
+          "duration": 1.9,
+          "rms": 0.188
+        }
+      ]
+    },
+    "horn_sus": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 39,
+          "cents": -5,
+          "start": 117.6561,
+          "duration": 1.9,
+          "rms": 0.217
+        },
+        {
+          "midi": 46,
+          "cents": 0,
+          "start": 119.6361,
+          "duration": 1.9,
+          "rms": 0.184
+        },
+        {
+          "midi": 53,
+          "cents": -3,
+          "start": 121.6161,
+          "duration": 1.9,
+          "rms": 0.201
+        },
+        {
+          "midi": 60,
+          "cents": -2,
+          "start": 123.5961,
+          "duration": 1.9,
+          "rms": 0.295
+        }
+      ]
+    },
+    "organ": {
+      "pitched": true,
+      "samples": [
+        {
+          "midi": 48,
+          "cents": -2,
+          "start": 125.5761,
+          "duration": 1.5,
+          "rms": 0.239
+        },
+        {
+          "midi": 54,
+          "cents": 0,
+          "start": 127.1561,
+          "duration": 1.5,
+          "rms": 0.226
+        },
+        {
+          "midi": 63,
+          "cents": -2,
+          "start": 128.7361,
+          "duration": 1.5,
+          "rms": 0.185
+        },
+        {
+          "midi": 69,
+          "cents": 0,
+          "start": 130.3161,
+          "duration": 1.5,
+          "rms": 0.187
+        }
+      ]
+    },
+    "bass_drum": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 131.8961,
+          "duration": 0.9,
+          "rms": 0.089
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 132.8761,
+          "duration": 0.9,
+          "rms": 0.087
+        }
+      ]
+    },
+    "snare": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 133.8561,
+          "duration": 0.45,
+          "rms": 0.068
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 134.3861,
+          "duration": 0.45,
+          "rms": 0.066
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 134.9161,
+          "duration": 0.45,
+          "rms": 0.072
+        }
+      ]
+    },
+    "snare_roll": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 135.4461,
+          "duration": 1.6,
+          "rms": 0.092
+        }
+      ]
+    },
+    "timpani_roll": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 137.1261,
+          "duration": 2.4,
+          "rms": 0.19
+        }
+      ]
+    },
+    "cymbal_crash": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 139.6061,
+          "duration": 2.4,
+          "rms": 0.039
+        }
+      ]
+    },
+    "cymbal_swell": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 142.0861,
+          "duration": 2.4,
+          "rms": 0.104
+        }
+      ]
+    },
+    "triangle": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 144.5661,
+          "duration": 0.9,
+          "rms": 0.047
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 145.5461,
+          "duration": 0.9,
+          "rms": 0.052
+        }
+      ]
+    },
+    "tambourine": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 146.5261,
+          "duration": 0.4,
+          "rms": 0.08
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 147.0061,
+          "duration": 0.4,
+          "rms": 0.093
+        }
+      ]
+    },
+    "shaker": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 147.4861,
+          "duration": 0.182,
+          "rms": 0.054
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 147.7481,
+          "duration": 0.25,
+          "rms": 0.06
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 148.0781,
+          "duration": 0.25,
+          "rms": 0.096
+        }
+      ]
+    },
+    "claves": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 148.4081,
+          "duration": 0.3,
+          "rms": 0.041
+        },
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 148.7881,
+          "duration": 0.3,
+          "rms": 0.039
+        }
+      ]
+    },
+    "cowbell": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 149.1681,
+          "duration": 0.5,
+          "rms": 0.041
+        }
+      ]
+    },
+    "anvil": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 149.7481,
+          "duration": 0.8,
+          "rms": 0.079
+        }
+      ]
+    },
+    "bell_tree": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 150.6281,
+          "duration": 2.2,
+          "rms": 0.071
+        }
+      ]
+    },
+    "sleighbells": {
+      "pitched": false,
+      "samples": [
+        {
+          "midi": null,
+          "cents": 0,
+          "start": 152.9081,
+          "duration": 0.5,
+          "rms": 0.087
+        }
+      ]
+    }
+  }
+}
