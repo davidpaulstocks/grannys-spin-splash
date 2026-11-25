@@ -13,13 +13,18 @@ npm run lint           # eslint + prettier --check over the whole repo
 npm run lint:fix       # eslint --fix + prettier --write
 npm run test           # vitest unit + integration tests
 npm run budget         # assert dist/ < 8 MB (Poki cap)
-npm run samples        # rebuild the orchestra instrument sprite (needs ffmpeg and lame)
+npm run samples        # rebuild every instrument sprite (needs ffmpeg and lame)
+npm run samples -- kitchen   # rebuild one band's sprite (tools/bands/<band>.manifest.json)
 npm run optimise       # convert PNGs dropped in public/sprites/ to WebP (tools/sprite-optimise.sh)
 ```
 
 ## Balance harness (dev only)
 
 In a dev build (`npm run dev`), open the browser console and run `await window.__bot.ladder('garden')` to play all eight gigs of a venue with scripted players, far faster than real time, and print stars and coins. It is not included in production builds. See `src/dev/botSim.ts` for the other calls.
+
+## Review link (dev and review only)
+
+`?venue=<id>&gig=<n>` opens that gig directly, e.g. `http://localhost:5173/?venue=kitchen&gig=1`, so a venue's band can be heard without earning the stars to reach it. It bypasses the tour, so it is for review only and must be removed before Poki submission (see BACKLOG.md).
 
 ## Where the plans live
 

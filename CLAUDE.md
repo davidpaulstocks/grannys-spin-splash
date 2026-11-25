@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Poki Edition
 
-**Status (2026-11-25):** Playable build, green on lint/test/build/budget. Mid-way through the **"Granny's Grand Tour" transformation**: the orchestra was rebuilt on real instruments and the round became a ladder of gigs with star ratings and one coin currency. Navigation (Home, Tour map, Shop — slice 2, commit `e6ab381`) is built; the art is WebP; slices 3 (reasons to return) and 4 (per-venue bands) are still to come. Not yet submitted to Poki — see `BACKLOG.md` for live status and submission blockers.
+**Status (2026-11-25):** Playable build, green on lint/test/build/budget. Mid-way through the **"Granny's Grand Tour" transformation**: the orchestra was rebuilt on real instruments and the round became a ladder of gigs with star ratings and one coin currency. Slices 1–2 are built (gig ladder and stars; Home, Tour map, Shop — `e6ab381`); slice 3 is part built (one rolling mission and the daily gift); slice 4 is begun (the Garden orchestra and the Kitchen jazz combo are built; Workshop, Funfair and Disco still use orchestral stand-ins). The UI pass (sharp text, new button and panel) and goal clarity (a band to wake, a band meter, a goal card) are done; `GameScene` is split into `src/scenes/game/`. Jam mode, the new-musician solo and the other three bands are still to come. Not yet submitted to Poki — see `BACKLOG.md` for live status and submission blockers.
 **Current plan of record:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md) (the orchestra, juice and assessment phases), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md) (round structure, scoring, economy and navigation — **authoritative over §4 and §11 where they conflict**) and [`docs/BANDS.md`](docs/BANDS.md) (one musical style per venue). This file's other sections are the original spec; where it disagrees with the code, the code and those three docs win.
 **Target platform:** [Poki](https://poki.com) (100M+ MAUs, hand-curated)
 **Tech:** TypeScript + Vite + Phaser 3 (bundled, not CDN)
@@ -150,7 +150,9 @@ All SDK calls go through `src/poki.ts`. No exceptions. Mute audio + disable inpu
 
 ## 4. The Game in One Page
 
-> **Redesigned 2026-11-25.** The round structure, scoring and economy below were reworked in the "Granny's Grand Tour" transformation: each venue is a **ladder of eight gigs** (band sizes grow from a trio to the full wall, authored in `src/entities/world/gigs.data.ts`); **stars are the rating** (1–3 per gig, never spent) and **open venues**; **coins are the single currency** (the save's `vault`), earned in every gig and spent on grannies and guns; the old score rank ladder is gone. **`docs/ENGAGEMENT_DESIGN.md` is authoritative where it conflicts with this section.** Built so far: the gig ladder, star rating, results screen and coin economy (slice 1). At the last commit the first screen is still the splash screen with three carousels; slice 2 (Home, Tour map, Shop) was in progress in the working tree when this was written.
+> **Redesigned 2026-11-25.** The round structure, scoring and economy below were reworked in the "Granny's Grand Tour" transformation: each venue is a **ladder of eight gigs** (band sizes grow from a trio to the full wall, authored in `src/entities/world/gigs.data.ts`); **stars are the rating** (1–3 per gig, never spent) and **open venues**; **coins are the single currency** (the save's `vault`), earned in every gig and spent on grannies and guns; the old score rank ladder is gone. **`docs/ENGAGEMENT_DESIGN.md` is authoritative where it conflicts with this section.** Built so far: the gig ladder, star rating, results screen and coin economy (slice 1); Home, Tour map and Shop (slice 2 — the first screen is Home, or gig 1 on a first-ever launch); Granny's request and the daily gift (slice 3, part).
+
+> **The purpose the game now communicates (2026-11-25):** *wake up the whole band, and keep them all awake at once.* Every spinner is a sleeping musician; **"awake" means a spinner at full speed** (FULL), and the gig is won by having them awake at the same moment. Three things say so on screen: a stopped spinner shows drifting "z z z" and an awake one about to drop out nods side to side; the HUD is a **band meter** (`src/ui/BandMeter.ts` — one light per musician, filling as they wake, with the three stars standing above the lights that earn them, so "5 of 8 awake" is counted, not read as a percentage); and a **YOUR GOAL card** (`src/scenes/game/GoalCard.ts`) sits beside Granny before the first squirt of every gig and leaves on the first input. Wording is the same everywhere: asleep, awake, full band.
 
 A tiny old granny wields a custom water gun. The wall in front of her is covered in spinning targets — pinwheels, cogs, fans. Squirt them to make them spin faster. Get them all spinning at maximum simultaneously and trigger **SPLASH FRENZY!** — a 5-second bonus burst worth bonus stars.
 
@@ -158,7 +160,7 @@ A tiny old granny wields a custom water gun. The wall in front of her is covered
 
 **Audio system:** every spinner is a musician with a written part; waking spinners brings musicians in, and squirting plays the instrument. By Frenzy, you're conducting a full orchestra. This is the headline feature — see §9.
 
-**Progression:** coins earned go into a persistent bank (the "vault"). Spend coins on new grannies (skins) and guns (mechanics): guns cost 0 / 0 / 150 / 400 / 900 / 2,000 and the Punk Granny 600 (`gun.data.ts`, `granny.data.ts`). Venues are not bought: they open at 0 / 12 / 30 / 54 / 80 total stars (`starsToOpen` in `world.data.ts`). At the last commit the splash screen still has three carousels — pick your Granny, pick your World, pick your Gun, press PLAY — and the results screen's NEXT GIG goes straight into the next gig.
+**Progression:** coins earned go into a persistent bank (the "vault"). Spend coins on new grannies (skins) and guns (mechanics): guns cost 0 / 0 / 150 / 400 / 900 / 2,000 and the Punk Granny 600 (`gun.data.ts`, `granny.data.ts`). Venues are not bought: they open at 0 / 12 / 30 / 54 / 80 total stars (`starsToOpen` in `world.data.ts`). Grannies and guns are bought in the Shop (`ShopScene.ts`); Home has one large PLAY, and the results screen's NEXT GIG goes straight into the next gig. Granny's request (one rolling mission at a time, `Missions.ts`) pays coins, and a daily gift (`DailyGift.ts`) rewards coming back.
 
 **Difficulty curve (v1):** authored per gig. Each venue's band grows over eight gigs (Garden 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12; Workshop 4 → 15; Kitchen and Funfair 4 → 16; Disco 5 → 20, plus the mirror-ball feature spinner on the last gig), spinner wind-down slows as the band grows, and obstacles and moving targets arrive through the ladder. Across venues: Garden (12 spinners, no obstacles) → Workshop (15, cat/umbrella/duck) → Kitchen (16, double cats) → Funfair (16, moving targets) → Disco (20, frequent Golden Spinner). Balance is tuned for Garden only; the other venues are untuned (`BACKLOG.md`).
 
@@ -169,6 +171,8 @@ A tiny old granny wields a custom water gun. The wall in front of her is covered
 ## 5. Visual Design System
 
 The visual brief: **premium, kid-friendly, calm, confident**. Think Ghibli warmth × Apple polish × Animal Crossing comfort. Avoid: emoji clutter, busy backgrounds, mismatched fonts, harsh edges, over-decoration.
+
+> **Update 2026-11-25 (UI pass, direct feedback: text hard to read, a button half off its panel, screens basic).** The canvas was 1280 px wide and stretched by the browser (about 2048 device pixels on a laptop), which blurred every glyph. It is now created at the density it is shown at, up to 2x (`RENDER_SCALE` in `src/config.ts`), and every scene's camera zooms to match (`fitCameraToLogicalSize`); layout stays in 1280x720 logical units. Text outlines dropped from about a fifth of the type size to about a tenth, tracking opened, and outlines in the text's own colour (which fattened every button label into its neighbours) were removed — see `src/utils/typography.ts`; this supersedes the 3–6 px outline note in §5.2. Buttons are one component (`Button.ts`): a face on a darker lip with a shadow and highlight, pressing down when tapped, in three sizes plus a gold `reward` look for rewarded-ad buttons. Cards use the shared `Panel.ts`, optionally with a ribbon — **the ribbon is the only element allowed to cross a panel's edge**.
 
 ### 5.1 Colour palette
 
@@ -368,6 +372,8 @@ function resolveAim(rawX: number, rawY: number, spinners: Spinner[]): AimResult 
 
 In-game text limited to: score numbers, "FRENZY!" banner, weapon/granny names. Everything else is visual.
 
+> **Update 2026-11-25:** every gig opens with a **YOUR GOAL card** (`src/scenes/game/GoalCard.ts`): "Wake the whole band!" and what each star takes. On a player's very first run, `TutorialSequence.ts` adds two captions tied to what just happened: "Squirt a sleepy musician to wake it up!" at the start (with the ghost finger), and "Keep the whole band awake at once!" the first time a spinner reaches FULL. They replaced "Squirt the spinners to make them spin faster!" and "Get every spinner to FULL for SPLASH FRENZY!".
+
 ---
 
 ## 7. Project Architecture
@@ -434,6 +440,7 @@ granny-spin-splash/
 │   └── audio/
 │       ├── orchestra.mp3              # The instrument sprite (VSCO-2 CE, CC0) — built by `npm run samples`
 │       ├── orchestra.json             # Sprite index: per-instrument sample offsets, measured pitch
+│       ├── bands/                     # One extra sprite per non-orchestral band: kitchen.{mp3,json} (16 instruments, 363 KB)
 │       └── sfx/                       # Currently empty — one-shots are synthesised
 │
 ├── src/
@@ -449,10 +456,23 @@ granny-spin-splash/
 │   │   ├── HomeScene.ts               # First screen for returning players: venue, Granny, next-gig card, one PLAY button; Tour and Shop buttons
 │   │   ├── TourScene.ts               # Venue/gig map: stars held, eight gig nodes with best ratings, locked venues say what they need
 │   │   ├── ShopScene.ts               # Grannies and guns bought with coins (was SplashScene); DONE returns to Home, starts no gig
-│   │   ├── GameScene.ts               # Main gameplay
+│   │   ├── GameScene.ts               # Main gameplay — now an orchestrator over the modules in game/
 │   │   ├── HUDScene.ts                # Overlay (timer, water bar, frenzy meter)
 │   │   ├── PauseScene.ts              # Pause overlay (ESC on desktop, visible button on touch)
 │   │   └── ResultsScene.ts            # End of a gig: stars, coins, NEXT GIG / Retry / Menu → Home (replaced GameOverScene)
+│   │
+│   │   └── game/                      # What GameScene used to do itself (split out 2026-11-25; each file one concern)
+│   │       ├── GigScore.ts            # Coins, locked-in stars, the once-per-tier rule, the encore (no Phaser dependency)
+│   │       ├── MusicReactions.ts      # Spinner pulses on notes, floating notes, musician names, the gig intro
+│   │       ├── FrenzyController.ts    # SPLASH FRENZY from the scene's side: start, window, per-hit flourish
+│   │       ├── PowerUpEffects.ts      # Active power-up windows and applying a pickup
+│   │       ├── WaterCollisions.ts     # Particles against obstacles and spinners, combo and hot-streak shake
+│   │       ├── FireControl.ts         # Aim, gun, cannon, pump cycle and jet hiss
+│   │       ├── FirstRunGuide.ts       # First-run ghost finger and scripted captions
+│   │       ├── GoalCard.ts            # The YOUR GOAL card shown before each gig
+│   │       ├── LevelUpFlair.ts        # Chanced extras on level-ups: spoken cheer, easter egg
+│   │       ├── CountdownUrgency.ts    # Final-countdown tick and shake
+│   │       └── bankGig.ts             # Banks a finished gig into the save, builds the results payload
 │   │
 │   ├── entities/                      # one folder per game entity — its class, data, types, and renderer travel together
 │   │   ├── spinner/
@@ -509,13 +529,22 @@ granny-spin-splash/
 │   │   ├── InputManager.ts            # Unified keyboard/mouse/touch
 │   │   ├── UnlockManager.ts           # Coin bank, grannies/guns purchases, selection
 │   │   ├── Progress.ts                # Pure tour rules: stars per gig, venue opening, recordGig, nextStop
+│   │   ├── Missions.ts                # Granny's request: one rolling mission, ten written, pure over the save
+│   │   ├── DailyGift.ts               # Daily gift: coins for coming back, more for consecutive days, pure over the save
 │   │   ├── startRound.ts              # The one gate that starts a round behind the between-runs ad
 │   │   ├── FrenzyMeter.ts             # 60/80/100% thresholds
 │   │   ├── ComboTracker.ts            # Combo timer + multiplier
 │   │   └── AdManager.ts               # Wraps poki.ts with game logic
 │   │
 │   ├── ui/
-│   │   ├── Button.ts                  # Reusable button factory
+│   │   ├── Button.ts                  # The button: a face on a lip, three sizes, gold `reward` look
+│   │   ├── IconButton.ts              # Round version of the button carrying a drawn icon (home, retry, back)
+│   │   ├── Panel.ts                   # The shared card, optional ribbon astride its top edge
+│   │   ├── BandMeter.ts               # HUD band meter: one light per musician, stars above (replaced FrenzyProgress.ts)
+│   │   ├── GigCard.ts                 # Home's next-gig card: venue, gig dots, who joins
+│   │   ├── GigMissionBand.ts          # Granny's request as a band along the bottom of the gig card
+│   │   ├── MissionCard.ts             # Granny's request as a card on the results screen
+│   │   ├── TourNode.ts                # One gig on the tour map: round button or padlocked disc, best stars
 │   │   ├── Carousel.ts                # ◀ item ▶ pattern — Granny/World/Gun selectors
 │   │   ├── Toast.ts                   # Floating notification
 │   │   ├── Banner.ts                  # FRENZY banner, level reveal
@@ -526,7 +555,7 @@ granny-spin-splash/
 │   │   ├── PauseButton.ts             # Visible pause control for touch devices (§6.3)
 │   │   ├── StatPill.ts                # Icon + number readout pill (coins, stars)
 │   │   ├── touchControls.ts           # Does this device get on-screen touch controls? (move buttons, pause button)
-│   │   └── …                          # Plus ScoreCounter, FrenzyProgress, FloatingText, UrgencyOverlay, LoadoutStage, ThumbnailSelector, tutorial and icon helpers — see `ls src/ui`
+│   │   └── …                          # Plus ScoreCounter, FloatingText, UrgencyOverlay, LoadoutStage, ThumbnailSelector, tutorial and icon helpers — see `ls src/ui`
 │   │
 │   └── utils/
 │       ├── math.ts                    # distance, clamp, lerp, pillRadius, resolveAim
@@ -538,8 +567,8 @@ granny-spin-splash/
 │
 ├── tools/
 │   ├── budget-check.ts                # Asserts dist/ < 8 MB after build (`npm run budget`)
-│   ├── build-orchestra-samples.ts     # Builds public/audio/orchestra.{mp3,json} from VSCO-2 CE (`npm run samples`)
-│   ├── orchestra-manifest.json        # Which instruments and notes go in the sprite
+│   ├── build-orchestra-samples.ts     # Builds each band's sprite from approved CC0 repositories (`npm run samples -- <band>`)
+│   ├── bands/                         # <band>.manifest.json — which instruments and notes go in each sprite (orchestra, kitchen)
 │   ├── generate-thumbnail.ts          # Renders Poki thumbnails (run from the browser console — see its header)
 │   └── sprite-optimise.sh             # `npm run optimise`: converts PNGs dropped into public/sprites/ to WebP (verifies SSIM, lossless fallback, removes the source PNG)
 │
@@ -862,8 +891,8 @@ Every spinner on the wall is a **musician** with a written part in a real piece 
 
 | Part | File | What it does |
 |---|---|---|
-| **Instruments** | `orchestra/SampleBank.ts` | Loads one audio sprite (`public/audio/orchestra.mp3` + `orchestra.json`), decodes it with an `OfflineAudioContext` (allowed before any user gesture), slices per-note buffers, retunes by playback rate using each sample's *measured* pitch. Fire-and-forget from `BootScene`, never blocks play. |
-| **Sprite builder** | `tools/build-orchestra-samples.ts` (`npm run samples`) | Reads `tools/orchestra-manifest.json`, downloads from **VSCO-2 Community Edition (CC0)** into `.cache/` (gitignored), trims, normalises, resamples to mono 32 kHz, measures real pitch (YIN), prepends a sync marker so notes land on the grid in every browser, packs one MP3 + JSON index. Needs `ffmpeg` and `lame` on PATH. Current sprite: 37 instruments, 119 notes, about 955 KB. |
+| **Instruments** | `orchestra/SampleBank.ts` | Loads the orchestra sprite (`public/audio/orchestra.mp3` + `orchestra.json`), then one sprite per band after it (`BAND_SPRITES`, today `['kitchen']`, from `public/audio/bands/`; each loads in the background and fails independently, and a score may mix its band's instruments with the orchestra's), decodes each with an `OfflineAudioContext` (allowed before any user gesture), slices per-note buffers, retunes by playback rate using each sample's *measured* pitch. Fire-and-forget from `BootScene`, never blocks play. |
+| **Sprite builder** | `tools/build-orchestra-samples.ts` (`npm run samples`) | Reads `tools/bands/<band>.manifest.json` (`npm run samples` builds every bank, `npm run samples -- kitchen` one), downloads from the approved CC0 repositories only (`APPROVED_SOURCES` — VSCO-2 CE, VCSL and the Karoryfer repos; any other repository is refused) into `.cache/` (gitignored), trims, normalises, resamples to mono 32 kHz, measures real pitch (YIN), prepends a sync marker so notes land on the grid in every browser, packs one MP3 + JSON index. Needs `ffmpeg` and `lame` on PATH. Orchestra sprite: 37 instruments, 119 notes, about 955 KB; Kitchen sprite: 16 instruments, about 363 KB. The orchestra bank writes `public/audio/orchestra.*`, any other bank `public/audio/bands/<bank>.*`. |
 | **Conductor** | `orchestra/Conductor.ts` | Pure scheduling: given a sixteenth-note index, an audio time and each musician's charge, schedules exactly what plays. Knows nothing about clocks or game objects, so tests and offline renders drive it step by step. Also plays spray notes and stingers. |
 | **Signal path** | `orchestra/OrchestraGraph.ts` | One fader and pan per musician, a generated hall reverb, a tone control that opens across the round (the last third sounds brighter, not just louder), and a limiter. Built on `BaseAudioContext` so the same graph renders offline. |
 | **Notation** | `orchestra/pattern.ts` | The small language every part is written in (token table below). |
@@ -877,7 +906,7 @@ Every spinner on the wall is a **musician** with a written part in a real piece 
 | **One-shots** | `SFX.ts` | Only the mechanical and menu sounds deliberately kept *outside* the music. |
 | **Master** | `AudioBus.ts` | Shared `AudioContext`, master volume, mute, fade (ads). Unchanged role. |
 
-**A score** (`Score`) is a short real piece: a key (`tonic` + `mode`), `bpm`, an eight-bar chord progression, a `swing` amount, a quiet always-on `bed`, the `seats` (one written `Part` per musician, each with a stable `id`, a display `name`, an optional `light` version, `with` companion lines, an `ornament`, and a short percussive `spray` instrument for squirts), a `lineup`, and the `finale` and `frenzy` lines. Keys and tempos today: Garden G major 96 BPM, Workshop A minor 108, Kitchen C major 112, Funfair F major 120, Disco D minor 120.
+**A score** (`Score`) is a short real piece: a key (`tonic` + `mode`), `bpm`, an eight-bar chord progression, a `swing` amount, a quiet always-on `bed`, the `seats` (one written `Part` per musician, each with a stable `id`, a display `name`, an optional `light` version, `with` companion lines, an `ornament`, and a short percussive `spray` instrument for squirts), a `lineup`, and the `finale` and `frenzy` lines. Keys and tempos today: Garden G major 96 BPM, Workshop A minor 108, Kitchen C major 116 (swung, triplet feel), Funfair F major 120, Disco D minor 120.
 
 **Line-up order.** `Score.lineup` lists seat ids in the order musicians join as gigs grow (`docs/ENGAGEMENT_DESIGN.md` §3): a gig with a band of five seats the first five. The first three must already sound like music — a bass, a harmony instrument and a tune. The wall is laid out for the band size and the orchestra seats exactly that band, panned by each spinner's x position.
 
@@ -918,11 +947,11 @@ If the sprite fails to load, `SampleBank` falls back to a plain synthesised pluc
 
 ### 9.7 Bands per venue
 
-The engine separates the mechanic (each spinner is a musician with a written part) from the style (which recordings, which score). A new band is a new score plus a new set of recordings — no engine change. The per-venue plan (Garden chamber orchestra, Kitchen jazz combo, Workshop garage rock, Funfair fairground band, Disco funk/disco), the sample sources awaiting approval and the size budget live in **`docs/BANDS.md`**; do not duplicate them here. Status today: Garden is the reference and the only band built. The other four venues play orchestral stand-ins written in the right key, tempo and feel. Only VSCO-2 CE is approved for download; other libraries await David's approval.
+The engine separates the mechanic (each spinner is a musician with a written part) from the style (which recordings, which score). A new band is a new score plus a new set of recordings — no engine change. The per-venue plan (Garden chamber orchestra, Kitchen jazz combo, Workshop garage rock, Funfair fairground band, Disco funk/disco), the sample sources awaiting approval and the size budget live in **`docs/BANDS.md`**; do not duplicate them here. Status today (2026-11-25): **Garden** (chamber orchestra) is the reference and **Kitchen** is a jazz combo — the first band that is not an orchestra: key, tempo (116 BPM), swing and line-up are in `src/audio/scores/kitchen.ts` (walking bass, ride, piano and tenor sax as the opening quartet, then brushes, vibraphone, guitar, muted trumpet and the rest as the gigs grow). Workshop, Funfair and Disco are still orchestral stand-ins in the right key, tempo and feel. The set pieces (lean-in, fanfare, closing chord) and the feedback accents are **still orchestral in every venue**, the Kitchen included. All three sample sources were approved 2026-11-25: VCSL and the Karoryfer repositories verified CC0 from their LICENSE files, VSCO-2 CE already in use; FreePats is not yet re-checked at source and not yet used.
 
 ### 9.8 Verification
 
-Unit tests cover the notation, theory helpers and scores (scores stay in key in every tier, add music as musicians wake, seat every spinner in every world). Offline renders check peak, RMS and clipping. **Limit stated plainly: we can measure audio but not hear it.** As of 2026-11-25 David has not yet listened to the new orchestra; sign-off by ear is outstanding.
+Unit tests cover the notation, theory helpers and scores (scores stay in key in every tier, add music as musicians wake, seat every spinner in every world). Offline renders check peak, RMS and clipping. **Limit stated plainly: we can measure audio but not hear it.** As of 2026-11-25 David has not yet listened to the new orchestra or the Kitchen jazz combo; sign-off by ear is outstanding.
 
 ### 9.9 History (decisions superseded by the above)
 

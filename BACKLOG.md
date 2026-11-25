@@ -1,6 +1,6 @@
 # Granny's Spin Splash — Backlog
 
-**Currently working on (2026-11-25):** the "Granny's Grand Tour" transformation — turning a solid 30-second prototype into a game with a journey, a real orchestra and a reason to play the next round (Poki's first gate needs average playtime over 3 minutes). **Done:** the orchestra rebuilt on real instruments with written scores, the sound of water, a real water jet and a wall that moves with the music, slice 1 of the engagement redesign (gig ladder, star ratings, results screen, one coin currency, Garden balance, dev balance harness), slice 2 (Home, Tour map, Shop, first launch straight into gig 1, new-musician name labels in the gig intro; `e6ab381`) and the WebP art conversion (build 7.33 MB to 4.64 MB). **Next:** slice 3 (missions, daily gift, band album, jam mode, rewarded options) and slice 4 (per-venue bands). **Plans:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md), [`docs/BANDS.md`](docs/BANDS.md). The older narrative that used to sit here is under "History" at the bottom.
+**Currently working on (2026-11-25):** the "Granny's Grand Tour" transformation — turning a solid 30-second prototype into a game with a journey, a real band per venue and a reason to play the next round (Poki's first gate needs average playtime over 3 minutes). **Done:** the orchestra on real instruments with written scores; slice 1 (gig ladder, stars, results, coins, balance harness); slice 2 (Home, Tour, Shop; `e6ab381`); WebP art; the balance reading for all five venues (`525c192`); slice 3, part built (one rolling mission and the daily gift; `73cd7ab`); the `GameScene` split into `src/scenes/game/` (`9b8fb00`); the UI pass (sharp text at device density, new `Button`/`IconButton`/`Panel`, Results/Home/Tour/Shop/Pause re-laid); goal clarity ("wake the whole band": sleeping spinners, `BandMeter`, `GoalCard`); and the first non-orchestral band, the Kitchen jazz combo (slice 4 begun). **Next:** the rest of slice 3 (Jam mode, new-musician solo, "ten more seconds") and the remaining bands (Funfair, Workshop, Disco). **Plans:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md), [`docs/BANDS.md`](docs/BANDS.md). The older narrative that used to sit here is under "History" at the bottom.
 
 > This file is the live tracker. CLAUDE.md §13 is the immutable plan.
 > Update this file as work progresses; only edit CLAUDE.md when re-planning.
@@ -9,29 +9,39 @@
 
 ## Uplift — Granny's Grand Tour (2026-11-25)
 
-Commits `8b36957` … `e6ab381`. Tracked against `docs/UPLIFT_PLAN.md` (phases A–D) and `docs/ENGAGEMENT_DESIGN.md` (slices 1–4).
+Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A–D) and `docs/ENGAGEMENT_DESIGN.md` (slices 1–4).
 
 **Done**
 
 - [x] Orchestra engine: sample sprite builder (`npm run samples`), `SampleBank`, `Conductor`, `OrchestraGraph`, notation + theory helpers, spray notes, tiers, round shape (finale / Frenzy fanfare / closing chord) — CLAUDE.md §9
 - [x] Real instruments — VSCO-2 Community Edition (CC0): 37 instruments, 119 notes, about 955 KB
-- [x] Five scores. **Garden is the reference**; Workshop, Kitchen, Funfair and Disco are orchestral stand-ins in the right key, tempo and feel until their bands are built
+- [x] Five scores. **Garden is the reference**; Workshop, Funfair and Disco are orchestral stand-ins in the right key, tempo and feel until their bands are built; the Kitchen now has its own jazz combo (below)
 - [x] Water sound (`WaterSound.ts`): spray, splash, droplet
 - [x] Orchestra-voiced feedback accents (level-ups, combos, pickups, golden spinners, refills, cheer)
 - [x] One-tap replay from the results screen (between-runs ad gate shared in `systems/startRound.ts`)
 - [x] Juice: continuous water jet (`WaterJet.ts`), spinner pulses on each note, floating notes, musician names the first time each joins, "n of 12 playing" HUD, Frenzy flash/zoom/confetti
 - [x] Engagement slice 1: gig ladder (8 gigs per venue, `gigs.data.ts`), star rating on the HUD bar, results screen (`ResultsScene.ts`), coins as the single currency with venues opening on stars (`Progress.ts`), balance pass for Garden, dev balance harness (`src/dev/botSim.ts`; `await window.__bot.ladder('garden')` in a dev build)
 - [x] **Slice 2 — the tour (`e6ab381`):** `HomeScene.ts` is the first screen for returning players; a first-ever launch (`save.hasPlayed === false`) goes from `BootScene` straight into Garden gig 1. `TourScene.ts` is the venue/gig map, `ShopScene.ts` (was `SplashScene.ts`) holds grannies and guns in coins, `ui/StatPill.ts` added, `ControlsLegend.ts` deleted; Results MENU and Pause quit go to Home. Verified live: first launch to gig 1, Home/Tour/Shop render and navigate. Not verified: touch layouts of the new screens. The gig intro only labels new musicians ("NEW" + name) — the new-musician solo is **not built**.
-- [x] **WebP art conversion (`e6ab381`)** — all 65 sprites under `public/sprites/` are WebP via `tools/sprite-optimise.sh` (`npm run optimise`: drop a PNG in, run it, reference the `.webp`; verifies SSIM, removes the source). Build 4.64 MB; 3.36 MB headroom under Poki's 8 MB (confirm with `npm run build && npm run budget`). Verified: all 62 art textures load. Not verified: every gun angle and granny pose inspected individually at full size.
+- [x] **WebP art conversion (`e6ab381`)** — all 65 sprites under `public/sprites/` are WebP via `tools/sprite-optimise.sh` (`npm run optimise`: drop a PNG in, run it, reference the `.webp`; verifies SSIM, removes the source). Build 4.64 MB; current headroom is in the blockers list below. Verified: all 62 art textures load. Not verified: every gun angle and granny pose inspected individually at full size.
+- [x] **Balance harness readings, all five venues (`525c192`)** — first and last gig of each venue, no runtime errors. Later venues are already harder through obstacles, deflecting whirligigs and drifting targets, so the per-venue wind-down gain was removed; every Grand Concert is passable at two stars and three stars takes a better gun. The harness gained `ready()` (drives frames until the first screen is up)
+- [x] **Slice 3, part — Granny's request and the daily gift (`73cd7ab`, `33409b2`):** one rolling mission at a time (ten written, the harder half repeats; `systems/Missions.ts`, `ui/MissionCard.ts`, `ui/GigMissionBand.ts`), a daily gift of 20 coins plus 10 per consecutive day up to a week (`systems/DailyGift.ts`), and the results screen teases who joins the band at the next gig. Unit tests in `tests/unit/Missions.test.ts`
+- [x] **`GameScene` split (`9b8fb00`)** — a pure move into `src/scenes/game/` (`GigScore`, `MusicReactions`, `FrenzyController`, `PowerUpEffects`, `WaterCollisions`, `FireControl`, `FirstRunGuide`, `LevelUpFlair`, `CountdownUrgency`, `bankGig`, later `GoalCard`). `wc -l`: `GameScene.ts` 472 (was 1,068); `game/` files 46–147 lines (`CountdownUrgency` 46, `FireControl` 132, `FirstRunGuide` 69, `FrenzyController` 147, `GigScore` 141, `GoalCard` 103, `LevelUpFlair` 95, `MusicReactions` 137, `PowerUpEffects` 119, `WaterCollisions` 100, `bankGig` 50). `GigScore` has ten unit tests
+- [x] **UI pass (`27a5b2b`, `7a024b7`)** — the canvas renders at device pixel density up to 2x (`RENDER_SCALE` in `src/config.ts`, `fitCameraToLogicalSize`), text outlines cut to about a tenth of the type size, one `Button` (face on a lip, three sizes, gold `reward` look), `IconButton`, shared `Panel` with a ribbon; Results, Home (`GigCard`, `GigMissionBand`), Tour (`TourNode`), Shop and Pause re-laid
+- [x] **Goal clarity (`7a024b7`)** — "wake the whole band, and keep them all awake at once": a stopped spinner shows drifting "z z z", an awake one about to drop out nods, the HUD is a `BandMeter` (one light per musician, stars above the lights that earn them; replaced `FrenzyProgress`), and a `GoalCard` shows before each gig. Tutorial captions reworded
+- [x] **Kitchen jazz combo (`7e3e1af`)** — the first band that is not an orchestra (C major, 116 BPM, swung). The loader loads one extra sprite per band (`public/audio/bands/kitchen.{mp3,json}`, 16 instruments, 363 KB); the builder is generalised with `tools/bands/*.manifest.json` and refuses unapproved repositories (`npm run samples -- kitchen`)
 
 **Not done**
 
-- [ ] **Slice 2 leftover — new-musician solo** in the gig intro (only name labels exist)
-- [ ] **Slice 3 — reasons to return:** missions, daily gift, band album, jam mode, rewarded options inside Poki's rules
-- [ ] **Slice 4 — the bands:** per-venue styles (`docs/BANDS.md`); needs David's sign-off on Garden's sound and approval of extra sample libraries
-- [ ] **Balance tuning for venues beyond Garden** — gig ladders, wind-down and gun prices are tuned only for Garden; Workshop, Kitchen, Funfair and Disco are untuned
-- [ ] **Slice 2 leftover — new-musician solo** at the gig intro (only name labels exist)
-- [ ] **`GameScene.ts` size** — 1,068 lines at `e6ab381` (`wc -l`) against the 300-line cap
+- [ ] **Jam mode** (slice 3)
+- [ ] **New-musician solo** at the gig intro (only name labels exist)
+- [ ] **"Ten more seconds" rewarded option** (slice 3)
+- [ ] **Band album** (slice 3; the Band page listing every musician met)
+- [ ] **Funfair, Workshop and Disco bands** — still orchestral stand-ins in the right key and tempo (slice 4, `docs/BANDS.md`)
+- [ ] **Per-band fanfare and accents** — the set pieces and feedback accents (`setPieces.ts`) are still orchestral in every venue
+- [ ] **A real playtest of the difficulty curve with children** — the harness bot has near-perfect aim and no power-ups
+- [ ] **Touch-layout check of the new screens** (Home, Tour, Shop, Results, goal card)
+- [ ] **The pause screen has not been looked at since its re-lay**
+- [ ] **FreePats licences not yet re-checked at source** (and not yet used)
 
 ---
 
@@ -48,34 +58,35 @@ Commits `8b36957` … `e6ab381`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 | Sprint 6 | Monetization Polish | ✅ Done (mobile controls gap closed 2026-09-11 — see below) |
 | Sprint 7 | Launch Polish + Poki submission | 🟡 In progress — all 10 §12 must-fix pass in the code, but `ADS_ENABLED` is `false` (blocker below); also blocked on studio name, real devices, submission |
 | Sprint 8 | First-run onboarding (§6.5) + launch assets | ✅ Done (added 2026-09-12, not in the original plan) |
-| Uplift | Granny's Grand Tour (2026-11-25) | 🟡 Slice 1 done; slices 2–4 not done — see Uplift section |
+| Uplift | Granny's Grand Tour (2026-11-25) | 🟡 Slices 1–2 done, slice 3 part built (mission, daily gift), slice 4 begun (Garden and Kitchen bands); UI pass and goal clarity done — see Uplift section |
 
 ---
 
 ## Blockers / parked
 
 - ✅ **Audio approach decision** — resolved 2026-09-12 with synthesised placeholders and superseded 2026-11-25 by real VSCO-2 CE instruments (CLAUDE.md §9).
-- ⏳ **David has not yet listened to the new orchestra** — sign-off by ear is outstanding. We can measure the audio (peak, RMS, clipping, tests) but cannot hear it. Slice 4's other bands wait on this.
-- ⏳ **Only VSCO-2 CE is approved for download.** The other sample libraries (VCSL, Karoryfer, FreePats) await approval — see `docs/BANDS.md`.
+- ⏳ **David has not yet listened to the new orchestra or the Kitchen jazz combo** — sign-off by ear is outstanding. We can measure the audio (peak, RMS, clipping, tests) but cannot hear it. Slice 4's other bands wait on this.
+- ✅ **Sample sources approved 2026-11-25** — VSCO-2 CE, VCSL and the Karoryfer repositories (the last two verified CC0 from their LICENSE files). FreePats is approved but not yet re-checked at source and not yet used — see `docs/BANDS.md`.
 - ⏳ **Studio name** — needed before Poki Developers profile creation (Sprint 7).
 - ✅ **Granny + gun art** — resolved 2026-09-11 (3-pose set per granny, 6 guns x 8 angles + anchor.json).
 - ✅ **World background art** — resolved 2026-09-11 (all 5 backgrounds wired via `worldBackgrounds.ts`).
 
 ## ⚠️ BLOCKERS BEFORE SUBMISSION
 
+0. **The review link must be removed.** `?venue=<id>&gig=<n>` (`reviewLink` in `src/scenes/BootScene.ts`, test in `tests/unit/reviewLink.test.ts`) opens any gig directly and bypasses the tour and its star gates. It exists so a venue's band can be heard without earning the stars to reach it. Remove it before Poki submission.
 1. **Ads are disabled.** `ADS_ENABLED = false` in `src/systems/AdManager.ts` (checked 2026-11-25; set 2026-09-12, user: "disable all the ads for now, it's annoying while testing"). Commercial breaks no-op and rewarded ads resolve as "watched" so the reward paths stay testable. CLAUDE.md §12 must-fix 5 requires `commercialBreak()` between runs and the reviewer checks the SDK events actually fire. **Must be `true` before Poki submission.** The unit and ad-flow tests pass `{ enabled: true }` explicitly, so they still assert the shippable behaviour while the flag is off.
 2. ✅ **Production sourcemap no longer ships** — `vite.config.ts` has `sourcemap: false` (since `8cec83d`; `dist` went from 18 MB to 7.9 MB on disk, the budgeted payload is unchanged at about 7.3 MB). Was a blocker; resolved.
 3. ✅ **Two-finger pause gesture** — removed 2026-09-12 at the owner's request ("if two fingers touch the screen on touch, it pauses the game. very annoying!"): touch gets a visible pause button (`ui/PauseButton.ts`), desktop keeps ESC. It had been the direct cause of the run-soft-locking critical bug. Not a blocker — a permanent improvement; CLAUDE.md §6.3 now matches.
 4. **Real-device pass** (7.2) and **studio name** (7.0) still outstanding.
-5. **Size headroom:** 3.36 MB under Poki's 8 MB at `e6ab381` (4.64 MB built, after the WebP conversion). The five bands in `docs/BANDS.md` need roughly 300–500 KB each (about 1.5–2.5 MB for all five), so per-venue band loading is still the plan to stay clear of the cap.
+5. **Size headroom:** 2.98 MB under Poki's 8 MB at `113bf62` (5.02 MB built; `npm run build && npm run budget`). The Kitchen band cost 363 KB. Three bands remain at roughly 300–500 KB each, so per-venue band loading is still the plan to stay clear of the cap.
 
 ---
 
 ## Known issues (non-blocking)
 
-- ⚠️ **Files over CLAUDE.md §7.3 rule 1's 300-line cap** (`wc -l` at commit `e6ab381`): `src/scenes/GameScene.ts` **1,068**, `src/entities/spinner/spinnerRenderers.ts` 520, `src/audio/AudioOrchestra.ts` 367, `src/scenes/ShopScene.ts` 354, `src/scenes/ResultsScene.ts` 347, `src/scenes/TourScene.ts` 306. Also `tools/build-orchestra-samples.ts` 588 (tooling). `GameScene.ts` grew from 711 to 1,068 as the orchestra, jet, stars and gig plumbing landed; the two separable clusters named before are still there (water/spinner collision resolution with combo + scoring, and power-up effect application with its four timers), plus the gig/star/results hand-off. Now that slice 2 has landed, a dedicated extraction pass is the next lower-risk step.
-- ⚠️ **Venues beyond Garden are untuned** (see Uplift above).
-- ⚠️ **Only Garden has its own sound.** The other four venues play orchestral stand-ins until their bands are built.
+- ⚠️ **Files over CLAUDE.md §7.3 rule 1's 300-line cap** (`wc -l` at `113bf62`): `src/entities/spinner/spinnerRenderers.ts` 520, `src/scenes/GameScene.ts` 472 (down from 1,068 after the split), `src/scenes/ResultsScene.ts` 382, `src/audio/AudioOrchestra.ts` 367, `src/scenes/ShopScene.ts` 363. Also `tools/build-orchestra-samples.ts` 711 (tooling). Close to the cap: `src/ui/LoadoutStage.ts` 298.
+- ⚠️ **Venues beyond Garden are only lightly tuned** — the harness has read the first and last gig of each, not the middle gigs, and no child has played them.
+- ⚠️ **Only Garden and the Kitchen have their own sound.** Workshop, Funfair and Disco play orchestral stand-ins until their bands are built.
 - ⚠️ The audit's minor findings list (2026-09-12) of §7.3-style nitpicks (magic numbers off the 8px grid, a few raw hex literals, missing JSDoc on some public methods) is still not acted on.
 - ⚠️ **Real human playtest still outstanding** for Frenzy reachability and gig difficulty: the bot has perfect-ish aim and uses no power-ups. The harness (`window.__bot`) measures; a real seven-year-old confirms.
 
