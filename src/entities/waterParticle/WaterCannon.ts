@@ -40,6 +40,10 @@ export const FIRE_DENSITY_SCALE = 4;
  */
 const BARREL_SPACING_PX = 7;
 
+/** Stream ids for Super Soaker's two side jets — clear of any gun's own barrel indices. */
+const SOAKER_STREAM_LEFT = 10;
+const SOAKER_STREAM_RIGHT = 11;
+
 /** How many extra particles the opening-shot blast surge fires, as a multiple of the gun's stream count. */
 const BLAST_SURGE_STREAM_MULTIPLIER = 3;
 /** Blast surge camera nudge — smaller than a combo shake, just enough to read as a kick. */
@@ -132,6 +136,8 @@ export class WaterCannon {
         shot.aimX,
         shot.aimY,
         shot.target,
+        0,
+        i,
       );
     }
     // Super Soaker power-up: two extra angled streams alongside the main one
@@ -145,6 +151,7 @@ export class WaterCannon {
           shot.aimY,
           shot.target,
           side * SOAKER_EXTRA_WOBBLE,
+          side < 0 ? SOAKER_STREAM_LEFT : SOAKER_STREAM_RIGHT,
         );
       }
     }
@@ -180,11 +187,12 @@ export class WaterCannon {
     aimY: number,
     target: Spinner | null,
     extraWobble = 0,
+    stream = -1,
   ): void {
     const particle = this._pool.get() as WaterParticle | null;
     if (!particle) return;
     particle.setAppearance(this._gun.particleColour, this._gun.sz);
-    particle.fire(originX, originY, aimX, aimY, target, extraWobble);
+    particle.fire(originX, originY, aimX, aimY, target, extraWobble, stream);
   }
 
   /**

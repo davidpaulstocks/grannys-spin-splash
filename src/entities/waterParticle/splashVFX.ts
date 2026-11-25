@@ -15,6 +15,16 @@ import { COLOUR } from '../../utils/colour';
 import { DURATION, EASE } from '../../utils/tween';
 
 const DROPLET_COUNT = 6;
+/**
+ * A fast gun lands sixty hits a second; six short-lived objects for each is
+ * hundreds of allocations a second for bursts nobody can tell apart. One
+ * splash per this many milliseconds reads identically and costs a fraction.
+ */
+const SPLASH_MIN_INTERVAL_MS = 55;
+const RING_START_RADIUS = 7;
+const RING_GROWTH = 3.2;
+const RING_WIDTH = 3;
+let _lastSplashAt = -Infinity;
 const DROPLET_RADIUS = 4;
 const BURST_DISTANCE = 18;
 
@@ -37,6 +47,22 @@ export function spawnSplash(
   y: number,
   colour: number = COLOUR.waterBlue,
 ): void {
+  const now = scene.time.now;
+  if (now - _lastSplashAt < SPLASH_MIN_INTERVAL_MS && now >= _lastSplashAt) return;
+  _lastSplashAt = now;
+
+  // The ripple: a ring that opens out from the point of impact.
+  const ring = scene.add.circle(x, y, RING_START_RADIUS, colour, 0);
+  ring.setStrokeStyle(RING_WIDTH, 0xffffff, 0.9);
+  scene.tweens.add({
+    targets: ring,
+    scale: RING_GROWTH,
+    alpha: 0,
+    duration: DURATION.stateChange,
+    ease: EASE.standardOut,
+    onComplete: () => ring.destroy(),
+  });
+
   for (let i = 0; i < DROPLET_COUNT; i++) {
     const angle = (i / DROPLET_COUNT) * Math.PI * 2 + Math.random() * 0.4;
     const targetX = x + Math.cos(angle) * BURST_DISTANCE;

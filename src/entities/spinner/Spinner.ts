@@ -9,6 +9,7 @@ import Phaser from 'phaser';
 import { MAX_SPEED_HOLD_MS, MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
 import { SpinnerState, type SpinnerDef } from './spinner.types';
 import { drawSpinner } from './spinnerRenderers';
+import { COLOUR } from '../../utils/colour';
 
 /** Degrees-per-second-per-speed-unit for the visible spin (prototype: `angle += speed * 0.065 * dt`). */
 const SPIN_ROTATION_FACTOR = 0.065;
@@ -19,6 +20,21 @@ const WHIRLIGIG_DEFLECT_CHANCE = 0.38;
 const WOBBLE_SPEED_THRESHOLD = 75;
 const WOBBLE_AMPLITUDE = 0.06;
 const WOBBLE_FREQUENCY_HZ = 8;
+
+/**
+ * The spinner's reaction to being hit and to its own musician's notes: a
+ * quick swell and a flash of light that die away. Both ride one value so a
+ * squirt and a note can never fight over the scale.
+ */
+const PULSE_SCALE = 0.2;
+const PULSE_FLASH_ALPHA = 0.5;
+/** Seconds for a pulse to fall to about a third — short enough to read as a beat, not a throb. */
+const PULSE_DECAY_SECONDS = 0.11;
+
+const MOUNT_RADIUS_FACTOR = 1.16;
+const MOUNT_FILL_ALPHA = 0.42;
+const MOUNT_RING_PX = 3;
+const MOUNT_RING_ALPHA = 0.45;
 
 let _nextId = 1;
 
@@ -69,6 +85,8 @@ export class Spinner extends Phaser.GameObjects.Container {
 
   private readonly _bladeGfx: Phaser.GameObjects.Graphics;
   private readonly _glowGfx: Phaser.GameObjects.Graphics;
+  private readonly _flashGfx: Phaser.GameObjects.Graphics;
+  private _pulse = 0;
 
   // Funfair-only: side-to-side drift (§1, world.data.ts's `movingTargets`).
   // Unset (null) for every spinner that isn't drifting — the common case.
@@ -82,9 +100,23 @@ export class Spinner extends Phaser.GameObjects.Container {
     this.id = _nextId++;
     this.def = def;
 
+    // A pale backing disc, so a stopped spinner still reads as a target
+    // against a busy painted wall. Funfair's target boards already do this job.
+    const mountGfx = scene.add.graphics();
+    if (!def.mount) {
+      mountGfx.fillStyle(COLOUR.cloud, MOUNT_FILL_ALPHA);
+      mountGfx.fillCircle(0, 0, def.r * MOUNT_RADIUS_FACTOR);
+      mountGfx.lineStyle(MOUNT_RING_PX, COLOUR.ink, MOUNT_RING_ALPHA);
+      mountGfx.strokeCircle(0, 0, def.r * MOUNT_RADIUS_FACTOR);
+    }
+    this.add(mountGfx);
     this._glowGfx = scene.add.graphics();
     this._bladeGfx = scene.add.graphics();
-    this.add([this._glowGfx, this._bladeGfx]);
+    this._flashGfx = scene.add.graphics();
+    this._flashGfx.fillStyle(0xffffff, 1);
+    this._flashGfx.fillCircle(0, 0, def.r);
+    this._flashGfx.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    this.add([this._glowGfx, this._bladeGfx, this._flashGfx]);
     scene.add.existing(this);
 
     drawSpinner(this._bladeGfx, this._glowGfx, this.def, this.currentState);
@@ -103,6 +135,8 @@ export class Spinner extends Phaser.GameObjects.Container {
       this.currentSpeed = Math.max(0, this.currentSpeed - this.def.decay * dt);
     }
     this._bladeGfx.rotation += this.currentSpeed * SPIN_ROTATION_FACTOR * dt;
+    this._pulse *= Math.exp(-dt / PULSE_DECAY_SECONDS);
+    this._flashGfx.setAlpha(this._pulse * PULSE_FLASH_ALPHA);
     this._updateWobble(time);
     this._updateDrift(dt);
 
@@ -154,11 +188,21 @@ export class Spinner extends Phaser.GameObjects.Container {
 
   /** Near-max speed gets a subtle scale wobble (CLAUDE.md §5.6) — settles flat again below the threshold. */
   private _updateWobble(time: number): void {
+    const swell = 1 + this._pulse * PULSE_SCALE;
     if (this.currentSpeed <= WOBBLE_SPEED_THRESHOLD) {
-      this.setScale(1);
+      this.setScale(swell);
       return;
     }
     const phase = (time / 1000) * WOBBLE_FREQUENCY_HZ * Math.PI * 2;
-    this.setScale(1 + WOBBLE_AMPLITUDE * Math.sin(phase));
+    this.setScale(swell * (1 + WOBBLE_AMPLITUDE * Math.sin(phase)));
+  }
+
+  /**
+   * Kicks the spinner: a swell and a flash that fade on their own. `strength`
+   * is 0–1; a stronger pulse already in flight is never cut short by a
+   * weaker one.
+   */
+  pulse(strength: number): void {
+    this._pulse = Math.max(this._pulse, Math.min(1, strength));
   }
 }

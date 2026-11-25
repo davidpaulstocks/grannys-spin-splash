@@ -69,11 +69,21 @@ function resolveFireAimPoint(
   return { x: target.x + Math.cos(angle) * radius, y: target.y + Math.sin(angle) * radius };
 }
 
+let _nextSeq = 0;
+
 export class WaterParticle extends Phaser.GameObjects.Arc {
   private _vx = 0;
   private _vy = 0;
   private _lifeSeconds = 0;
   private _target: Spinner | null = null;
+  /**
+   * Which of the gun's streams this shot belongs to, or -1 for loose water
+   * (the opening burst, the dying splutter). `WaterJet` joins each stream's
+   * shots into one ribbon, so stream shots are drawn by it, not as dots.
+   */
+  stream = -1;
+  /** Launch order — lets `WaterJet` string a stream together from the gun outward. */
+  seq = 0;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0, WATER_PARTICLE_RADIUS, 0, 360, false, COLOUR.waterBlue, 1);
@@ -101,7 +111,10 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     aimY: number,
     target: Spinner | null,
     extraWobble = 0,
+    stream = -1,
   ): void {
+    this.stream = stream;
+    this.seq = _nextSeq++;
     const aimPoint = resolveFireAimPoint(aimX, aimY, target);
     const dist = Math.max(10, distance(originX, originY, aimPoint.x, aimPoint.y));
     const wobble = (Math.random() - 0.5) * WATER_PARTICLE_WOBBLE + extraWobble;
@@ -114,7 +127,8 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     this._lifeSeconds = (dist / WATER_PARTICLE_SPEED) * LIFE_PADDING_FACTOR + LIFE_PADDING_SECONDS;
     this._target = target;
     this.setActive(true);
-    this.setVisible(true);
+    // A stream's shots are drawn as one ribbon by WaterJet; only loose water shows as droplets.
+    this.setVisible(stream < 0);
   }
 
   /** The locked-on target only, or every live spinner if this shot wasn't snapped to one. */

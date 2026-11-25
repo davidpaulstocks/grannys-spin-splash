@@ -116,7 +116,7 @@ export class FrenzyProgress {
     }
 
     this._label
-      .setText(complete ? 'ALL SPINNING!' : `${fullCount} of ${total} spinning`)
+      .setText(complete ? 'FULL BAND!' : `${fullCount} of ${total} playing`)
       .setColor(complete ? COLOUR_HEX.sunnyGold : COLOUR_HEX.ink);
   }
 }

@@ -60,6 +60,9 @@ import { audioOrchestra } from '../audio/AudioOrchestra';
 import type { Accent } from '../audio/orchestra/setPieces';
 import * as SFX from '../audio/SFX';
 import { waterSound } from '../audio/WaterSound';
+import { WaterJet } from '../entities/waterParticle/WaterJet';
+import { spawnNoteGlyph } from '../ui/NoteGlyph';
+import { EASE } from '../utils/tween';
 import type { GunDef } from '../entities/gun/gun.types';
 import type { HudRefreshData } from '../types/hud';
 import type { GameOverData, GameSceneData } from '../types/sceneData';
@@ -113,6 +116,28 @@ function hitTextColour(multiplier: number): string {
   return COLOUR_HEX.waterBlue;
 }
 
+/** How hard a spinner kicks when water lands on it, when it is sprayed into sounding, and on its own written notes. */
+const HIT_PULSE = 0.3;
+const SPRAY_PULSE = 0.85;
+const NOTE_PULSE = 0.6;
+/** One floating note per spinner at most this often — the pulse carries every note, the glyph only some. */
+const NOTE_GLYPH_MIN_INTERVAL_MS = 420;
+/** Gap below a spinner for its musician's name, clear of the "+N ★" text that rises from above it. */
+const MUSICIAN_NAME_OFFSET = 18;
+
+const FRENZY_FLASH_MS = 220;
+const FRENZY_ZOOM = 1.045;
+const FRENZY_ZOOM_IN_MS = 110;
+const FRENZY_ZOOM_HOLD_MS = 90;
+const FRENZY_ZOOM_OUT_MS = 380;
+const FRENZY_CONFETTI_EVERY = 2;
+const FRENZY_CONFETTI_COLOURS = [
+  COLOUR.grannyPink,
+  COLOUR.sunnyGold,
+  COLOUR.waterBlue,
+  COLOUR.mintGreen,
+] as const;
+
 /** The orchestra's answer to a spinner climbing a tier — bigger for each step up. */
 const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
   [SpinnerState.STOPPED]: 'wake',
@@ -147,6 +172,10 @@ export class GameScene extends Phaser.Scene {
   /** The scripted-moments tutorial captions (direct user request, 2026-09-12) — null unless this is the player's very first run. */
   private _tutorial: TutorialSequence | null = null;
   private _timeRemainingMs = 0;
+  private _jet!: WaterJet;
+  /** Spinners whose musician has already been introduced by name this round. */
+  private readonly _joined = new Set<number>();
+  private readonly _lastNoteGlyphAt = new Map<number, number>();
   private _started = false;
   private _roundOver = false;
   private _frenzyActive = false;
@@ -214,6 +243,9 @@ export class GameScene extends Phaser.Scene {
       runChildUpdate: true,
     });
     this._cannon = new WaterCannon(this, this._gun, this._waterPool);
+    this._jet = new WaterJet(this, this._waterPool);
+    this._joined.clear();
+    this._lastNoteGlyphAt.clear();
 
     this._createOverlays();
 
@@ -342,6 +374,14 @@ export class GameScene extends Phaser.Scene {
     // The hiss of the jet: on only while water is actually leaving the gun.
     waterSound.setFiring(firing && !this._cannon.isPumping && this._cannon.tank > 0);
     this._onPumpEvent(this._cannon.updatePump(time));
+    this._jet.update(
+      time,
+      this._gunSprite.getNozzleWorldPosition(),
+      firing && !this._cannon.isPumping && this._cannon.tank > 0,
+      this._gun.particleColour,
+      this._gun.sz,
+    );
+    this._reactToMusic(time);
     this._updateWaterCollisions();
     this._combo.update(delta);
     this._updateFrenzyWindow(time);
@@ -455,6 +495,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Makes the wall move with the music: each note a musician plays kicks its
+   * own spinner and, now and then, sends a little note floating off it. The
+   * first time a spinner sounds in a round, its musician is introduced by name.
+   */
+  private _reactToMusic(time: number): void {
+    for (const note of audioOrchestra.pollNotes()) {
+      const spinner = this._spinners[note.spinner];
+      if (!spinner) continue;
+      spinner.pulse(note.spray ? SPRAY_PULSE : NOTE_PULSE * note.velocity);
+
+      if (!this._joined.has(spinner.id)) {
+        this._joined.add(spinner.id);
+        spawnFloatingText(
+          this,
+          spinner.x,
+          spinner.y + spinner.def.r + MUSICIAN_NAME_OFFSET,
+          audioOrchestra.seatName(note.spinner),
+          COLOUR_HEX.cloud,
+        );
+      }
+      const last = this._lastNoteGlyphAt.get(spinner.id) ?? -Infinity;
+      if (time - last < NOTE_GLYPH_MIN_INTERVAL_MS) continue;
+      this._lastNoteGlyphAt.set(spinner.id, time);
+      spawnNoteGlyph(
+        this,
+        spinner.x + (Math.random() - 0.5) * spinner.def.r,
+        spinner.y - spinner.def.r,
+        Phaser.Display.Color.HexStringToColor(spinner.def.colors[0] ?? '#ffffff').color,
+      );
+    }
+  }
+
   /** Tests every pooled particle against obstacles first, then its candidate spinner(s); applies hits/combo/score. */
   private _updateWaterCollisions(): void {
     const particles = this._waterPool.getChildren() as WaterParticle[];
@@ -478,6 +551,7 @@ export class GameScene extends Phaser.Scene {
       // total the tuned balance expects — see the constant's doc comment.
       const power = usingGoldenSplash ? MAX_SPINNER_SPEED : this._gun.power / FIRE_DENSITY_SCALE;
       const landed = hitSpinner.hit(power);
+      hitSpinner.pulse(HIT_PULSE);
       spawnSplash(this, hitX, hitY, this._gun.particleColour);
       if (!landed) {
         SFX.playDeflect(); // whirligig
@@ -700,6 +774,19 @@ export class GameScene extends Phaser.Scene {
       COLOUR_HEX.sunnyGold,
     );
     audioOrchestra.onFrenzyStart();
+    // The drop should hit the eyes as hard as the ears: a flash, a punch of
+    // zoom, and confetti off the whole wall.
+    this.cameras.main.flash(FRENZY_FLASH_MS, 255, 244, 200);
+    this.cameras.main.zoomTo(FRENZY_ZOOM, FRENZY_ZOOM_IN_MS, EASE.standardOut, true);
+    this.time.delayedCall(FRENZY_ZOOM_IN_MS + FRENZY_ZOOM_HOLD_MS, () => {
+      this.cameras.main.zoomTo(1, FRENZY_ZOOM_OUT_MS, EASE.standardOut, true);
+    });
+    this._spinners.forEach((spinner, i) => {
+      spinner.pulse(1);
+      if (i % FRENZY_CONFETTI_EVERY === 0) {
+        spawnConfetti(this, spinner.x, spinner.y, FRENZY_CONFETTI_COLOURS);
+      }
+    });
   }
 
   /** The wall crosses 60%/80% of spinners at FULL — a quiet, quick encouragement beat (CLAUDE.md §1's mini-frenzy). */
