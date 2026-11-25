@@ -17,15 +17,18 @@ import { gigFor, GIGS_PER_VENUE } from '../entities/world/gigs.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
+import { claimDailyGift, dailyGift } from '../systems/DailyGift';
+import { currentMission } from '../systems/Missions';
 import { frontier, totalStars, venueStars } from '../systems/Progress';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
 import type { GameSceneData } from '../types/sceneData';
 import { createButton } from '../ui/Button';
-import { drawStarIcon } from '../ui/icons';
-import { createStatPill } from '../ui/StatPill';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { spawnFloatingText } from '../ui/FloatingText';
+import { drawCoinIcon, drawStarIcon } from '../ui/icons';
+import { createStatPill, type StatPill } from '../ui/StatPill';
+import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 
@@ -43,22 +46,31 @@ const GRANNY_BOB_PX = 10;
 const GRANNY_BOB_MS = 900;
 
 const CARD_X = 880;
-const CARD_Y = 372;
+const CARD_Y = 368;
 const CARD_WIDTH = 480;
-const CARD_HEIGHT = 300;
+const CARD_HEIGHT = 356;
 const CARD_RADIUS = 30;
-const VENUE_NAME_Y = CARD_Y - 104;
-const GIG_LINE_Y = CARD_Y - 58;
-const STARS_Y = CARD_Y - 6;
+const VENUE_NAME_Y = CARD_Y - 136;
+const GIG_LINE_Y = CARD_Y - 92;
+const STARS_Y = CARD_Y - 42;
 const STAR_RADIUS = 24;
 const STAR_SPACING = 64;
 const STAR_OUTLINE_PX = 5;
 const UNEARNED_STAR = 0xd8d4c6;
-const NEW_LINE_Y = CARD_Y + 62;
-const NEW_NAMES_Y = CARD_Y + 96;
+const NEW_LINE_Y = CARD_Y + 14;
+const NEW_NAMES_Y = CARD_Y + 40;
+/** The mission sits in its own band along the bottom of the card. */
+const MISSION_BAND_HEIGHT = 64;
+const MISSION_Y = CARD_Y + CARD_HEIGHT / 2 - MISSION_BAND_HEIGHT / 2;
+const MISSION_COIN_RADIUS = 12;
+
+const GIFT_X = GAME_WIDTH - 150;
+const GIFT_MIN_WIDTH = 230;
+const GIFT_PULSE_SCALE = 1.06;
+const GIFT_PULSE_MS = 520;
 const NEW_NAMES_WRAP = CARD_WIDTH - 56;
 
-const PLAY_Y = 592;
+const PLAY_Y = 606;
 const PLAY_MIN_WIDTH = 420;
 const SIDE_BUTTONS_Y = 664;
 const TOUR_X = 232;
@@ -69,6 +81,7 @@ export class HomeScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
   /** Phaser reuses scene instances, so this is reset in create() rather than at construction. */
   private _isLeaving = false;
+  private _coinsPill!: StatPill;
 
   constructor() {
     super('HomeScene');
@@ -83,10 +96,12 @@ export class HomeScene extends Phaser.Scene {
 
     drawWorldBackground(this, venue.id);
     this._buildTitle();
-    createStatPill(this, COINS_PILL_X, PILLS_Y, 'coins', save.vault);
+    this._coinsPill = createStatPill(this, COINS_PILL_X, PILLS_Y, 'coins', save.vault);
     createStatPill(this, STARS_PILL_X, PILLS_Y, 'stars', totalStars(save));
     this._buildGranny();
     this._buildGigCard(venue.id, venue.name, stop.gig);
+    this._buildMissionBand();
+    this._buildDailyGift();
 
     createButton(this, {
       x: CARD_X,
@@ -211,6 +226,83 @@ export class HomeScene extends Phaser.Scene {
         wordWrap: { width: NEW_NAMES_WRAP },
       })
       .setOrigin(0.5, 0);
+  }
+
+  /** Granny's request: the one mission on the go, how far along it is, and what it pays. */
+  private _buildMissionBand(): void {
+    const save = saveManager.load();
+    const mission = currentMission(save);
+    const top = MISSION_Y - MISSION_BAND_HEIGHT / 2;
+
+    const band = this.add.graphics();
+    band.fillStyle(COLOUR.sunnyGold, 0.22);
+    band.fillRoundedRect(
+      CARD_X - CARD_WIDTH / 2 + 3,
+      top,
+      CARD_WIDTH - 6,
+      MISSION_BAND_HEIGHT - 3,
+      {
+        tl: 0,
+        tr: 0,
+        bl: CARD_RADIUS - 3,
+        br: CARD_RADIUS - 3,
+      },
+    );
+    band.lineStyle(3, COLOUR.ink, 0.25);
+    band.lineBetween(CARD_X - CARD_WIDTH / 2 + 3, top, CARD_X + CARD_WIDTH / 2 - 3, top);
+
+    this.add
+      .text(
+        CARD_X - CARD_WIDTH / 2 + 28,
+        MISSION_Y,
+        `${mission.text}   ${save.mission.progress} / ${mission.target}`,
+        textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0, 0.5);
+
+    const reward = this.add
+      .text(
+        CARD_X + CARD_WIDTH / 2 - 28,
+        MISSION_Y,
+        `+${mission.reward}`,
+        textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+      )
+      .setOrigin(1, 0.5);
+    const coin = this.add.graphics({
+      x: reward.x - reward.width - MISSION_COIN_RADIUS - 8,
+      y: MISSION_Y,
+    });
+    drawCoinIcon(coin, MISSION_COIN_RADIUS + 3, COLOUR.ink, COLOUR.ink);
+    drawCoinIcon(coin, MISSION_COIN_RADIUS, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
+  }
+
+  /** A gift for coming back today. Only there when there is one to take, so it never becomes furniture. */
+  private _buildDailyGift(): void {
+    const gift = dailyGift(saveManager.load(), new Date());
+    if (!gift.available) return;
+    const button = createButton(this, {
+      x: GIFT_X,
+      y: PILLS_Y,
+      label: `DAILY GIFT  +${gift.coins}`,
+      variant: 'secondary',
+      minWidth: GIFT_MIN_WIDTH,
+      onClick: () => {
+        const claimed = claimDailyGift(saveManager.load(), new Date());
+        saveManager.save(claimed);
+        this._coinsPill.setValue(claimed.vault);
+        spawnFloatingText(this, GIFT_X, PILLS_Y + 46, `+${gift.coins}`, COLOUR_HEX.sunnyGold);
+        this.tweens.killTweensOf(button);
+        button.destroy();
+      },
+    });
+    this.tweens.add({
+      targets: button,
+      scale: GIFT_PULSE_SCALE,
+      duration: GIFT_PULSE_MS,
+      ease: EASE.standardOut,
+      yoyo: true,
+      repeat: -1,
+    });
   }
 
   /** Starts a gig through the same between-runs ad gate as every other way into play. */

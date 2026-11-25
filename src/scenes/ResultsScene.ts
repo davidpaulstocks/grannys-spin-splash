@@ -20,6 +20,7 @@ import { spawnConfetti } from '../entities/waterParticle/splashVFX';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
+import { applyGigToMission, currentMission, type MissionUpdate } from '../systems/Missions';
 import { MAX_STARS_PER_GIG, nextLockedVenue, nextStop, type TourStop } from '../systems/Progress';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
@@ -70,6 +71,15 @@ const GRANNY_X = 168;
 const GRANNY_Y = 470;
 const GRANNY_HEIGHT = 330;
 
+const MISSION_X = GAME_WIDTH - 136;
+const MISSION_Y = 330;
+const MISSION_WIDTH = 232;
+const MISSION_HEIGHT = 190;
+const MISSION_RADIUS = 26;
+const MISSION_TEXT_WRAP = MISSION_WIDTH - 36;
+/** How long a finished mission is celebrated before the card turns to the next one. */
+const MISSION_NEXT_AFTER_MS = 1800;
+
 const COUNT_UP_MS = 800;
 const TICK_EVERY_MS = 90;
 
@@ -100,6 +110,14 @@ export class ResultsScene extends Phaser.Scene {
     const venue = WORLD_DEFS.find((w) => w.id === data.worldId) ?? WORLD_DEFS[0];
     const coins = data.score + data.starCoins;
 
+    // Count the gig toward Granny's request before anything reads the bank.
+    const mission = applyGigToMission(saveManager.load(), {
+      stars: data.stars,
+      newStars: data.newStars,
+      coins,
+    });
+    saveManager.save(mission.save);
+
     this._buildBackdrop(data.worldId, passed);
 
     this.add
@@ -123,6 +141,7 @@ export class ResultsScene extends Phaser.Scene {
     this._buildCoins(coins, data.stars);
     this._buildHint(data);
     this._buildButtons(data, passed);
+    this._buildMissionCard(mission, STAR_FIRST_DELAY_MS + data.stars * STAR_STEP_MS + COUNT_UP_MS);
   }
 
   /** The venue's own art, softened, with a card on top — the gig happened somewhere, and it still looks like there. */
@@ -245,6 +264,74 @@ export class ResultsScene extends Phaser.Scene {
         }
       },
       onComplete: () => this._coinsText.setText(`+${to}`),
+    });
+  }
+
+  /**
+   * Granny's request, beside the result: how far this gig moved it, and —
+   * when the gig finished it — the reward landing, then the next request.
+   */
+  private _buildMissionCard(update: MissionUpdate, celebrateAfterMs: number): void {
+    const card = this.add.graphics();
+    card.fillStyle(COLOUR.cloud, 0.97);
+    card.fillRoundedRect(
+      MISSION_X - MISSION_WIDTH / 2,
+      MISSION_Y - MISSION_HEIGHT / 2,
+      MISSION_WIDTH,
+      MISSION_HEIGHT,
+      MISSION_RADIUS,
+    );
+    card.lineStyle(5, COLOUR.ink, 1);
+    card.strokeRoundedRect(
+      MISSION_X - MISSION_WIDTH / 2,
+      MISSION_Y - MISSION_HEIGHT / 2,
+      MISSION_WIDTH,
+      MISSION_HEIGHT,
+      MISSION_RADIUS,
+    );
+
+    const heading = this.add
+      .text(
+        MISSION_X,
+        MISSION_Y - 62,
+        'MISSION',
+        textStyle('bodyM', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0.5);
+    const body = this.add
+      .text(MISSION_X, MISSION_Y - 14, update.mission.text, {
+        ...textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+        align: 'center',
+        wordWrap: { width: MISSION_TEXT_WRAP },
+      })
+      .setOrigin(0.5);
+    const status = this.add
+      .text(
+        MISSION_X,
+        MISSION_Y + 52,
+        `${update.progress} / ${update.mission.target}`,
+        textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0.5);
+    if (!update.completed) return;
+
+    this.time.delayedCall(celebrateAfterMs, () => {
+      heading.setText('MISSION DONE!').setColor(COLOUR_HEX.grannyPink);
+      status.setText(`+${update.mission.reward}`).setColor(COLOUR_HEX.sunnyGold).setScale(0.5);
+      this.tweens.add({
+        targets: status,
+        scale: 1,
+        duration: DURATION.celebration,
+        ease: EASE.bouncy,
+      });
+      playStarChime(0);
+      this._refreshBank();
+    });
+    this.time.delayedCall(celebrateAfterMs + MISSION_NEXT_AFTER_MS, () => {
+      const next = currentMission(saveManager.load());
+      heading.setText('NEXT MISSION').setColor(COLOUR_HEX.softSlate);
+      body.setText(next.text);
+      status.setText(`0 / ${next.target}`).setColor(COLOUR_HEX.ink);
     });
   }
 

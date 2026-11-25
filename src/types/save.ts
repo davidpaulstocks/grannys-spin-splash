@@ -32,6 +32,10 @@ export interface SaveData {
    * fills in `{}`, which reads as "no gig passed yet".
    */
   gigStars: Record<string, readonly number[]>;
+  /** The one mission on the go: its position in `MISSIONS` and progress toward it (systems/Missions.ts). */
+  mission: { readonly index: number; readonly progress: number };
+  /** The last day a daily gift was taken (`YYYY-MM-DD`, '' if never) and the streak it set (systems/DailyGift.ts). */
+  daily: { readonly lastDay: string; readonly streak: number };
   /**
    * False until the player fires for the first time. Drives the one-time
    * onboarding in CLAUDE.md §6.5 (splash hint + in-game ghost finger) and

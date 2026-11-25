@@ -78,6 +78,8 @@ export class SaveManager {
       highScore: 0,
       bestByWorld: {},
       gigStars: {},
+      mission: { index: 0, progress: 0 },
+      daily: { lastDay: '', streak: 0 },
       hasPlayed: false,
     };
   }
