@@ -8,7 +8,7 @@
 import type Phaser from 'phaser';
 
 import { audioOrchestra } from '../../audio/AudioOrchestra';
-import { FRENZY_DURATION_MS, GAME_HEIGHT, GAME_WIDTH } from '../../config';
+import { FRENZY_DURATION_MS, GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE } from '../../config';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { spawnConfetti, spawnSparks } from '../../entities/waterParticle/splashVFX';
 import { hideBanner, playFrenzyCelebration } from '../../ui/Banner';
@@ -102,9 +102,10 @@ export class FrenzyController {
     // zoom, and confetti off the whole wall.
     const camera = this._scene.cameras.main;
     camera.flash(FRENZY_FLASH_MS, 255, 244, 200);
-    camera.zoomTo(FRENZY_ZOOM, FRENZY_ZOOM_IN_MS, CAMERA_EASE, true);
+    // Zoom is relative to the render scale the camera already sits at.
+    camera.zoomTo(FRENZY_ZOOM * RENDER_SCALE, FRENZY_ZOOM_IN_MS, CAMERA_EASE, true);
     this._scene.time.delayedCall(FRENZY_ZOOM_IN_MS + FRENZY_ZOOM_HOLD_MS, () => {
-      camera.zoomTo(1, FRENZY_ZOOM_OUT_MS, CAMERA_EASE, true);
+      camera.zoomTo(RENDER_SCALE, FRENZY_ZOOM_OUT_MS, CAMERA_EASE, true);
     });
     spinners.forEach((spinner, i) => {
       spinner.pulse(1);

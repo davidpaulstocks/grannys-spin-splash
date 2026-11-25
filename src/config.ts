@@ -7,13 +7,55 @@ import { COLOUR_HEX } from './utils/colour';
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
+/** Never render more than this many canvas pixels per logical pixel: 4x the fill rate is the most a mid-range phone should be asked for. */
+const MAX_RENDER_SCALE = 2;
+/** Render scale is rounded to this step so a 1.37x display doesn't produce a 1753.6px canvas. */
+const RENDER_SCALE_STEP = 0.25;
+
+/**
+ * Canvas pixels per logical pixel. The game is laid out at 1280x720, but a
+ * canvas that size shown on a high-density screen — or simply shown larger
+ * than 1280 CSS px — is stretched by the browser, and stretched text is
+ * blurred text (2026-11-25, direct user feedback: "the fonts are quite hard
+ * to read", with a screenshot of a button label smeared by the upscale).
+ *
+ * So the canvas is created at the size it will actually be shown at, in
+ * device pixels, up to MAX_RENDER_SCALE, and every scene's camera zooms by
+ * the same factor (`fitCameraToLogicalSize`). All layout stays in 1280x720
+ * logical coordinates; only the number of pixels drawn changes. Measured
+ * once at boot: a later resize just scales the canvas, as before.
+ */
+export const RENDER_SCALE = ((): number => {
+  if (typeof window === 'undefined') return 1;
+  // A tab opened in the background reports a 0x0 viewport until it is first
+  // shown; the screen's own size is the safe stand-in (it can only over-
+  // estimate, and the result is capped).
+  const viewWidth = window.innerWidth || window.screen.width;
+  const viewHeight = window.innerHeight || window.screen.height;
+  const shownWidth = Math.min(viewWidth, (viewHeight * GAME_WIDTH) / GAME_HEIGHT);
+  const needed = (shownWidth * (window.devicePixelRatio || 1)) / GAME_WIDTH;
+  const stepped = Math.round(needed / RENDER_SCALE_STEP) * RENDER_SCALE_STEP;
+  return Math.min(MAX_RENDER_SCALE, Math.max(1, stepped));
+})();
+
 export const SCALE_CONFIG: Phaser.Types.Core.ScaleConfig = {
   mode: Phaser.Scale.FIT,
   autoCenter: Phaser.Scale.CENTER_BOTH,
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
+  width: GAME_WIDTH * RENDER_SCALE,
+  height: GAME_HEIGHT * RENDER_SCALE,
   parent: 'game',
 };
+
+/**
+ * Points a scene's camera at the 1280x720 logical play area, at the render
+ * scale. Centred, so camera zoom effects (the Frenzy punch) still zoom about
+ * the middle of the screen. Applied to every scene from main.ts.
+ */
+export function fitCameraToLogicalSize(scene: Phaser.Scene): void {
+  const camera = scene.cameras.main;
+  camera.setZoom(RENDER_SCALE);
+  camera.setScroll(-(camera.width - GAME_WIDTH) / 2, -(camera.height - GAME_HEIGHT) / 2);
+}
 
 /** Cloud — CLAUDE.md §5.1 backgrounds. */
 export const BACKGROUND_COLOUR: string = COLOUR_HEX.cloud;

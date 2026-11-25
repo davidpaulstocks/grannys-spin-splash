@@ -9,17 +9,17 @@ import type Phaser from 'phaser';
 import { playStarChime } from '../audio/ResultsMusic';
 import { currentMission, type MissionUpdate } from '../systems/Missions';
 import { saveManager } from '../systems/SaveManager';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { COLOUR_HEX } from '../utils/colour';
 import { DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
+import { createPanel } from './Panel';
 
-const WIDTH = 232;
-const HEIGHT = 190;
-const RADIUS = 26;
+const WIDTH = 248;
+const HEIGHT = 210;
 const TEXT_WRAP = WIDTH - 36;
-const HEADING_OFFSET_Y = -62;
-const BODY_OFFSET_Y = -14;
-const STATUS_OFFSET_Y = 52;
+const HEADING_OFFSET_Y = -44;
+const BODY_OFFSET_Y = -4;
+const STATUS_OFFSET_Y = 58;
 /** How long a finished mission is celebrated before the card turns to the next one. */
 const NEXT_AFTER_MS = 1800;
 
@@ -38,11 +38,7 @@ export function showMissionCard(
   update: MissionUpdate,
   options: MissionCardOptions,
 ): void {
-  const card = scene.add.graphics();
-  card.fillStyle(COLOUR.cloud, 0.97);
-  card.fillRoundedRect(x - WIDTH / 2, y - HEIGHT / 2, WIDTH, HEIGHT, RADIUS);
-  card.lineStyle(5, COLOUR.ink, 1);
-  card.strokeRoundedRect(x - WIDTH / 2, y - HEIGHT / 2, WIDTH, HEIGHT, RADIUS);
+  createPanel(scene, { x, y, width: WIDTH, height: HEIGHT, ribbon: 'MISSION' });
 
   const heading = scene.add
     .text(
@@ -70,7 +66,7 @@ export function showMissionCard(
   if (!update.completed) return;
 
   scene.time.delayedCall(options.celebrateAfterMs, () => {
-    heading.setText('MISSION DONE!').setColor(COLOUR_HEX.grannyPink);
+    heading.setText('DONE!').setColor(COLOUR_HEX.grannyPink);
     status.setText(`+${update.mission.reward}`).setColor(COLOUR_HEX.sunnyGold).setScale(0.5);
     scene.tweens.add({
       targets: status,
@@ -83,7 +79,7 @@ export function showMissionCard(
   });
   scene.time.delayedCall(options.celebrateAfterMs + NEXT_AFTER_MS, () => {
     const next = currentMission(saveManager.load());
-    heading.setText('NEXT MISSION').setColor(COLOUR_HEX.softSlate);
+    heading.setText('NEXT UP').setColor(COLOUR_HEX.softSlate);
     body.setText(next.text);
     status.setText(`0 / ${next.target}`).setColor(COLOUR_HEX.ink);
   });

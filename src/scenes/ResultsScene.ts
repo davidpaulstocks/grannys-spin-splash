@@ -29,7 +29,9 @@ import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
 import type { GameSceneData, GigResultData } from '../types/sceneData';
 import { createButton } from '../ui/Button';
-import { drawCoinIcon, drawStarIcon } from '../ui/icons';
+import { createIconButton } from '../ui/IconButton';
+import { drawCoinIcon, drawHomeIcon, drawRetryIcon, drawStarIcon } from '../ui/icons';
+import { createPanel } from '../ui/Panel';
 import { showMissionCard } from '../ui/MissionCard';
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { DURATION, EASE } from '../utils/tween';
@@ -37,17 +39,24 @@ import { textStyle } from '../utils/typography';
 
 const CENTRE_X = GAME_WIDTH / 2;
 
-const PANEL_WIDTH = 720;
-const PANEL_HEIGHT = 610;
-const PANEL_Y = 374;
-const PANEL_RADIUS = 36;
-const BACKDROP_DIM_ALPHA = 0.55;
+/**
+ * Layout. One card in the middle holds the whole result, top to bottom:
+ * ribbon (which gig), headline, stars, coins, one hint, then the row of
+ * actions along the card's bottom — all inside it. The rewarded option sits
+ * below the card on its own, smaller than the main action (CLAUDE.md §11.3).
+ * Granny stands to the left and the mission card to the right, so the screen
+ * reads as three columns with the result in the centre.
+ */
+const PANEL_WIDTH = 700;
+const PANEL_HEIGHT = 524;
+const PANEL_Y = 340;
+const PANEL_BOTTOM = PANEL_Y + PANEL_HEIGHT / 2;
+const BACKDROP_DIM_ALPHA = 0.5;
 
-const VENUE_LINE_Y = 112;
-const HEADLINE_Y = 164;
-const STARS_Y = 276;
+const HEADLINE_Y = 158;
+const STARS_Y = 262;
 const STAR_SPACING = 150;
-const STAR_RADIUS = 56;
+const STAR_RADIUS = 54;
 /** The middle star sits a little higher and larger — the classic three-star arc. */
 const MIDDLE_STAR_LIFT = 16;
 const MIDDLE_STAR_SCALE = 1.14;
@@ -55,27 +64,23 @@ const STAR_OUTLINE_PX = 7;
 const STAR_FIRST_DELAY_MS = 350;
 const STAR_STEP_MS = 380;
 
-const COINS_Y = 388;
+const COINS_Y = 362;
 const COIN_RADIUS = 22;
-const BANK_Y = 434;
-const HINT_Y = 474;
-const NEXT_Y = 540;
-const NEXT_MIN_WIDTH = 420;
-const SECOND_ROW_Y = 652;
-const RETRY_X = CENTRE_X - 200;
-const RETRY_MIN_WIDTH = 170;
-const DOUBLE_X = CENTRE_X + 130;
-const DOUBLE_MIN_WIDTH = 300;
-const MENU_X = 130;
-const MENU_Y = 56;
-const MENU_MIN_WIDTH = 150;
+const BANK_Y = 404;
+const HINT_Y = 442;
+/** The action row: its buttons' lips end 22px above the card's bottom edge. */
+const ACTIONS_Y = PANEL_BOTTOM - 74;
+const NEXT_MIN_WIDTH = 340;
+const SIDE_ACTION_OFFSET_X = 254;
+const DOUBLE_Y = PANEL_BOTTOM + 62;
+const DOUBLE_MIN_WIDTH = 320;
 
-const GRANNY_X = 168;
-const GRANNY_Y = 470;
-const GRANNY_HEIGHT = 330;
+const GRANNY_X = 150;
+const GRANNY_Y = 452;
+const GRANNY_HEIGHT = 340;
 
-const MISSION_X = GAME_WIDTH - 136;
-const MISSION_Y = 330;
+const MISSION_X = GAME_WIDTH - 144;
+const MISSION_Y = 320;
 
 const COUNT_UP_MS = 800;
 const TICK_EVERY_MS = 90;
@@ -115,22 +120,18 @@ export class ResultsScene extends Phaser.Scene {
     });
     saveManager.save(mission.save);
 
-    this._buildBackdrop(data.worldId, passed);
+    this._buildBackdrop(
+      data.worldId,
+      `${venue?.name ?? ''}  ·  GIG ${data.gig + 1}`.toUpperCase(),
+      passed,
+    );
 
-    this.add
-      .text(
-        CENTRE_X,
-        VENUE_LINE_Y,
-        `${venue?.name ?? ''}  ·  Gig ${data.gig + 1}`,
-        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
-      )
-      .setOrigin(0.5);
     this.add
       .text(
         CENTRE_X,
         HEADLINE_Y,
         HEADLINES[Math.min(data.stars, MAX_STARS_PER_GIG)] ?? '',
-        textStyle('displayL', passed ? COLOUR_HEX.grannyPink : COLOUR_HEX.ink, COLOUR_HEX.cloud),
+        textStyle('displayL', passed ? COLOUR_HEX.grannyPink : COLOUR_HEX.cloud, COLOUR_HEX.ink),
       )
       .setOrigin(0.5);
 
@@ -144,30 +145,19 @@ export class ResultsScene extends Phaser.Scene {
     });
   }
 
-  /** The venue's own art, softened, with a card on top — the gig happened somewhere, and it still looks like there. */
-  private _buildBackdrop(worldId: string, passed: boolean): void {
+  /** The venue's own art, softened, with the result card on top — the gig happened somewhere, and it still looks like there. */
+  private _buildBackdrop(worldId: string, ribbon: string, passed: boolean): void {
     drawWorldBackground(this, worldId);
     this.add
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud, BACKDROP_DIM_ALPHA)
       .setOrigin(0);
-
-    const panel = this.add.graphics();
-    panel.fillStyle(COLOUR.cloud, 0.97);
-    panel.fillRoundedRect(
-      CENTRE_X - PANEL_WIDTH / 2,
-      PANEL_Y - PANEL_HEIGHT / 2,
-      PANEL_WIDTH,
-      PANEL_HEIGHT,
-      PANEL_RADIUS,
-    );
-    panel.lineStyle(5, COLOUR.ink, 1);
-    panel.strokeRoundedRect(
-      CENTRE_X - PANEL_WIDTH / 2,
-      PANEL_Y - PANEL_HEIGHT / 2,
-      PANEL_WIDTH,
-      PANEL_HEIGHT,
-      PANEL_RADIUS,
-    );
+    createPanel(this, {
+      x: CENTRE_X,
+      y: PANEL_Y,
+      width: PANEL_WIDTH,
+      height: PANEL_HEIGHT,
+      ribbon,
+    });
 
     const key = SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front');
     if (!this.textures.exists(key)) return;
@@ -300,7 +290,7 @@ export class ResultsScene extends Phaser.Scene {
         const last = joining[joining.length - 1] ?? '';
         const names =
           joining.length === 1 ? last : `${joining.slice(0, -1).join(', ')} and ${last}`;
-        return `Next gig: ${names} ${joining.length === 1 ? 'joins' : 'join'} the band`;
+        return `Next gig adds ${names}`;
       }
     }
     if (data.stars < MAX_STARS_PER_GIG) return 'Get the whole band playing at once for three stars';
@@ -310,46 +300,47 @@ export class ResultsScene extends Phaser.Scene {
       : 'The whole band, playing together!';
   }
 
+  /**
+   * The action row. Exactly one large primary action — carry on if there is
+   * somewhere to go, otherwise play this gig again — flanked by round icon
+   * buttons for the things nobody needs to read: retry and home.
+   */
   private _buildButtons(data: GigResultData, passed: boolean): void {
     const here: TourStop = { venueId: data.worldId, gig: data.gig };
     const onward = passed ? nextStop(saveManager.load(), WORLD_DEFS, data.worldId, data.gig) : null;
 
-    // Exactly one primary action: carry on if there is somewhere to go,
-    // otherwise play this gig again.
     createButton(this, {
       x: CENTRE_X,
-      y: NEXT_Y,
+      y: ACTIONS_Y,
       label: onward ? 'NEXT GIG' : passed ? 'PLAY AGAIN' : 'TRY AGAIN',
       variant: 'primary',
+      size: 'lg',
       minWidth: NEXT_MIN_WIDTH,
       onClick: () => void this._play(onward ?? here),
     });
     if (onward) {
-      createButton(this, {
-        x: RETRY_X,
-        y: SECOND_ROW_Y,
-        label: 'RETRY',
-        variant: 'secondary',
-        minWidth: RETRY_MIN_WIDTH,
+      createIconButton(this, {
+        x: CENTRE_X - SIDE_ACTION_OFFSET_X,
+        y: ACTIONS_Y,
+        icon: drawRetryIcon,
         onClick: () => void this._play(here),
       });
     }
-    createButton(this, {
-      x: MENU_X,
-      y: MENU_Y,
-      label: 'MENU',
-      variant: 'secondary',
-      minWidth: MENU_MIN_WIDTH,
+    createIconButton(this, {
+      x: CENTRE_X + SIDE_ACTION_OFFSET_X,
+      y: ACTIONS_Y,
+      icon: drawHomeIcon,
       onClick: () => this._toMenu(),
     });
 
     const coins = data.score + data.starCoins;
     if (coins <= 0) return; // nothing worth doubling
     this._doubleButton = createButton(this, {
-      x: onward ? DOUBLE_X : CENTRE_X,
-      y: SECOND_ROW_Y,
+      x: CENTRE_X,
+      y: DOUBLE_Y,
       label: 'Double your coins',
-      variant: 'secondary',
+      variant: 'reward',
+      size: 'sm',
       minWidth: DOUBLE_MIN_WIDTH,
       showPlayIcon: true,
       onClick: () => void this._onDouble(coins),

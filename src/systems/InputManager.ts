@@ -99,8 +99,8 @@ export class InputManager extends EventEmitter {
       // moving and firing at once — the whole §6.3 control scheme — sprayed
       // water at the floor. `pointerdown` had this guard; `pointermove` did not.
       if (this._excludedPointerIds.has(pointer.id)) return;
-      this._pointerX = pointer.x;
-      this._pointerY = pointer.y;
+      this._pointerX = pointer.worldX;
+      this._pointerY = pointer.worldY;
     });
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this._registerFirstInput();
@@ -110,8 +110,8 @@ export class InputManager extends EventEmitter {
       if (this._excludedPointerIds.has(pointer.id)) return;
       this._pointerDown = true;
       this._firingPointerId = pointer.id;
-      this._pointerX = pointer.x;
-      this._pointerY = pointer.y;
+      this._pointerX = pointer.worldX;
+      this._pointerY = pointer.worldY;
     });
     scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       // Checked AND cleared here, atomically, rather than by

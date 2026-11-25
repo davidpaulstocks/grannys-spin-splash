@@ -8,7 +8,7 @@ import { Conductor } from './audio/orchestra/Conductor';
 import { OrchestraGraph } from './audio/orchestra/OrchestraGraph';
 import { sampleBank } from './audio/orchestra/SampleBank';
 import { resolveScore } from './audio/scores';
-import { BACKGROUND_COLOUR, SCALE_CONFIG } from './config';
+import { BACKGROUND_COLOUR, fitCameraToLogicalSize, SCALE_CONFIG } from './config';
 import type { BotSim } from './dev/botSim';
 import * as poki from './poki';
 import { BootScene } from './scenes/BootScene';
@@ -85,6 +85,18 @@ async function boot(): Promise<void> {
       ResultsScene,
       PauseScene,
     ],
+  });
+
+  // Every scene's camera shows the 1280x720 logical area at the render
+  // scale (see RENDER_SCALE). Hooked here, once, rather than in each scene's
+  // create(): a scene added later cannot forget it. The camera is rebuilt on
+  // every scene start, so the hook is on START; Phaser's own camera manager
+  // registered for that event first, so the camera exists by the time this runs.
+  game.events.once(Phaser.Core.Events.READY, () => {
+    for (const scene of game.scene.scenes) {
+      scene.events.on(Phaser.Scenes.Events.START, () => fitCameraToLogicalSize(scene));
+      if (scene.cameras?.main) fitCameraToLogicalSize(scene);
+    }
   });
 
   if (import.meta.env.DEV) {

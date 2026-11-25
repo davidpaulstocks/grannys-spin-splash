@@ -1,0 +1,347 @@
+{
+  "source": {
+    "repo": "sgossner/VSCO-2-CE",
+    "branch": "master",
+    "license": "CC0-1.0",
+    "note": "Default source; instruments override `repo` (branch comes from APPROVED_SOURCES). role = intended SOUNDING note (C4 = 60) for pitched samples, round-robin label for unpitched. File-name octaves are NOT trusted: the build measures the real pitch."
+  },
+  "instruments": {
+    "jazz_bass": {
+      "repo": "sfzinstruments/karoryfer.meatbass",
+      "pitched": true,
+      "maxLength": 1.0,
+      "samples": [
+        {
+          "role": "E1",
+          "file": "Samples/pizz/eb1_vl3_rr1.wav"
+        },
+        {
+          "role": "A1",
+          "file": "Samples/pizz/a1_vl3_rr1.wav"
+        },
+        {
+          "role": "D2",
+          "file": "Samples/pizz/eb2_vl3_rr1.wav"
+        },
+        {
+          "role": "G2",
+          "file": "Samples/pizz/gb2_vl3_rr1.wav"
+        },
+        {
+          "role": "C3",
+          "file": "Samples/pizz/c3_vl3_rr1.wav"
+        }
+      ]
+    },
+    "piano": {
+      "repo": "sgossner/VCSL",
+      "pitched": true,
+      "maxLength": 1.3,
+      "samples": [
+        {
+          "role": "C2",
+          "file": "Chordophones/Zithers/Upright Piano, Yamaha/Sustains/Upright1_Sus_C1_vl2_rr1.wav"
+        },
+        {
+          "role": "A2",
+          "file": "Chordophones/Zithers/Upright Piano, Yamaha/Sustains/Upright1_Sus_G1_vl2_rr1.wav"
+        },
+        {
+          "role": "F3",
+          "file": "Chordophones/Zithers/Upright Piano, Yamaha/Sustains/Upright1_Sus_G2_vl2_rr1.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Chordophones/Zithers/Upright Piano, Yamaha/Sustains/Upright1_Sus_C3_vl2_rr1.wav"
+        },
+        {
+          "role": "B4",
+          "file": "Chordophones/Zithers/Upright Piano, Yamaha/Sustains/Upright1_Sus_C4_vl2_rr1.wav"
+        },
+        {
+          "role": "G5",
+          "file": "Chordophones/Zithers/Upright Piano, Yamaha/Sustains/Upright1_Sus_G4_vl2_rr1.wav"
+        }
+      ]
+    },
+    "vibes": {
+      "repo": "sgossner/VCSL",
+      "pitched": true,
+      "maxLength": 1.5,
+      "octaveCheck": false,
+      "samples": [
+        {
+          "role": "F3",
+          "file": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_F2_v2_rr1_Main.wav"
+        },
+        {
+          "role": "C4",
+          "file": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_C3_v2_rr1_Main.wav"
+        },
+        {
+          "role": "G4",
+          "file": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_G3_v2_rr1_Main.wav"
+        },
+        {
+          "role": "D5",
+          "file": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_D4_v2_rr1_Main.wav"
+        },
+        {
+          "role": "A5",
+          "file": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_A4_v2_rr1_Main.wav"
+        }
+      ]
+    },
+    "tenor_sus": {
+      "repo": "sgossner/VCSL",
+      "pitched": true,
+      "maxLength": 1.7,
+      "samples": [
+        {
+          "role": "C3",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Vibrato/BrettTenor_Vib_Main_C2_var4.wav"
+        },
+        {
+          "role": "G3",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Vibrato/BrettTenor_Vib_Main_F#2_var3.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Vibrato/BrettTenor_Vib_Main_D3_var1.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Vibrato/BrettTenor_Vib_Main_A#3_var3.wav"
+        }
+      ]
+    },
+    "tenor_stac": {
+      "repo": "sgossner/VCSL",
+      "pitched": true,
+      "maxLength": 0.45,
+      "samples": [
+        {
+          "role": "C3",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_C2_vl2_rr1.wav"
+        },
+        {
+          "role": "G3",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_F#2_vl2_rr7.wav"
+        },
+        {
+          "role": "D4",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_D3_vl2_rr5.wav"
+        },
+        {
+          "role": "A4",
+          "file": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_A#3_vl2_rr4.wav"
+        }
+      ]
+    },
+    "trumpet_mute": {
+      "repo": "sgossner/VSCO-2-CE",
+      "pitched": true,
+      "maxLength": 1.5,
+      "samples": [
+        {
+          "role": "G3",
+          "file": "Brass/Trumpet/harmonM-sus/Sum_SHTrumpet_harmonM-sus_A#2_v3_rr1.wav"
+        },
+        {
+          "role": "C4",
+          "file": "Brass/Trumpet/harmonM-sus/Sum_SHTrumpet_harmonM-sus_C3_v3_rr1.wav"
+        },
+        {
+          "role": "G4",
+          "file": "Brass/Trumpet/harmonM-sus/Sum_SHTrumpet_harmonM-sus_G#3_v3_rr1.wav"
+        },
+        {
+          "role": "D5",
+          "file": "Brass/Trumpet/harmonM-sus/Sum_SHTrumpet_harmonM-sus_D4_v3_rr1.wav"
+        }
+      ]
+    },
+    "trombone_sus": {
+      "repo": "sgossner/VSCO-2-CE",
+      "pitched": true,
+      "maxLength": 1.5,
+      "samples": [
+        {
+          "role": "E2",
+          "file": "Brass/Tenor Trombone/sus/tenortbn_sus_D#1_v2_1.wav"
+        },
+        {
+          "role": "B2",
+          "file": "Brass/Tenor Trombone/sus/tenortbn_sus_A#1_v2_1.wav"
+        },
+        {
+          "role": "F3",
+          "file": "Brass/Tenor Trombone/sus/tenortbn_sus_F2_v2_1.wav"
+        },
+        {
+          "role": "C4",
+          "file": "Brass/Tenor Trombone/sus/tenortbn_sus_C3_v2_1.wav"
+        }
+      ]
+    },
+    "jazz_guitar": {
+      "repo": "sfzinstruments/karoryfer.emilyguitar",
+      "pitched": true,
+      "maxLength": 1.0,
+      "samples": [
+        {
+          "role": "E2",
+          "file": "notes/e2_mf_rr1.wav"
+        },
+        {
+          "role": "A2",
+          "file": "notes/a2_mf_rr1.wav"
+        },
+        {
+          "role": "D3",
+          "file": "notes/eb3_mf_rr1.wav"
+        },
+        {
+          "role": "G3",
+          "file": "notes/gb3_mf_rr1.wav"
+        },
+        {
+          "role": "B3",
+          "file": "notes/c4_mf_rr1.wav"
+        },
+        {
+          "role": "E4",
+          "file": "notes/eb4_mf_rr1.wav"
+        },
+        {
+          "role": "A4",
+          "file": "notes/a4_mf_rr1.wav"
+        }
+      ]
+    },
+    "ride": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 1.2,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/ride_22/rd/oh/rd_vl5_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/ride_22/rd/oh/rd_vl5_rr2.flac"
+        },
+        {
+          "role": "rr3",
+          "file": "Samples/ride_22/rd/oh/rd_vl5_rr3.flac"
+        }
+      ]
+    },
+    "ride_bell": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 1.0,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/ride_22/bl/oh/rd_bl_vl3_rr1.flac"
+        }
+      ]
+    },
+    "brush_snare": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.5,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/snare_14/brush/oh/sn_b_vl4_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/snare_14/brush/oh/sn_b_vl4_rr2.flac"
+        },
+        {
+          "role": "rr3",
+          "file": "Samples/snare_14/brush/oh/sn_b_vl4_rr3.flac"
+        }
+      ]
+    },
+    "brush_swirl": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.7,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/snare_14/brelease/oh/sn_release_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/snare_14/brelease/oh/sn_release_rr2.flac"
+        }
+      ]
+    },
+    "hat_chick": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.3,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/hihat_14/chik/oh/ht_chik_vl3_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/hihat_14/chik/oh/ht_chik_vl3_rr2.flac"
+        }
+      ]
+    },
+    "kick_soft": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.6,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/kick_24/kick/oh/k_vl4_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/kick_24/kick/oh/k_vl4_rr2.flac"
+        }
+      ]
+    },
+    "sidestick": {
+      "repo": "sfzinstruments/karoryfer.big-rusty-drums",
+      "pitched": false,
+      "maxLength": 0.3,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Samples/snare_14/sidestick/oh/sn_ss_vl2_rr1.flac"
+        },
+        {
+          "role": "rr2",
+          "file": "Samples/snare_14/sidestick/oh/sn_ss_vl2_rr2.flac"
+        }
+      ]
+    },
+    "clap": {
+      "repo": "sgossner/VCSL",
+      "pitched": false,
+      "maxLength": 0.35,
+      "samples": [
+        {
+          "role": "rr1",
+          "file": "Idiophones/Struck Idiophones/Claps/Clap_rr2.wav"
+        },
+        {
+          "role": "rr2",
+          "file": "Idiophones/Struck Idiophones/Claps/Clap_rr3.wav"
+        }
+      ]
+    }
+  }
+}

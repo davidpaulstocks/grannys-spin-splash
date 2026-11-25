@@ -1,20 +1,32 @@
 /**
- * Reusable button factory — primary/secondary/tertiary variants, applied
- * consistently everywhere (CLAUDE.md §7.2, story 2.3). Pill shape (§5.4 —
- * radius via utils/math.ts's pillRadius(), NOT a literal 999: Phaser's
- * Graphics doesn't clamp radius to the box size the way CSS does), Ink
- * stroke, 100ms hover/press feedback (§5.6).
+ * The game's button. One component, used everywhere, so every button in the
+ * game presses the same way.
+ *
+ * It is a chunky, physical thing: a coloured face sitting on a darker lip,
+ * with a soft shadow under it and a highlight across its top. Pressing it
+ * pushes the face down onto the lip. That depth is the point — a flat
+ * outlined pill reads as a label, not as something to press (2026-11-25,
+ * direct user feedback: the buttons looked "very basic").
+ *
+ * Three sizes and four looks. A screen has exactly one large primary
+ * button; everything else is smaller or quieter. Rewarded-ad buttons use
+ * the `reward` look: gold, never green, with the play glyph Poki requires
+ * (CLAUDE.md §11.3).
+ *
+ * Pill radii come from `pillRadius()`, never a literal 999: Phaser's
+ * Graphics does not clamp a radius to the box the way CSS does.
  */
 
 import Phaser from 'phaser';
 
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { drawPlayIcon } from './icons';
+import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 import { DURATION, EASE } from '../utils/tween';
-import { textStyle } from '../utils/typography';
+import { textStyle, type TYPE_SCALE } from '../utils/typography';
+import { drawPlayIcon } from './icons';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'tertiary';
+export type ButtonVariant = 'primary' | 'secondary' | 'reward' | 'tertiary';
+export type ButtonSize = 'lg' | 'md' | 'sm';
 
 export interface ButtonConfig {
   readonly x: number;
@@ -22,125 +34,172 @@ export interface ButtonConfig {
   readonly label: string;
   readonly onClick: () => void;
   readonly variant?: ButtonVariant;
-  /** Pads the pill out to at least this wide — buttons still auto-size to their label above this. */
+  /** `lg` is for a screen's one main action. Defaults to `md`. */
+  readonly size?: ButtonSize;
   readonly minWidth?: number;
   /**
-   * Expands the invisible hit zone to MIN_HIT_HEIGHT even though the drawn
-   * pill stays its natural size. Default true. Set false only where a
-   * neighbouring control sits close enough that the expanded zone would
-   * overlap it (the splash screen's rewarded-ad row, which must never steal
-   * a tap aimed at PLAY).
+   * False keeps the tap zone at the drawn size. Needed only where two
+   * buttons sit so close that an enlarged zone on one would steal taps meant
+   * for the other.
    */
   readonly expandHitArea?: boolean;
   /**
-   * In-play buttons must claim their touch on InputManager, or the same tap
-   * is also read as aim/fire — and as the second finger of the two-finger
-   * pause gesture when the player is already holding fire. That is exactly
-   * how the mid-run refill prompt behaved: tapping it with a free thumb
-   * opened PAUSE instead of playing the rewarded ad (spec audit, 2026-09-12).
-   * Menu-scene buttons don't need this and leave it undefined.
+   * In-game buttons share the screen with aim-and-fire input. A guard lets
+   * the scene's input manager ignore the finger that is on this button.
+   * Menu-scene buttons leave it undefined.
    */
   readonly pointerGuard?: {
     claimPointer(id: number): void;
     releasePointer(id: number): void;
   };
-  /**
-   * Draws the custom "play" glyph before the label (CLAUDE.md §11.3: every
-   * rewarded-ad button must "include a video icon prominently" — §7.3 rule
-   * 8 bans emoji, so `drawPlayIcon` is the custom-SVG equivalent of 🎬).
-   */
+  /** Draws the play glyph before the label — required on every rewarded-ad button (CLAUDE.md §11.3). */
   readonly showPlayIcon?: boolean;
 }
 
-const PADDING_X = 32;
-const PADDING_Y = 16;
-/**
- * Minimum tappable height, logical px. A pill auto-sizes to ~57.85 px tall,
- * which is only 29 CSS px at Poki's 640x360 canonical size — well under
- * Apple's 44pt / Android's 48dp minimum, so a child missing by 3-4 px hit
- * nothing and read the button as broken (spec audit, 2026-09-12). 88 logical
- * px = 44 CSS px at that size. The *visual* pill is unchanged; only the
- * invisible zone grows, which is the standard way to hit both targets.
- */
-const MIN_HIT_HEIGHT = 88;
-const ICON_RADIUS = 11;
-/** Icon diameter plus a small gap, reserved as extra left padding on the label when `showPlayIcon` is set. */
-const ICON_RESERVED_WIDTH = ICON_RADIUS * 2 + 10;
-const HOVER_SCALE = 1.04;
-const PRESS_SCALE = 0.96;
-
-interface VariantStyle {
-  readonly fill: number;
-  readonly fillAlpha: number;
-  readonly stroke: number;
-  readonly strokeWidth: number;
-  readonly textColour: string;
+interface SizeSpec {
+  readonly height: number;
+  readonly paddingX: number;
+  /** How far the face sits above its base; also how far it travels when pressed. */
+  readonly lip: number;
+  readonly type: keyof typeof TYPE_SCALE;
+  readonly iconRadius: number;
 }
 
-const VARIANTS: Readonly<Record<ButtonVariant, VariantStyle>> = {
-  // Mint Green is the palette's "Confirm buttons" colour (CLAUDE.md §5.1) — the primary CTA.
-  primary: {
-    fill: COLOUR.mintGreen,
-    fillAlpha: 1,
-    stroke: COLOUR.ink,
-    strokeWidth: 4,
-    textColour: COLOUR_HEX.ink,
-  },
-  secondary: {
-    fill: COLOUR.cloud,
-    fillAlpha: 1,
-    stroke: COLOUR.ink,
-    strokeWidth: 3,
-    textColour: COLOUR_HEX.ink,
-  },
-  tertiary: {
-    fill: COLOUR.cloud,
-    fillAlpha: 0,
-    stroke: COLOUR.softSlate,
-    strokeWidth: 0,
-    textColour: COLOUR_HEX.softSlate,
-  },
+const SIZES: Readonly<Record<ButtonSize, SizeSpec>> = {
+  lg: { height: 84, paddingX: 48, lip: 9, type: 'buttonL', iconRadius: 16 },
+  md: { height: 64, paddingX: 34, lip: 7, type: 'buttonM', iconRadius: 13 },
+  sm: { height: 52, paddingX: 26, lip: 6, type: 'buttonS', iconRadius: 11 },
 };
 
-/** Builds a pill-shaped button as a Container; returns it so callers can position/destroy it themselves. */
+interface VariantSpec {
+  readonly face: number;
+  /** The lip is the face colour, darkened by this factor. */
+  readonly lipShade: number;
+  readonly text: string;
+}
+
+const VARIANTS: Readonly<Record<Exclude<ButtonVariant, 'tertiary'>, VariantSpec>> = {
+  // Mint Green is the palette's confirm colour (CLAUDE.md §5.1) — the main action.
+  primary: { face: COLOUR.mintGreen, lipShade: 0.7, text: COLOUR_HEX.ink },
+  secondary: { face: COLOUR.cloud, lipShade: 0.8, text: COLOUR_HEX.ink },
+  reward: { face: COLOUR.sunnyGold, lipShade: 0.74, text: COLOUR_HEX.ink },
+};
+
+const OUTLINE_PX = 4;
+const SHADOW_ALPHA = 0.2;
+const SHADOW_DROP = 6;
+const HIGHLIGHT_ALPHA = 0.28;
+const HIGHLIGHT_INSET = 7;
+const HIGHLIGHT_HEIGHT_FRACTION = 0.4;
+const ICON_GAP = 12;
+const HOVER_SCALE = 1.03;
+/**
+ * Minimum tappable height, logical px: 88 is 44 CSS px at Poki's smallest
+ * canonical size (640x360), the floor for a finger. Only the invisible zone
+ * grows; the drawn button keeps its size.
+ */
+const MIN_HIT_HEIGHT = 88;
+
+/** Builds a button centred on (x, y) and returns its container, so callers can move, pulse or destroy it. */
 export function createButton(
   scene: Phaser.Scene,
   config: ButtonConfig,
 ): Phaser.GameObjects.Container {
+  const size = SIZES[config.size ?? 'md'];
+  if (config.variant === 'tertiary') return createTextButton(scene, config, size);
   const variant = VARIANTS[config.variant ?? 'primary'];
-  const iconReserve = config.showPlayIcon ? ICON_RESERVED_WIDTH : 0;
 
+  const iconSpace = config.showPlayIcon ? size.iconRadius * 2 + ICON_GAP : 0;
   const label = scene.add
-    .text(iconReserve / 2, 0, config.label, textStyle('bodyL', variant.textColour, COLOUR_HEX.ink))
+    .text(iconSpace / 2, 0, config.label, textStyle(size.type, variant.text, variant.text))
     .setOrigin(0.5);
-
-  const width = Math.max(config.minWidth ?? 0, label.width + iconReserve + PADDING_X * 2);
-  const height = label.height + PADDING_Y * 2;
-
+  const width = Math.max(config.minWidth ?? 0, label.width + iconSpace + size.paddingX * 2);
+  const { height, lip } = size;
   const radius = pillRadius(width, height);
-  const bg = scene.add.graphics();
-  if (variant.fillAlpha > 0) {
-    bg.fillStyle(variant.fill, variant.fillAlpha);
-    bg.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
-  }
-  if (variant.strokeWidth > 0) {
-    bg.lineStyle(variant.strokeWidth, variant.stroke, 1);
-    bg.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
-  }
+  const left = -width / 2;
+  const top = -height / 2;
 
-  const parts: Phaser.GameObjects.GameObject[] = [bg, label];
+  // Underneath: the shadow, then the lip the face sits on.
+  const base = scene.add.graphics();
+  base.fillStyle(COLOUR.ink, SHADOW_ALPHA);
+  base.fillRoundedRect(left, top + lip + SHADOW_DROP, width, height, radius);
+  base.fillStyle(shade(variant.face, variant.lipShade), 1);
+  base.fillRoundedRect(left, top + lip, width, height, radius);
+  base.lineStyle(OUTLINE_PX, COLOUR.ink, 1);
+  base.strokeRoundedRect(left, top + lip, width, height, radius);
+
+  // On top: the face, its highlight, and what is written on it. These move together when pressed.
+  const faceGfx = scene.add.graphics();
+  faceGfx.fillStyle(variant.face, 1);
+  faceGfx.fillRoundedRect(left, top, width, height, radius);
+  const highlightHeight = height * HIGHLIGHT_HEIGHT_FRACTION;
+  faceGfx.fillStyle(0xffffff, HIGHLIGHT_ALPHA);
+  faceGfx.fillRoundedRect(
+    left + HIGHLIGHT_INSET,
+    top + HIGHLIGHT_INSET,
+    width - HIGHLIGHT_INSET * 2,
+    highlightHeight,
+    pillRadius(width - HIGHLIGHT_INSET * 2, highlightHeight),
+  );
+  faceGfx.lineStyle(OUTLINE_PX, COLOUR.ink, 1);
+  faceGfx.strokeRoundedRect(left, top, width, height, radius);
+
+  const faceParts: Phaser.GameObjects.GameObject[] = [faceGfx, label];
   if (config.showPlayIcon) {
-    const iconGfx = scene.add.graphics().setPosition(-width / 2 + PADDING_X * 0.7 + ICON_RADIUS, 0);
-    drawPlayIcon(iconGfx, ICON_RADIUS, COLOUR.ink);
-    parts.push(iconGfx);
+    const icon = scene.add.graphics({
+      x: label.x - label.width / 2 - ICON_GAP - size.iconRadius,
+      y: 0,
+    });
+    drawPlayIcon(icon, size.iconRadius, COLOUR.ink);
+    faceParts.push(icon);
   }
+  const face = scene.add.container(0, 0, faceParts);
 
-  const container = scene.add.container(config.x, config.y, parts);
-  container.setSize(width, height);
+  const container = scene.add.container(config.x, config.y, [base, face]);
+  container.setSize(width, height + lip);
+  attachPress(scene, container, config, width, height + lip, lip / 2, (pressed) =>
+    face.setY(pressed ? lip - 2 : 0),
+  );
+  return container;
+}
 
+/** The quietest button: a label with no body, for actions that should be findable but never inviting. */
+function createTextButton(
+  scene: Phaser.Scene,
+  config: ButtonConfig,
+  size: SizeSpec,
+): Phaser.GameObjects.Container {
+  const label = scene.add
+    .text(0, 0, config.label, textStyle(size.type, COLOUR_HEX.softSlate, COLOUR_HEX.softSlate))
+    .setOrigin(0.5);
+  const width = Math.max(config.minWidth ?? 0, label.width + size.paddingX * 2);
+  const container = scene.add.container(config.x, config.y, [label]);
+  container.setSize(width, size.height);
+  attachPress(scene, container, config, width, size.height, 0, () => undefined);
+  return container;
+}
+
+/**
+ * Wires hover, press and click onto a button body. Shared with `IconButton`
+ * so round and pill buttons respond identically. `zoneOffsetY` centres the
+ * tap zone on the whole drawn body, lip included.
+ */
+export function attachPress(
+  scene: Phaser.Scene,
+  container: Phaser.GameObjects.Container,
+  config: Pick<ButtonConfig, 'onClick' | 'expandHitArea' | 'pointerGuard'>,
+  width: number,
+  height: number,
+  zoneOffsetY: number,
+  setPressed: (pressed: boolean) => void,
+): void {
   const hitHeight = config.expandHitArea === false ? height : Math.max(height, MIN_HIT_HEIGHT);
-  const hitZone = scene.add.zone(0, 0, width, hitHeight).setInteractive({ useHandCursor: true });
-  container.add(hitZone);
+  const hitWidth = config.expandHitArea === false ? width : Math.max(width, MIN_HIT_HEIGHT);
+  // Added last: in a Container the last child wins input where children overlap.
+  const zone = scene.add
+    .zone(0, zoneOffsetY, hitWidth, hitHeight)
+    .setInteractive({ useHandCursor: true });
+  container.add(zone);
 
   const scaleTo = (scale: number): void => {
     scene.tweens.add({
@@ -152,17 +211,27 @@ export function createButton(
   };
   if (config.pointerGuard) {
     const guard = config.pointerGuard;
-    hitZone.on('pointerdown', (p: Phaser.Input.Pointer) => guard.claimPointer(p.id));
-    hitZone.on('pointerup', (p: Phaser.Input.Pointer) => guard.releasePointer(p.id));
-    hitZone.on('pointerout', (p: Phaser.Input.Pointer) => guard.releasePointer(p.id));
+    zone.on('pointerdown', (p: Phaser.Input.Pointer) => guard.claimPointer(p.id));
+    zone.on('pointerup', (p: Phaser.Input.Pointer) => guard.releasePointer(p.id));
+    zone.on('pointerout', (p: Phaser.Input.Pointer) => guard.releasePointer(p.id));
   }
-  hitZone.on('pointerover', () => scaleTo(HOVER_SCALE));
-  hitZone.on('pointerout', () => scaleTo(1));
-  hitZone.on('pointerdown', () => scaleTo(PRESS_SCALE));
-  hitZone.on('pointerup', () => {
-    scaleTo(HOVER_SCALE);
+  zone.on('pointerover', () => scaleTo(HOVER_SCALE));
+  zone.on('pointerout', () => {
+    setPressed(false);
+    scaleTo(1);
+  });
+  zone.on('pointerdown', () => setPressed(true));
+  zone.on('pointerup', () => {
+    setPressed(false);
     config.onClick();
   });
-
-  return container;
 }
+
+/** Shared by `IconButton`, which draws the same body as a circle. */
+export const BUTTON_STYLE = {
+  outlinePx: OUTLINE_PX,
+  shadowAlpha: SHADOW_ALPHA,
+  shadowDrop: SHADOW_DROP,
+  highlightAlpha: HIGHLIGHT_ALPHA,
+  variants: VARIANTS,
+} as const;

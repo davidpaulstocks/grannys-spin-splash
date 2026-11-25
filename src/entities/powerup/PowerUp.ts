@@ -12,6 +12,8 @@
 
 import Phaser from 'phaser';
 
+import { RENDER_SCALE } from '../../config';
+
 import { COLOUR } from '../../utils/colour';
 import { drawLockIcon, drawStarIcon } from '../../ui/icons';
 import { distance } from '../../utils/math';
@@ -52,6 +54,7 @@ export class PowerUp extends Phaser.GameObjects.Container {
     this._label = scene.add
       .text(0, 0, '', {
         fontFamily: 'Fredoka, sans-serif',
+        resolution: RENDER_SCALE,
         fontSize: '14px',
         fontStyle: '700',
         color: '#1F2138',

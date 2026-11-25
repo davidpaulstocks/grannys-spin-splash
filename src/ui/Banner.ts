@@ -6,6 +6,8 @@ import {
   FRENZY_FLASH_DURATION_MS,
   FRENZY_SHAKE_DURATION_MS,
   FRENZY_SHAKE_INTENSITY,
+  GAME_HEIGHT,
+  GAME_WIDTH,
 } from '../config';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
@@ -67,7 +69,7 @@ export function playFrenzyCelebration(
   scene.cameras.main.shake(FRENZY_SHAKE_DURATION_MS, FRENZY_SHAKE_INTENSITY);
 
   const flash = scene.add
-    .rectangle(0, 0, scene.scale.width, scene.scale.height, COLOUR.cloud, FLASH_ALPHA)
+    .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud, FLASH_ALPHA)
     .setOrigin(0)
     .setDepth(250);
   scene.tweens.add({

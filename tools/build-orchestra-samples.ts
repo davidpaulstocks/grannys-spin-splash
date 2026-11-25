@@ -1,24 +1,51 @@
 /**
- * Builds the "spinner orchestra" audio sprite from VSCO-2 Community Edition (CC0).
+ * Builds the game's instrument audio sprites ("banks") from CC0 sample libraries.
  *
- *   node tools/build-orchestra-samples.ts            build public/audio/orchestra.{mp3,json}
- *   node tools/build-orchestra-samples.ts --probe <repo path>...   print pitch/onset/envelope of raw files
+ *   node tools/build-orchestra-samples.ts                 build every bank in tools/bands/
+ *   node tools/build-orchestra-samples.ts kitchen         build one bank
+ *   node tools/build-orchestra-samples.ts --probe <owner/repo> <path>...   print pitch/onset/envelope of raw files
  *
- * Reads tools/orchestra-manifest.json, downloads (cached in .cache/vsco/), processes each
- * sample (mono, 32 kHz, onset trim, max-length cut + fade, -3 dBFS peak), measures the real
- * fundamental of pitched samples (YIN) and packs everything into one mono MP3 + JSON index.
+ * Each tools/bands/<bank>.manifest.json names its samples; a sample's source repo/branch comes from
+ * the sample, else its instrument, else the manifest's top-level `source`. Only repos in
+ * APPROVED_SOURCES (all CC0-1.0) are ever downloaded from. Downloads are cached in
+ * .cache/<owner>/<repo>/ (Git LFS pointer files are detected and the real object fetched).
+ * Each sample is processed (mono, 32 kHz, onset trim, max-length cut + fade, -3 dBFS peak), the real
+ * fundamental of pitched samples is measured (YIN) and everything is packed into one mono MP3 + JSON
+ * index. Bank "orchestra" -> public/audio/orchestra.*, any other -> public/audio/bands/<bank>.*.
  * Zero npm dependencies: needs ffmpeg and lame on PATH. Idempotent.
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------- constants
 const SAMPLE_RATE = 32000;
-const REPO_RAW_BASE = 'https://raw.githubusercontent.com/sgossner/VSCO-2-CE/master/';
+/** The only repositories downloads may come from (owner/repo -> branch); each verified CC0-1.0. */
+const APPROVED_SOURCES: Record<string, string> = {
+  'sgossner/VSCO-2-CE': 'master',
+  'sgossner/VCSL': 'master',
+  'sfzinstruments/karoryfer.big-rusty-drums': 'main',
+  'sfzinstruments/karoryfer.meatbass': 'master',
+  'sfzinstruments/karoryfer.emilyguitar': 'master',
+  'sfzinstruments/karoryfer.weresax': 'master',
+  'sfzinstruments/karoryfer.growlybass': 'master',
+};
+const RAW_BASE = 'https://raw.githubusercontent.com/';
+const LFS_MEDIA_BASE = 'https://media.githubusercontent.com/media/';
+const LFS_POINTER_MAX_BYTES = 512;
+const LFS_POINTER_PREFIX = 'version https://git-lfs';
+const ORCHESTRA_BANK = 'orchestra';
 const LEAD_SILENCE_S = 0.1;
 const SYNC_BURST_S = 0.002;
 const SYNC_FREQ_HZ = 1000;
@@ -50,15 +77,18 @@ const SUBHARMONIC_MAX_STEPS = 2;
 
 const TOOLS_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(TOOLS_DIR, '..');
-const CACHE_DIR = join(ROOT, '.cache', 'vsco');
-const WORK_DIR = join(ROOT, '.cache', 'orchestra');
-const MANIFEST_PATH = join(TOOLS_DIR, 'orchestra-manifest.json');
-const OUT_DIR = join(ROOT, 'public', 'audio');
-const OUT_MP3 = join(OUT_DIR, 'orchestra.mp3');
-const OUT_JSON = join(OUT_DIR, 'orchestra.json');
+const CACHE_ROOT = join(ROOT, '.cache');
+const BANDS_DIR = join(TOOLS_DIR, 'bands');
+const MANIFEST_SUFFIX = '.manifest.json';
+const AUDIO_DIR = join(ROOT, 'public', 'audio');
 
 // ---------------------------------------------------------------- types
-interface ManifestSample {
+interface SourceRef {
+  repo: string;
+  branch?: string;
+}
+interface ManifestSample extends Partial<SourceRef> {
+  /** Path inside the source repo. */
   file: string;
   role: string;
   /** Override of ONSET_THRESHOLD_DB for samples with a deliberately quiet lead-in. */
@@ -66,8 +96,8 @@ interface ManifestSample {
   /** Override of SUBHARMONIC_RATIO for samples whose real fundamental is weak (verified by spectrum). */
   subharmonicRatio?: number;
 }
-interface ManifestInstrument {
-  priority: 'P1' | 'P2' | 'P3';
+interface ManifestInstrument extends Partial<SourceRef> {
+  priority?: 'P1' | 'P2' | 'P3';
   pitched: boolean;
   maxLength: number;
   /** false for inharmonic instruments (mallets, drums) where the sub-octave check is meaningless. */
@@ -75,8 +105,14 @@ interface ManifestInstrument {
   samples: ManifestSample[];
 }
 interface Manifest {
-  source: { repo: string; branch: string; license: string };
+  source: { repo: string; branch: string; license: string; note?: string };
   instruments: Record<string, ManifestInstrument>;
+}
+interface Bank {
+  name: string;
+  outMp3: string;
+  outJson: string;
+  workDir: string;
 }
 interface Processed {
   id: string;
@@ -98,35 +134,74 @@ interface IndexSample {
 }
 
 // ---------------------------------------------------------------- download / decode
-function cachePath(repoPath: string): string {
-  return join(CACHE_DIR, repoPath);
+interface Ref {
+  repo: string;
+  branch: string;
+  path: string;
 }
 
-async function downloadOne(repoPath: string): Promise<void> {
-  const dest = cachePath(repoPath);
+function approvedBranch(repo: string): string {
+  const branch = APPROVED_SOURCES[repo];
+  if (branch === undefined) throw new Error(`repo not approved for download: ${repo}`);
+  return branch;
+}
+
+function resolveRef(manifest: Manifest, inst: ManifestInstrument | null, s: ManifestSample): Ref {
+  const repo = s.repo ?? inst?.repo ?? manifest.source.repo;
+  const branch =
+    s.branch ??
+    inst?.branch ??
+    (repo === manifest.source.repo ? manifest.source.branch : approvedBranch(repo));
+  if (approvedBranch(repo) !== branch) throw new Error(`branch ${branch} not approved for ${repo}`);
+  return { repo, branch, path: s.file };
+}
+
+function cachePath(ref: Ref): string {
+  return join(CACHE_ROOT, ref.repo, ref.path);
+}
+
+function urlFor(base: string, ref: Ref): string {
+  const path = ref.path.split('/').map(encodeURIComponent).join('/');
+  return `${base}${ref.repo}/${ref.branch}/${path}`;
+}
+
+async function fetchBytes(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+function isLfsPointer(buf: Buffer): boolean {
+  return buf.length < LFS_POINTER_MAX_BYTES && buf.toString('utf8').startsWith(LFS_POINTER_PREFIX);
+}
+
+async function downloadOne(ref: Ref): Promise<void> {
+  const dest = cachePath(ref);
   if (existsSync(dest) && statSync(dest).size > 0) return;
-  const url = REPO_RAW_BASE + repoPath.split('/').map(encodeURIComponent).join('/');
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= DOWNLOAD_RETRIES; attempt++) {
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-      const buf = Buffer.from(await res.arrayBuffer());
+      let buf = await fetchBytes(urlFor(RAW_BASE, ref));
+      if (isLfsPointer(buf)) {
+        console.log(`  [lfs] ${ref.repo}/${ref.path}`);
+        buf = await fetchBytes(urlFor(LFS_MEDIA_BASE, ref));
+        if (isLfsPointer(buf)) throw new Error('LFS object still a pointer');
+      }
       mkdirSync(dirname(dest), { recursive: true });
       writeFileSync(dest + '.part', buf);
-      // atomic-ish rename
-      execFileSync('mv', [dest + '.part', dest]);
+      renameSync(dest + '.part', dest);
       return;
     } catch (err) {
       lastErr = err;
       await new Promise((r) => setTimeout(r, 500 * attempt));
     }
   }
-  throw new Error(`download failed: ${repoPath}: ${String(lastErr)}`);
+  throw new Error(`download failed: ${ref.repo}/${ref.path}: ${String(lastErr)}`);
 }
 
-async function downloadAll(paths: string[]): Promise<void> {
-  const queue = [...new Set(paths)];
+async function downloadAll(refs: Ref[]): Promise<void> {
+  const unique = new Map(refs.map((r) => [`${r.repo}/${r.path}`, r]));
+  const queue = [...unique.values()];
   let done = 0;
   const workers = Array.from({ length: DOWNLOAD_CONCURRENCY }, async () => {
     for (;;) {
@@ -140,14 +215,14 @@ async function downloadAll(paths: string[]): Promise<void> {
   await Promise.all(workers);
 }
 
-function decodeMono32k(repoPath: string): Float32Array {
+function decodeMono32k(ref: Ref): Float32Array {
   const out = execFileSync(
     'ffmpeg',
     [
       '-v',
       'error',
       '-i',
-      cachePath(repoPath),
+      cachePath(ref),
       '-ac',
       '1',
       '-ar',
@@ -339,9 +414,14 @@ function roleToMidi(role: string): number | null {
 }
 
 // ---------------------------------------------------------------- per-sample processing
-function processSample(id: string, inst: ManifestInstrument, s: ManifestSample): Processed {
-  const raw = decodeMono32k(s.file);
-  if (raw.length === 0) throw new Error(`empty decode: ${s.file}`);
+function processSample(
+  id: string,
+  inst: ManifestInstrument,
+  s: ManifestSample,
+  ref: Ref,
+): Processed {
+  const raw = decodeMono32k(ref);
+  if (raw.length === 0) throw new Error(`empty decode: ${ref.path}`);
   const start = Math.max(0, findOnset(raw, s.onsetDb) - Math.round(ONSET_PREROLL_S * SAMPLE_RATE));
   let clip = raw.slice(start);
 
@@ -370,7 +450,7 @@ function processSample(id: string, inst: ManifestInstrument, s: ManifestSample):
       const mf = hzToMidiFloat(measuredHz);
       midi = Math.round(mf);
       cents = Math.round((mf - midi) * 100);
-      const pc = pitchClassFromName(s.file);
+      const pc = pitchClassFromName(ref.path);
       if (pc !== null) {
         const diff = (((midi - pc) % 12) + 12) % 12;
         if (diff !== 0) nameDoubt = `measured pitch class ${midi % 12} != file-name class ${pc}`;
@@ -386,7 +466,17 @@ function processSample(id: string, inst: ManifestInstrument, s: ManifestSample):
     sumSq += (clip[i] ?? 0) * (clip[i] ?? 0);
   }
   const rms = Math.sqrt(sumSq / clip.length);
-  return { id, role: s.role, file: s.file, pcm: clip, midi, cents, measuredHz, rms, nameDoubt };
+  return {
+    id,
+    role: s.role,
+    file: `${ref.repo}:${ref.path}`,
+    pcm: clip,
+    midi,
+    cents,
+    measuredHz,
+    rms,
+    nameDoubt,
+  };
 }
 
 // ---------------------------------------------------------------- sprite / encode
@@ -457,10 +547,10 @@ function packSprite(manifest: Manifest, processed: Processed[]): Packed {
   return { sprite, index };
 }
 
-function encodeMp3(sprite: Float32Array): void {
-  mkdirSync(WORK_DIR, { recursive: true });
-  mkdirSync(OUT_DIR, { recursive: true });
-  const wav = join(WORK_DIR, 'sprite.wav');
+function encodeMp3(bank: Bank, sprite: Float32Array): void {
+  mkdirSync(bank.workDir, { recursive: true });
+  mkdirSync(dirname(bank.outMp3), { recursive: true });
+  const wav = join(bank.workDir, 'sprite.wav');
   writeWav16(wav, sprite);
   execFileSync('lame', [
     '--silent',
@@ -473,14 +563,15 @@ function encodeMp3(sprite: Float32Array): void {
     '--resample',
     '32',
     wav,
-    OUT_MP3,
+    bank.outMp3,
   ]);
 }
 
 // ---------------------------------------------------------------- probe mode
-function probe(paths: string[]): void {
-  for (const p of paths) {
-    const raw = decodeMono32k(p);
+function probe(repo: string, paths: string[]): void {
+  const branch = approvedBranch(repo);
+  for (const path of paths) {
+    const raw = decodeMono32k({ repo, branch, path });
     const onset = findOnset(raw);
     const clip = raw.slice(Math.max(0, onset - Math.round(ONSET_PREROLL_S * SAMPLE_RATE)));
     const seg = clip.slice(0, Math.min(clip.length, 2.4 * SAMPLE_RATE));
@@ -497,35 +588,48 @@ function probe(paths: string[]): void {
     }
     const mf = hz ? hzToMidiFloat(hz) : NaN;
     console.log(
-      `${p.split('/').pop()}  len=${(raw.length / SAMPLE_RATE).toFixed(2)}s onset=${((onset / SAMPLE_RATE) * 1000).toFixed(0)}ms ` +
+      `${path.split('/').pop()}  len=${(raw.length / SAMPLE_RATE).toFixed(2)}s onset=${((onset / SAMPLE_RATE) * 1000).toFixed(0)}ms ` +
         `f0=${hz ? hz.toFixed(1) : '-'}Hz midi=${Number.isNaN(mf) ? '-' : mf.toFixed(2)} env(dB/250ms)=${env.join(',')}`,
     );
   }
 }
 
-// ---------------------------------------------------------------- main
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  if (args[0] === '--probe') {
-    const paths = args.slice(1);
-    await downloadAll(paths);
-    probe(paths);
-    return;
-  }
+// ---------------------------------------------------------------- bank build
+function bankFor(name: string): Bank {
+  const isOrchestra = name === ORCHESTRA_BANK;
+  const dir = isOrchestra ? AUDIO_DIR : join(AUDIO_DIR, 'bands');
+  return {
+    name,
+    outMp3: join(dir, `${name}.mp3`),
+    outJson: join(dir, `${name}.json`),
+    workDir: join(CACHE_ROOT, 'work', name),
+  };
+}
 
-  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as Manifest;
-  const all: { id: string; inst: ManifestInstrument; s: ManifestSample }[] = [];
+function listBanks(): string[] {
+  return readdirSync(BANDS_DIR)
+    .filter((f) => f.endsWith(MANIFEST_SUFFIX))
+    .map((f) => f.slice(0, -MANIFEST_SUFFIX.length))
+    .sort();
+}
+
+async function buildBank(name: string): Promise<void> {
+  const bank = bankFor(name);
+  const manifestPath = join(BANDS_DIR, name + MANIFEST_SUFFIX);
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Manifest;
+  const all: { id: string; inst: ManifestInstrument; s: ManifestSample; ref: Ref }[] = [];
   for (const [id, inst] of Object.entries(manifest.instruments)) {
-    for (const s of inst.samples) all.push({ id, inst, s });
+    for (const s of inst.samples) all.push({ id, inst, s, ref: resolveRef(manifest, inst, s) });
   }
+  const tag = `[${name}]`;
   console.log(
-    `[orchestra] ${all.length} samples, ${Object.keys(manifest.instruments).length} instruments`,
+    `${tag} ${all.length} samples, ${Object.keys(manifest.instruments).length} instruments`,
   );
-  await downloadAll(all.map((a) => a.s.file));
+  await downloadAll(all.map((a) => a.ref));
 
   const processed: Processed[] = [];
-  for (const { id, inst, s } of all) {
-    const p = processSample(id, inst, s);
+  for (const { id, inst, s, ref } of all) {
+    const p = processSample(id, inst, s, ref);
     processed.push(p);
     const note =
       p.midi === null
@@ -546,25 +650,25 @@ async function main(): Promise<void> {
   }
 
   const { sprite, index } = packSprite(manifest, processed);
-  encodeMp3(sprite);
+  encodeMp3(bank, sprite);
   const doc = {
     version: 1,
-    file: 'orchestra.mp3',
+    file: `${name}.mp3`,
     sampleRate: SAMPLE_RATE,
     syncMarker: LEAD_SILENCE_S,
     duration: round4(sprite.length / SAMPLE_RATE),
     instruments: index,
   };
-  writeFileSync(OUT_JSON, JSON.stringify(doc, null, 2) + '\n');
-  const bytes = statSync(OUT_MP3).size;
+  writeFileSync(bank.outJson, JSON.stringify(doc, null, 2) + '\n');
+  const bytes = statSync(bank.outMp3).size;
   console.log(
-    `[orchestra] sprite ${doc.duration}s, ${bytes} bytes (${(bytes / 1048576).toFixed(3)} MiB), lame -V ${LAME_VBR_QUALITY}`,
+    `${tag} sprite ${doc.duration}s, ${bytes} bytes (${(bytes / 1048576).toFixed(3)} MiB), lame -V ${LAME_VBR_QUALITY}`,
   );
   const off = processed.filter((p) => p.midi !== null && Math.abs(p.cents) > FLAT_CENTS_WARN);
   for (const p of off)
-    console.log(`[orchestra] >${FLAT_CENTS_WARN}c off: ${p.id} ${p.role} ${p.cents}c`);
+    console.log(`${tag} >${FLAT_CENTS_WARN}c off: ${p.id} ${p.role} ${p.cents}c`);
   writeFileSync(
-    join(WORK_DIR, 'report.json'),
+    join(bank.workDir, 'report.json'),
     JSON.stringify(
       processed.map((p) => ({
         id: p.id,
@@ -580,6 +684,25 @@ async function main(): Promise<void> {
       1,
     ),
   );
+}
+
+// ---------------------------------------------------------------- main
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  if (args[0] === '--probe') {
+    const [repo, ...paths] = args.slice(1);
+    if (repo === undefined) throw new Error('usage: --probe <owner/repo> <path>...');
+    await downloadAll(paths.map((path) => ({ repo, branch: approvedBranch(repo), path })));
+    probe(repo, paths);
+    return;
+  }
+  const known = listBanks();
+  const wanted = args.length > 0 ? args : known;
+  for (const name of wanted) {
+    if (!known.includes(name))
+      throw new Error(`unknown bank "${name}" (have: ${known.join(', ')})`);
+  }
+  for (const name of wanted) await buildBank(name);
 }
 
 main().catch((err: unknown) => {

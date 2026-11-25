@@ -13,6 +13,7 @@ import Phaser from 'phaser';
 
 import {
   FINAL_COUNTDOWN_SECONDS,
+  RENDER_SCALE,
   TWENTY_SECOND_CALLOUT_AT,
   URGENT_COUNTDOWN_SECONDS,
 } from '../config';
@@ -77,6 +78,7 @@ export class UrgencyOverlay {
     const text = this._scene.add
       .text(this._width / 2, this._height / 2 - 30, label, {
         fontFamily: 'Fredoka, sans-serif',
+        resolution: RENDER_SCALE,
         fontSize: `${size}px`,
         fontStyle: '700',
         color: colourHex,
