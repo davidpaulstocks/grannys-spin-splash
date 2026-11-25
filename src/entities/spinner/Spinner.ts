@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 
 import { MAX_SPEED_HOLD_MS, MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
 import { SpinnerState, type SpinnerDef } from './spinner.types';
+import { drawInstrumentBadge } from './instrumentBadge';
 import { drawSpinner } from './spinnerRenderers';
 import { COLOUR, COLOUR_HEX } from '../../utils/colour';
 import { EASE } from '../../utils/tween';
@@ -154,7 +155,11 @@ export class Spinner extends Phaser.GameObjects.Container {
       yoyo: true,
       repeat: -1,
     });
-    this.add([this._glowGfx, this._bladeGfx, this._flashGfx, this._sleep]);
+    // The badge is added after the blades and never rotated: the blades
+    // turn under it, so what the spinner *is* can always be read.
+    const badge = scene.add.graphics();
+    if (def.family) drawInstrumentBadge(badge, def.family, def.r);
+    this.add([this._glowGfx, this._bladeGfx, badge, this._flashGfx, this._sleep]);
     scene.add.existing(this);
 
     drawSpinner(this._bladeGfx, this._glowGfx, this.def, this.currentState);

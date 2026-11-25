@@ -14,7 +14,9 @@
 import Phaser from 'phaser';
 
 import { WALL_AREA } from '../../config';
+import { musicianAt } from '../../audio/scores';
 import { fitScaleForBand, layoutBand } from '../../utils/grid';
+import { FAMILY_PALETTE } from '../spinner/instrumentBadge';
 import { Obstacle } from '../obstacle/Obstacle';
 import { MOUNT_RADIUS_SCALE, SPINNER_DEFS } from '../spinner/spinner.data';
 import type { SpinnerDef, SpinnerStyle } from '../spinner/spinner.types';
@@ -80,7 +82,11 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
     const def = SPINNER_DEFS.find((d) => d.type === kind);
     if (!def) throw new Error(`No SPINNER_DEFS entry for kind "${kind}"`);
     const bespokeStyle = styleOverrides?.[kind] as SpinnerStyle | undefined;
-    const colours = typePalettes?.[kind] ?? palette;
+    // Spinner i is line-up seat i. Its musician's section sets the blade
+    // colours and the hub badge, so colour means something across every
+    // world; the world keeps its identity through its shapes and backdrop.
+    const musician = musicianAt(world.id, i);
+    const colours = musician ? FAMILY_PALETTE[musician.family] : (typePalettes?.[kind] ?? palette);
     const themedDef: SpinnerDef = {
       ...def,
       r: def.r * fit,
@@ -89,6 +95,7 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
       ...(bespokeStyle ? { style: bespokeStyle } : {}),
       ...(sparkle ? { sparkle: true } : {}),
       ...(mount ? { mount } : {}),
+      ...(musician ? { family: musician.family } : {}),
     };
     return new Spinner(scene, pos.x, pos.y, themedDef);
   });

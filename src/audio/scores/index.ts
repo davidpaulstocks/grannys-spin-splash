@@ -1,5 +1,6 @@
 /** Every world's score, by world id. A world without its own score borrows Garden's. */
 
+import { familyOf, type InstrumentFamily } from '../orchestra/families';
 import type { Score } from '../orchestra/score.types';
 import { DISCO_SCORE } from './disco';
 import { FUNFAIR_SCORE } from './funfair';
@@ -30,4 +31,20 @@ export function musiciansJoining(worldId: string, from: number, to: number): rea
   const score = resolveScore(worldId);
   const names = new Map(score.seats.map((seat) => [seat.id, seat.name]));
   return score.lineup.slice(from, to).map((id) => names.get(id) ?? id);
+}
+
+/** Who is seated at a spinner: the name shown to the player and the section it belongs to. */
+export interface Musician {
+  readonly name: string;
+  readonly family: InstrumentFamily;
+}
+
+/**
+ * The musician at position `index` of a venue's line-up — the same order the
+ * wall is built in and the orchestra seats in — or null beyond the line-up.
+ */
+export function musicianAt(worldId: string, index: number): Musician | null {
+  const score = resolveScore(worldId);
+  const seat = score.seats.find((part) => part.id === score.lineup[index]);
+  return seat ? { name: seat.name, family: familyOf(seat.instrument) } : null;
 }

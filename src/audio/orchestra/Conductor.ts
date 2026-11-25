@@ -36,7 +36,24 @@ const SUSTAIN_LEGATO = 0.94;
 
 /** Spray notes climb and fall through the chord: root, third, fifth, octave, fifth, third. */
 const SPRAY_CONTOUR = [0, 1, 2, 4, 2, 1] as const;
-const SPRAY_GAIN = 0.34;
+/**
+ * Loud enough to be unmistakably "that spinner's instrument" — it was 0.34,
+ * and the first listening note was that hitting a spinner "doesn't obviously
+ * play the notes from that instrument".
+ */
+const SPRAY_GAIN = 0.62;
+/** Spray notes sit this far above the written part, so they sparkle over it instead of hiding inside it. */
+const SPRAY_LIFT = 12;
+/** …unless that would push them above here, where most of the instruments thin out. */
+const SPRAY_LIFT_CEILING = 76;
+
+/**
+ * The wake-up call: what a sleeping musician plays the instant it is first
+ * splashed — root, fifth, octave, on its own instrument, a sixteenth apart.
+ * This is the moment a player learns which spinner is which instrument.
+ */
+const WAKE_CALL_TONES = [0, 2, 4] as const;
+const WAKE_CALL_GAIN = 0.85;
 
 const STEPS_PER_HALF_BAR = STEPS_PER_BAR / 2;
 const STEPS_PER_BEAT = STEPS_PER_BAR / 4;
@@ -202,9 +219,34 @@ export class Conductor {
     const contour = SPRAY_CONTOUR[counter % SPRAY_CONTOUR.length] ?? 0;
     const midi = compiled.percussive
       ? 0
-      : stackedTone(this.chordAt(step), contour, part.sprayFloor ?? part.floor);
+      : stackedTone(this.chordAt(step), contour, sprayFloorOf(part));
     this._bank.play(ctx, graph.channel(sprayChannel(seat)), instrument, midi, time, {
       gain: SPRAY_GAIN * level * part.level,
+    });
+  }
+
+  /** Plays the seat's wake-up call starting on `step` — see WAKE_CALL_TONES. */
+  wakeCall(
+    ctx: BaseAudioContext,
+    graph: OrchestraGraph,
+    seat: number,
+    step: number,
+    time: number,
+  ): void {
+    const compiled = this._seats[seat];
+    if (!compiled) return;
+    const { part } = compiled;
+    const instrument = part.spray ?? part.instrument;
+    const dest = graph.channel(sprayChannel(seat));
+    WAKE_CALL_TONES.forEach((tone, i) => {
+      const midi = compiled.percussive
+        ? 0
+        : stackedTone(this.chordAt(step), tone, sprayFloorOf(part));
+      // The last note lands hardest, so the call reads as a little "ta-da".
+      const accent = i === WAKE_CALL_TONES.length - 1 ? 1 : 0.8;
+      this._bank.play(ctx, dest, instrument, midi, time + i * this.stepSeconds, {
+        gain: WAKE_CALL_GAIN * accent * part.level,
+      });
     });
   }
 
@@ -273,6 +315,12 @@ export class Conductor {
         return 0;
     }
   }
+}
+
+/** Where a part's squirt notes are pitched: its own choice if it has one, otherwise lifted above the written part. */
+function sprayFloorOf(part: Part): number {
+  if (part.sprayFloor !== undefined) return part.sprayFloor;
+  return part.floor + SPRAY_LIFT <= SPRAY_LIFT_CEILING ? part.floor + SPRAY_LIFT : part.floor;
 }
 
 export function seatChannel(seat: number): string {

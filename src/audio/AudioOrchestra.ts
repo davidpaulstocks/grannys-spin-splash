@@ -50,10 +50,21 @@ const SPRAY_INTERVAL_STEPS = 2;
 const SPRAY_MAX_PER_STEP = 3;
 const SPRAY_MIN_LEAD_SECONDS = 0.012;
 /** Once a musician is playing their own part, their spray notes step back so the part stays the hero. */
-const SPRAY_LEVEL_AWAKE = 0.6;
-const SPRAY_LEVEL_FULL = 0.38;
+const SPRAY_LEVEL_AWAKE = 0.85;
+const SPRAY_LEVEL_FULL = 0.7;
+/** How many sixteenths the wake-up call occupies before ordinary spray notes resume. */
+const WAKE_CALL_STEPS = 3;
 const SPRAY_AWAKE_CHARGE = 0.4;
 const SPRAY_FULL_CHARGE = 0.8;
+
+/**
+ * Spotlight: while water is landing on a spinner its musician steps forward
+ * and the rest of the band dips, then it relaxes back. With the wake-up call
+ * this is what ties a spinner to its instrument by ear.
+ */
+const SPOTLIGHT_HOLD_SECONDS = 0.45;
+const SPOTLIGHT_BOOST = 1.3;
+const SPOTLIGHT_DUCK = 0.78;
 
 const STEPS_PER_BEAT = 4;
 
@@ -94,6 +105,10 @@ export class AudioOrchestra {
 
   private _pending: PendingNote[] = [];
   private _lastSprayStep: number[] = [];
+  /** Audio-clock time until which each seat is in the spotlight. */
+  private _spotlightUntil: number[] = [];
+  /** Seats whose musician is asleep, so the next splash is a wake-up call. */
+  private _asleep: boolean[] = [];
   private _sprayCounter: number[] = [];
   private _spraysOnStep = { step: -1, count: 0 };
 
@@ -137,6 +152,8 @@ export class AudioOrchestra {
       this._frenzy = false;
       this._lastSprayStep = [];
       this._sprayCounter = [];
+      this._spotlightUntil = [];
+      this._asleep = [];
       graph.setArc(0);
     }
     if (this._running) return;
@@ -185,9 +202,14 @@ export class AudioOrchestra {
     });
     this._charges = charges;
     this._spinnerCount = spinners.length;
+    const now = this._ctx?.currentTime ?? 0;
+    const anySpotlit = this._spotlightUntil.some((until) => until > now);
     charges.forEach((charge, seat) => {
+      if (charge <= 0) this._asleep[seat] = true;
       const level = charge > 0 ? SEAT_LEVEL_FLOOR + (1 - SEAT_LEVEL_FLOOR) * charge : 0;
-      graph.setLevel(seatChannel(seat), level);
+      const spotlit = (this._spotlightUntil[seat] ?? 0) > now;
+      const focus = spotlit ? SPOTLIGHT_BOOST : anySpotlit ? SPOTLIGHT_DUCK : 1;
+      graph.setLevel(seatChannel(seat), level * focus);
     });
   }
 
@@ -206,7 +228,21 @@ export class AudioOrchestra {
     const conductor = this._conductor;
     if (!this._running || !ctx || !graph || !conductor) return;
     const seat = index % conductor.seatCount;
+    // Every landed hit holds the spotlight, including the ones too close
+    // together to each get a note of their own.
+    this._spotlightUntil[seat] = ctx.currentTime + SPOTLIGHT_HOLD_SECONDS;
     const step = this._nextStep(ctx.currentTime + SPRAY_MIN_LEAD_SECONDS, 1);
+    if (this._asleep[seat] !== false) {
+      // First splash on a sleeping musician: the wake-up call, on its own
+      // instrument, ahead of everything else. It takes the place of the
+      // ordinary spray notes for its length.
+      this._asleep[seat] = false;
+      const time = conductor.timeOfStep(step, this._origin);
+      conductor.wakeCall(ctx, graph, seat, step, time);
+      this._lastSprayStep[seat] = step + WAKE_CALL_STEPS;
+      this._pending.push({ spinner: index, time, velocity: 1, spray: true });
+      return;
+    }
     if (step - (this._lastSprayStep[seat] ?? -SPRAY_INTERVAL_STEPS) < SPRAY_INTERVAL_STEPS) return;
     if (this._spraysOnStep.step !== step) this._spraysOnStep = { step, count: 0 };
     if (this._spraysOnStep.count >= SPRAY_MAX_PER_STEP) return;
