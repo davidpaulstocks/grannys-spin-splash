@@ -13,7 +13,23 @@ import type { Mode } from './theory';
  * sprite (tools/bands/orchestra.manifest.json), which every venue may use;
  * each other band adds its own (tools/bands/<band>.manifest.json).
  */
-export type InstrumentId = OrchestraInstrumentId | KitchenInstrumentId;
+export type InstrumentId = OrchestraInstrumentId | KitchenInstrumentId | KitInstrumentId;
+
+/** The rhythm section shared by the rock and disco bands — tools/bands/kit.manifest.json. */
+export type KitInstrumentId =
+  | 'kick'
+  | 'snare_kit'
+  | 'rimshot'
+  | 'hat_closed'
+  | 'hat_open'
+  | 'crash'
+  | 'tom_hi'
+  | 'tom_lo'
+  | 'conga'
+  | 'ebass'
+  | 'ebass_stac'
+  | 'epiano'
+  | 'clav';
 
 /** The Kitchen's jazz combo — tools/bands/kitchen.manifest.json. */
 export type KitchenInstrumentId =
@@ -99,13 +115,15 @@ export interface Part extends Line {
   /** An extra line that joins only at full speed — an octave doubling, a harmony, a flourish. */
   readonly ornament?: Line;
   /**
-   * The instrument that sounds when water is landing on this spinner. Short
-   * and percussive, so a bowed musician answers the squirt with a pluck.
-   * Defaults to the part's own instrument.
+   * Struck parts only: a different instrument to answer a squirt with — a
+   * drum kit answering on its snare. A held part always answers in its own
+   * voice, so this is ignored for one.
    */
   readonly spray?: InstrumentId;
-  /** Floor for spray notes; defaults to `floor`. Lets a bass answer an octave up, where it is audible. */
+  /** Struck parts only: where squirt notes are pitched, if not at `floor`. Lets a bass answer an octave up. */
   readonly sprayFloor?: number;
+  /** 0–1: how hard this musician is driven through a guitar amp. Omit for a clean sound. */
+  readonly drive?: number;
 }
 
 export const BARS_PER_FORM = 8;

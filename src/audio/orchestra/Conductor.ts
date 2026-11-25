@@ -42,18 +42,29 @@ const SPRAY_CONTOUR = [0, 1, 2, 4, 2, 1] as const;
  * play the notes from that instrument".
  */
 const SPRAY_GAIN = 0.62;
-/** Spray notes sit this far above the written part, so they sparkle over it instead of hiding inside it. */
-const SPRAY_LIFT = 12;
-/** …unless that would push them above here, where most of the instruments thin out. */
-const SPRAY_LIFT_CEILING = 76;
+/**
+ * A bowed or blown instrument answers a squirt bowed or blown: its squirt
+ * note is held this many sixteenths, long enough to hear the bow or the
+ * breath. The first version answered every sustained instrument with a
+ * plucked or tongued stand-in, an octave up — and David heard exactly that:
+ * "different tones of the same sound… it doesn't feel as distinct as it
+ * should". A plucked violin, a plucked cello, a harp and a marimba are all
+ * plinks; a bowed cello and a flute are not.
+ */
+const SPRAY_HOLD_STEPS = 2.4;
 
 /**
  * The wake-up call: what a sleeping musician plays the instant it is first
- * splashed — root, fifth, octave, on its own instrument, a sixteenth apart.
- * This is the moment a player learns which spinner is which instrument.
+ * splashed, alone and in its own voice. A struck instrument runs up the
+ * chord — root, fifth, octave, a sixteenth apart. A held one sings two notes,
+ * short then long: "da-daaa".
  */
-const WAKE_CALL_TONES = [0, 2, 4] as const;
-const WAKE_CALL_GAIN = 0.85;
+const WAKE_CALL_STRUCK_TONES = [0, 2, 4] as const;
+const WAKE_CALL_HELD = [
+  { tone: 0, atStep: 0, holdSteps: 1.7 },
+  { tone: 2, atStep: 2, holdSteps: 5 },
+] as const;
+const WAKE_CALL_GAIN = 0.9;
 
 const STEPS_PER_HALF_BAR = STEPS_PER_BAR / 2;
 const STEPS_PER_BEAT = STEPS_PER_BAR / 4;
@@ -142,6 +153,11 @@ export class Conductor {
     return this._seats.length;
   }
 
+  /** How hard a seat is driven through the guitar amp, 0 for clean. */
+  seatDrive(seat: number): number {
+    return this._seats[seat % this._seats.length]?.part.drive ?? 0;
+  }
+
   seatName(seat: number): string {
     return this._seats[seat % this._seats.length]?.part.name ?? '';
   }
@@ -215,13 +231,13 @@ export class Conductor {
     const compiled = this._seats[seat];
     if (!compiled) return;
     const { part } = compiled;
-    const instrument = part.spray ?? part.instrument;
     const contour = SPRAY_CONTOUR[counter % SPRAY_CONTOUR.length] ?? 0;
     const midi = compiled.percussive
       ? 0
-      : stackedTone(this.chordAt(step), contour, sprayFloorOf(part));
-    this._bank.play(ctx, graph.channel(sprayChannel(seat)), instrument, midi, time, {
+      : stackedTone(this.chordAt(step), contour, voiceFloor(part));
+    this._bank.play(ctx, graph.channel(sprayChannel(seat)), voiceOf(part), midi, time, {
       gain: SPRAY_GAIN * level * part.level,
+      ...(part.sustain ? { holdSeconds: SPRAY_HOLD_STEPS * this.stepSeconds } : {}),
     });
   }
 
@@ -236,16 +252,25 @@ export class Conductor {
     const compiled = this._seats[seat];
     if (!compiled) return;
     const { part } = compiled;
-    const instrument = part.spray ?? part.instrument;
     const dest = graph.channel(sprayChannel(seat));
-    WAKE_CALL_TONES.forEach((tone, i) => {
-      const midi = compiled.percussive
-        ? 0
-        : stackedTone(this.chordAt(step), tone, sprayFloorOf(part));
+    const harmony = this.chordAt(step);
+    const gain = WAKE_CALL_GAIN * part.level;
+    if (part.sustain) {
+      for (const note of WAKE_CALL_HELD) {
+        const midi = stackedTone(harmony, note.tone, voiceFloor(part));
+        this._bank.play(ctx, dest, part.instrument, midi, time + note.atStep * this.stepSeconds, {
+          gain,
+          holdSeconds: note.holdSteps * this.stepSeconds,
+        });
+      }
+      return;
+    }
+    WAKE_CALL_STRUCK_TONES.forEach((tone, i) => {
+      const midi = compiled.percussive ? 0 : stackedTone(harmony, tone, voiceFloor(part));
       // The last note lands hardest, so the call reads as a little "ta-da".
-      const accent = i === WAKE_CALL_TONES.length - 1 ? 1 : 0.8;
-      this._bank.play(ctx, dest, instrument, midi, time + i * this.stepSeconds, {
-        gain: WAKE_CALL_GAIN * accent * part.level,
+      const accent = i === WAKE_CALL_STRUCK_TONES.length - 1 ? 1 : 0.8;
+      this._bank.play(ctx, dest, voiceOf(part), midi, time + i * this.stepSeconds, {
+        gain: gain * accent,
       });
     });
   }
@@ -317,10 +342,18 @@ export class Conductor {
   }
 }
 
-/** Where a part's squirt notes are pitched: its own choice if it has one, otherwise lifted above the written part. */
-function sprayFloorOf(part: Part): number {
-  if (part.sprayFloor !== undefined) return part.sprayFloor;
-  return part.floor + SPRAY_LIFT <= SPRAY_LIFT_CEILING ? part.floor + SPRAY_LIFT : part.floor;
+/**
+ * The instrument that answers a squirt. A held part always answers in its own
+ * voice; a struck part may name a companion (a drum kit answering on its
+ * snare).
+ */
+function voiceOf(part: Part): InstrumentId {
+  return part.sustain ? part.instrument : (part.spray ?? part.instrument);
+}
+
+/** Where squirt notes are pitched: the part's own register, unless a struck part asks to answer elsewhere (a bass, an octave up). */
+function voiceFloor(part: Part): number {
+  return part.sustain ? part.floor : (part.sprayFloor ?? part.floor);
 }
 
 export function seatChannel(seat: number): string {

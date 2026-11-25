@@ -66,17 +66,12 @@ export const FUNFAIR_SCORE: Score = {
     // ── Third row: the band's middle ─────────────────────────────────────
     held('horn', 'French Horn', 'horn_sus', 50, 0.45, ['b - c -'], {
       light: ['b -'],
-      spray: 'trumpet_stac',
-      sprayFloor: 60,
     }),
     held('violas', 'Violas', 'viola_sus', 53, 0.42, ['a+b - a+c -'], {
       light: ['b -'],
-      spray: 'violin_pizz',
-      sprayFloor: 60,
     }),
     held('strings', 'Strings', 'violin_sus', 65, 0.5, ['c - c b'], {
       light: ['c -'],
-      spray: 'violin_pizz',
     }),
     struck('bassoon', 'Bassoon', 'bassoon_stac', 41, 0.65, ['. f . f . f . f'], {
       light: ['. . . f . . . f'],

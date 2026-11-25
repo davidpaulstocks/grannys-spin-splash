@@ -42,7 +42,6 @@ export const DISCO_SCORE: Score = {
       ],
       {
         light: ["1' 5", '3 5', "3' 6", "2' 4'", "5' 1'", "6 1'", "3' 1'", "2' 7"],
-        spray: 'violin_pizz',
       },
     ),
     struck(
@@ -86,26 +85,20 @@ export const DISCO_SCORE: Score = {
     }),
     held('clarinet', 'Clarinet', 'clarinet_sus', 53, 0.5, ['. . . . t - f -', '. . t - f - o -'], {
       light: ['. . . . t - - -'],
-      spray: 'clarinet_stac',
     }),
 
     // ── Third row: the pad ───────────────────────────────────────────────
     held('violas', 'Violas', 'viola_sus', 53, 0.42, ['a+b - a+c -'], {
       light: ['b -'],
-      spray: 'violin_pizz',
-      sprayFloor: 57,
     }),
     held('horn', 'French Horn', 'horn_sus', 50, 0.45, ['b - c -'], {
       light: ['b -'],
-      spray: 'trumpet_stac',
-      sprayFloor: 62,
     }),
     held('organ', 'Organ', 'organ', 53, 0.45, ['. a+b+c . . . a+b+c . .'], {
       light: ['. . . a+b+c . . . .'],
     }),
     held('cellos', 'Cellos', 'cello_sus', 38, 0.5, ['z - - f'], {
       light: ['z -'],
-      spray: 'cello_pizz',
     }),
     struck('bassoon', 'Bassoon', 'bassoon_stac', 38, 0.6, ['. . z . . z . . . . z . z . . .'], {
       light: ['. . z . . . . .'],

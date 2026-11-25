@@ -56,7 +56,7 @@ const CORE_SPRITE = { index: 'audio/orchestra.json', dir: 'audio/' } as const;
  * enough to reach a venue its band has long since arrived; if it somehow has
  * not, that venue's notes use the fallback voice until it does.
  */
-const BAND_SPRITES = ['kitchen'] as const;
+const BAND_SPRITES = ['kitchen', 'kit'] as const;
 const BAND_DIR = 'audio/bands/';
 
 /** The sync marker is a full-scale burst; anything this loud in the first second is it. */

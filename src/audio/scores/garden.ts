@@ -47,7 +47,6 @@ export const GARDEN_SCORE: Score = {
       ],
       {
         light: ["5 1'", "7 2'", "3' 7", '6 5', "5 1'", "3' 6", "6 1'", "2' 7"],
-        spray: 'flute_stac',
       },
     ),
     struck('glock', 'Glockenspiel', 'glock', 72, 0.55, [". . f . r' . . t", ". t . . f . r' ."], {
@@ -56,11 +55,9 @@ export const GARDEN_SCORE: Score = {
     held('violins', 'Violins', 'violin_sus', 62, 0.66, ['c - c b'], {
       light: ['c -'],
       ornament: line('violin_sus', 74, 0.3, ['c - c b'], true),
-      spray: 'violin_pizz',
     }),
     held('clarinet', 'Clarinet', 'clarinet_sus', 55, 0.6, ['. . . . t - f -', '. . t - f - o -'], {
       light: ['. . . . t - - -'],
-      spray: 'clarinet_stac',
     }),
 
     // ── Middle row: harmony and motion ───────────────────────────────────
@@ -73,7 +70,6 @@ export const GARDEN_SCORE: Score = {
     }),
     held('violas', 'Violas', 'viola_sus', 55, 0.48, ['a+b - a+c -'], {
       light: ['b -'],
-      spray: 'violin_pizz',
     }),
     struck('marimba', 'Marimba', 'marimba', 55, 0.6, ["r . f o . t' o f"], {
       light: ['r . . . o . . .'],
@@ -94,12 +90,9 @@ export const GARDEN_SCORE: Score = {
     }),
     held('horn', 'French Horn', 'horn_sus', 50, 0.55, ['b - c -'], {
       light: ['b -'],
-      spray: 'trumpet_stac',
-      sprayFloor: 55,
     }),
     held('cellos', 'Cellos', 'cello_sus', 36, 0.6, ['z - - f'], {
       light: ['z -'],
-      spray: 'cello_pizz',
     }),
   ],
 

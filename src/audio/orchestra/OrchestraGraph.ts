@@ -29,6 +29,14 @@ const LIMITER_ATTACK_SECONDS = 0.003;
 const LIMITER_RELEASE_SECONDS = 0.2;
 const OUTPUT_TRIM = 0.9;
 
+/** Guitar amp (see `_amp`). */
+const AMP_MAX_PRE_GAIN = 14;
+const AMP_CURVE_SAMPLES = 1024;
+const AMP_CURVE_STEEPNESS = 2.4;
+const AMP_CABINET_LOW_HZ = 90;
+const AMP_CABINET_HIGH_HZ = 4200;
+const AMP_POST_GAIN = 0.9;
+
 /** Fader moves: quick to arrive so a squirt is answered at once, slow to leave so a decaying spinner fades like a held breath. */
 const FADER_RISE_SECONDS = 0.05;
 const FADER_FALL_SECONDS = 0.28;
@@ -38,6 +46,8 @@ export class OrchestraGraph {
   private readonly _tone: BiquadFilterNode;
   private readonly _reverbSend: GainNode;
   private readonly _faders = new Map<string, GainNode>();
+  /** What notes connect to: the fader itself, or the amp in front of it for a driven channel. */
+  private readonly _inputs = new Map<string, AudioNode>();
   private readonly _faderTargets = new Map<string, number>();
 
   constructor(ctx: BaseAudioContext, destination: AudioNode) {
@@ -78,8 +88,8 @@ export class OrchestraGraph {
    * `pan` is −1 (left) to 1 (right) and only applies at creation — a
    * musician's seat doesn't move mid-round.
    */
-  channel(id: string, pan = 0, initialGain = 0): AudioNode {
-    const existing = this._faders.get(id);
+  channel(id: string, pan = 0, initialGain = 0, drive = 0): AudioNode {
+    const existing = this._inputs.get(id);
     if (existing) return existing;
 
     const fader = this._ctx.createGain();
@@ -91,7 +101,40 @@ export class OrchestraGraph {
     panner.connect(this._tone);
     panner.connect(this._reverbSend);
     this._faders.set(id, fader);
-    return fader;
+    const input = drive > 0 ? this._amp(drive, fader) : fader;
+    this._inputs.set(id, input);
+    return input;
+  }
+
+  /**
+   * A guitar amp in front of a channel: the signal is pushed into a soft
+   * clipper and then through a speaker-cabinet filter. This is what turns a
+   * clean recorded guitar into a rock rhythm guitar — two notes a fifth apart
+   * through it are a power chord. Costs no download, and the same recordings
+   * serve the jazz band clean and the rock band dirty.
+   */
+  private _amp(drive: number, dest: AudioNode): AudioNode {
+    const ctx = this._ctx;
+    const pre = ctx.createGain();
+    pre.gain.value = 1 + drive * AMP_MAX_PRE_GAIN;
+    const shaper = ctx.createWaveShaper();
+    shaper.curve = softClipCurve();
+    shaper.oversample = '2x';
+    const cabinetLow = ctx.createBiquadFilter();
+    cabinetLow.type = 'highpass';
+    cabinetLow.frequency.value = AMP_CABINET_LOW_HZ;
+    const cabinetHigh = ctx.createBiquadFilter();
+    cabinetHigh.type = 'lowpass';
+    cabinetHigh.frequency.value = AMP_CABINET_HIGH_HZ;
+    // Clipping flattens peaks and raises the average; trim so "driven" is a colour, not a volume jump.
+    const post = ctx.createGain();
+    post.gain.value = AMP_POST_GAIN / (1 + drive);
+    pre.connect(shaper);
+    shaper.connect(cabinetLow);
+    cabinetLow.connect(cabinetHigh);
+    cabinetHigh.connect(post);
+    post.connect(dest);
+    return pre;
   }
 
   /** Moves a channel's fader. No-op if the level hasn't meaningfully changed, so it is safe to call every frame. */
@@ -134,8 +177,19 @@ export class OrchestraGraph {
   resetChannels(): void {
     for (const fader of this._faders.values()) fader.disconnect();
     this._faders.clear();
+    this._inputs.clear();
     this._faderTargets.clear();
   }
+}
+
+/** tanh soft clipping: gentle at low levels, flat at the top, like a valve stage. */
+function softClipCurve(): Float32Array<ArrayBuffer> {
+  const curve = new Float32Array(AMP_CURVE_SAMPLES);
+  for (let i = 0; i < AMP_CURVE_SAMPLES; i++) {
+    const x = (i / (AMP_CURVE_SAMPLES - 1)) * 2 - 1;
+    curve[i] = Math.tanh(x * AMP_CURVE_STEEPNESS);
+  }
+  return curve;
 }
 
 /** Exponentially decaying stereo noise: a believable hall for the price of a few lines. */

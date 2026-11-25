@@ -52,8 +52,8 @@ const SPRAY_MIN_LEAD_SECONDS = 0.012;
 /** Once a musician is playing their own part, their spray notes step back so the part stays the hero. */
 const SPRAY_LEVEL_AWAKE = 0.85;
 const SPRAY_LEVEL_FULL = 0.7;
-/** How many sixteenths the wake-up call occupies before ordinary spray notes resume. */
-const WAKE_CALL_STEPS = 3;
+/** How many sixteenths the wake-up call occupies before ordinary spray notes resume (its long note is still ringing). */
+const WAKE_CALL_STEPS = 6;
 const SPRAY_AWAKE_CHARGE = 0.4;
 const SPRAY_FULL_CHARGE = 0.8;
 
@@ -62,9 +62,18 @@ const SPRAY_FULL_CHARGE = 0.8;
  * and the rest of the band dips, then it relaxes back. With the wake-up call
  * this is what ties a spinner to its instrument by ear.
  */
-const SPOTLIGHT_HOLD_SECONDS = 0.45;
-const SPOTLIGHT_BOOST = 1.3;
-const SPOTLIGHT_DUCK = 0.78;
+const SPOTLIGHT_HOLD_SECONDS = 0.6;
+/**
+ * Strong on purpose. The first version (x1.3 up, x0.78 down) was a nudge, and
+ * the note back was that a squirted instrument did not "take a commanding
+ * presence". Now it is plainly in front and the band plainly behind it.
+ */
+const SPOTLIGHT_BOOST = 1.7;
+const SPOTLIGHT_DUCK = 0.5;
+/** A spotlit musician is heard at least this loud, however sleepy its spinner still is… */
+const SPOTLIGHT_MIN_LEVEL = 0.9;
+/** …and plays its whole written part, not the sleepy outline, for as long as it is being squirted. */
+const SPOTLIGHT_PART_CHARGE = 0.5;
 
 const STEPS_PER_BEAT = 4;
 
@@ -143,8 +152,9 @@ export class AudioOrchestra {
       graph.resetChannels();
       for (let seat = 0; seat < this._conductor.seatCount; seat++) {
         const pan = pans[seat] ?? 0;
-        graph.channel(seatChannel(seat), pan, 0);
-        graph.channel(sprayChannel(seat), pan, 1);
+        const drive = this._conductor.seatDrive(seat);
+        graph.channel(seatChannel(seat), pan, 0, drive);
+        graph.channel(sprayChannel(seat), pan, 1, drive);
       }
       this._step = 0;
       this._charges = [];
@@ -209,7 +219,8 @@ export class AudioOrchestra {
       const level = charge > 0 ? SEAT_LEVEL_FLOOR + (1 - SEAT_LEVEL_FLOOR) * charge : 0;
       const spotlit = (this._spotlightUntil[seat] ?? 0) > now;
       const focus = spotlit ? SPOTLIGHT_BOOST : anySpotlit ? SPOTLIGHT_DUCK : 1;
-      graph.setLevel(seatChannel(seat), level * focus);
+      const heard = spotlit ? Math.max(level, SPOTLIGHT_MIN_LEVEL) : level;
+      graph.setLevel(seatChannel(seat), heard * focus);
     });
   }
 
@@ -368,8 +379,11 @@ export class AudioOrchestra {
     if (!this._running || !ctx || !graph || !conductor) return;
 
     const now = ctx.currentTime;
+    const charges = this._charges.map((charge, seat) =>
+      (this._spotlightUntil[seat] ?? 0) > now ? Math.max(charge, SPOTLIGHT_PART_CHARGE) : charge,
+    );
     const state = {
-      charges: this._charges,
+      charges,
       frenzy: this._frenzy,
       finale: this._progress >= FINALE_FROM_PROGRESS,
     };

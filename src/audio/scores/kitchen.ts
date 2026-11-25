@@ -65,7 +65,6 @@ export const KITCHEN_SCORE: Score = {
       ],
       {
         light: ["5 1'", "6' 1'", "4' 2'", "7 5'", "5' 7'", "6' 1'", "2' 4'", '7 5'],
-        spray: 'tenor_stac',
       },
     ),
 
@@ -89,14 +88,12 @@ export const KITCHEN_SCORE: Score = {
       ['. . . . . . s o', 't - . . . . . .'],
       {
         light: ['. . . . . . . o', '. . . .'],
-        spray: 'trumpet_stac',
       },
     ),
 
     // ── The horns and the colour ─────────────────────────────────────────
     held('trombone', 'Trombone', 'trombone_sus', 43, 0.48, ['t - - - s - - -'], {
       light: ['t -'],
-      spray: 'trombone_stac',
     }),
     struck('kick', 'Kick Drum', 'kick_soft', 0, 0.5, ['x? x? x? x?'], {
       light: ['x . . .'],
@@ -104,7 +101,6 @@ export const KITCHEN_SCORE: Score = {
     }),
     held('clarinet', 'Clarinet', 'clarinet_sus', 55, 0.5, ['. . . . t - f -', '. . s - f - t -'], {
       light: ['. . . . t - - -'],
-      spray: 'clarinet_stac',
     }),
     struck('snaps', 'Finger Snaps', 'clap', 0, 0.34, ['. x . x'], {
       light: ['. . . x'],
