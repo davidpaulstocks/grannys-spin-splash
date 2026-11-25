@@ -27,46 +27,45 @@ import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
 import type { GameSceneData } from '../types/sceneData';
-import { createButton } from '../ui/Button';
-import { drawLockIcon, drawStarIcon } from '../ui/icons';
+import { createIconButton } from '../ui/IconButton';
+import { drawBackIcon, drawForwardIcon, drawLockIcon } from '../ui/icons';
+import { createPanel } from '../ui/Panel';
 import { createStatPill } from '../ui/StatPill';
+import { createTourNode } from '../ui/TourNode';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 
-const BACK_X = 130;
-const BACK_Y = 56;
-const BACK_MIN_WIDTH = 150;
-const TITLE_Y = 56;
+/**
+ * Layout. A header (back, title, stars owned) over one big card per venue.
+ * The card's ribbon names the venue; inside it, the venue's art and its
+ * star count sit on the left and the eight gig nodes (4 x 2) on the right,
+ * the page arrows flank the card, and the page dots run along the bottom.
+ */
+const BACK_X = 72;
+const HEADER_Y = 60;
 const STARS_PILL_X = GAME_WIDTH - 104;
 
-const CARD_Y = 388;
+const CARD_Y = 392;
 const CARD_WIDTH = 980;
-const CARD_HEIGHT = 500;
-const CARD_RADIUS = 34;
+const CARD_HEIGHT = 470;
 
 const ART_WIDTH = 400;
 const ART_HEIGHT = 225;
 const ART_X = GAME_WIDTH / 2 - CARD_WIDTH / 2 + 40 + ART_WIDTH / 2;
-const ART_Y = CARD_Y - 60;
-const VENUE_NAME_Y = CARD_Y + 96;
-const VENUE_STARS_Y = CARD_Y + 152;
+const ART_Y = CARD_Y - 44;
+const ART_FRAME_PX = 5;
+const VENUE_STARS_Y = CARD_Y + 132;
 const VENUE_STARS_PILL_WIDTH = 190;
+const LOCK_ICON_SIZE = 54;
 
 const NODES_X = GAME_WIDTH / 2 + 222;
-const NODES_Y = CARD_Y - 26;
 const NODE_COLUMNS = 4;
 const NODE_SPACING_X = 118;
-const NODE_SPACING_Y = 168;
-const NODE_RADIUS = 42;
-const NODE_STAR_RADIUS = 10;
-const NODE_STAR_SPACING = 26;
-const NODE_STARS_OFFSET_Y = NODE_RADIUS + 26;
-const NODE_LOCKED = 0xd8d4c6;
-const LOCKED_LINE_Y = CARD_Y + 196;
+const NODE_ROW_OFFSET_Y = 86;
+const LOCKED_LINE_Y = CARD_Y + 196 - 8;
 
-const ARROW_OFFSET_X = CARD_WIDTH / 2 + 46;
-const ARROW_RADIUS = 34;
+const ARROW_DIAMETER = 64;
+const ARROW_OFFSET_X = CARD_WIDTH / 2 + 54;
 const DOTS_Y = GAME_HEIGHT - 44;
 const DOT_SPACING = 30;
 const DOT_RADIUS = 8;
@@ -96,18 +95,16 @@ export class TourScene extends Phaser.Scene {
     this.add
       .text(
         GAME_WIDTH / 2,
-        TITLE_Y,
+        HEADER_Y,
         'THE TOUR',
         textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
       )
       .setOrigin(0.5);
-    createStatPill(this, STARS_PILL_X, TITLE_Y, 'stars', totalStars(save));
-    createButton(this, {
+    createStatPill(this, STARS_PILL_X, HEADER_Y, 'stars', totalStars(save));
+    createIconButton(this, {
       x: BACK_X,
-      y: BACK_Y,
-      label: 'BACK',
-      variant: 'secondary',
-      minWidth: BACK_MIN_WIDTH,
+      y: HEADER_Y,
+      icon: drawBackIcon,
       onClick: () => this._leaveTo('HomeScene'),
     });
 
@@ -138,36 +135,17 @@ export class TourScene extends Phaser.Scene {
     const save = saveManager.load();
     const open = isVenueOpen(save, venue);
 
-    const card = this.add.graphics();
-    card.fillStyle(0xffffff, 0.75);
-    card.fillRoundedRect(
-      GAME_WIDTH / 2 - CARD_WIDTH / 2,
-      CARD_Y - CARD_HEIGHT / 2,
-      CARD_WIDTH,
-      CARD_HEIGHT,
-      CARD_RADIUS,
+    this._pageLayer.add(
+      createPanel(this, {
+        x: GAME_WIDTH / 2,
+        y: CARD_Y,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        ribbon: venue.name.toUpperCase(),
+      }),
     );
-    card.lineStyle(5, COLOUR.ink, 1);
-    card.strokeRoundedRect(
-      GAME_WIDTH / 2 - CARD_WIDTH / 2,
-      CARD_Y - CARD_HEIGHT / 2,
-      CARD_WIDTH,
-      CARD_HEIGHT,
-      CARD_RADIUS,
-    );
-    this._pageLayer.add(card);
 
     this._buildArt(venue, open);
-    this._pageLayer.add(
-      this.add
-        .text(
-          ART_X,
-          VENUE_NAME_Y,
-          venue.name.toUpperCase(),
-          textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
-        )
-        .setOrigin(0.5),
-    );
     const earned = venueStars(save, venue.id).reduce((sum, stars) => sum + stars, 0);
     this._pageLayer.add(
       createStatPill(
@@ -205,80 +183,45 @@ export class TourScene extends Phaser.Scene {
       this._pageLayer.add(art);
     }
     const frame = this.add.graphics();
-    frame.lineStyle(5, COLOUR.ink, 1);
+    frame.lineStyle(ART_FRAME_PX, COLOUR.ink, 1);
     frame.strokeRect(ART_X - ART_WIDTH / 2, ART_Y - ART_HEIGHT / 2, ART_WIDTH, ART_HEIGHT);
     this._pageLayer.add(frame);
     if (!open) {
       const lock = this.add.graphics({ x: ART_X, y: ART_Y });
-      drawLockIcon(lock, 54, COLOUR.cloud);
+      drawLockIcon(lock, LOCK_ICON_SIZE, COLOUR.cloud);
       this._pageLayer.add(lock);
     }
   }
 
-  /** One gig: a numbered disc, its best rating beneath, tappable when it can be played. */
+  /** One gig: its node on the 4 x 2 grid, tappable when it can be played. */
   private _buildNode(venue: WorldDef, gig: number, venueOpen: boolean): void {
     const save = saveManager.load();
     const col = gig % NODE_COLUMNS;
     const row = Math.floor(gig / NODE_COLUMNS);
-    const x = NODES_X + (col - (NODE_COLUMNS - 1) / 2) * NODE_SPACING_X;
-    const y = NODES_Y + (row - 0.5) * NODE_SPACING_Y;
     const playable = venueOpen && isGigOpen(save, venue.id, gig);
-    const isNext = playable && gig === currentGig(save, venue.id);
-    const best = venueStars(save, venue.id)[gig] ?? 0;
-
-    const disc = this.add
-      .circle(x, y, NODE_RADIUS, playable ? COLOUR.mintGreen : NODE_LOCKED)
-      .setStrokeStyle(5, COLOUR.ink);
-    this._pageLayer.add(disc);
-
-    if (playable) {
-      this._pageLayer.add(
-        this.add
-          .text(x, y, String(gig + 1), textStyle('displayM', COLOUR_HEX.ink, COLOUR_HEX.cloud))
-          .setOrigin(0.5),
-      );
-      disc.setInteractive({ useHandCursor: true });
-      disc.on('pointerup', () => void this._play(venue.id, gig));
-    } else {
-      const lock = this.add.graphics({ x, y });
-      drawLockIcon(lock, 26, COLOUR.softSlate);
-      this._pageLayer.add(lock);
-    }
-    if (isNext) {
-      // The one to play next breathes, so the eye lands on it first.
-      this.tweens.add({
-        targets: disc,
-        scale: 1.1,
-        duration: 620,
-        ease: EASE.standardOut,
-        yoyo: true,
-        repeat: -1,
-      });
-    }
-
-    for (let i = 0; i < MAX_STARS_PER_GIG; i++) {
-      const star = this.add.graphics({
-        x: x + (i - 1) * NODE_STAR_SPACING,
-        y: y + NODE_STARS_OFFSET_Y,
-      });
-      drawStarIcon(star, NODE_STAR_RADIUS + 3, COLOUR.ink);
-      drawStarIcon(star, NODE_STAR_RADIUS, i < best ? COLOUR.sunnyGold : NODE_LOCKED);
-      this._pageLayer.add(star);
-    }
+    this._pageLayer.add(
+      createTourNode(this, {
+        x: NODES_X + (col - (NODE_COLUMNS - 1) / 2) * NODE_SPACING_X,
+        y: CARD_Y + (row === 0 ? -NODE_ROW_OFFSET_Y : NODE_ROW_OFFSET_Y),
+        gig,
+        playable,
+        isNext: playable && gig === currentGig(save, venue.id),
+        bestStars: venueStars(save, venue.id)[gig] ?? 0,
+        onPlay: () => void this._play(venue.id, gig),
+      }),
+    );
   }
 
   private _buildArrow(direction: -1 | 1): void {
-    const x = GAME_WIDTH / 2 + direction * ARROW_OFFSET_X;
-    const disc = this.add
-      .circle(x, CARD_Y, ARROW_RADIUS, COLOUR.cloud)
-      .setStrokeStyle(5, COLOUR.ink)
-      .setInteractive({ useHandCursor: true });
-    const tip = this.add.graphics({ x, y: CARD_Y });
-    tip.fillStyle(COLOUR.ink, 1);
-    tip.fillTriangle(direction * 12, 0, -direction * 8, -14, -direction * 8, 14);
-    disc.on('pointerup', () => {
-      this._page = (this._page + direction + WORLD_DEFS.length) % WORLD_DEFS.length;
-      this._showPage();
+    createIconButton(this, {
+      x: GAME_WIDTH / 2 + direction * ARROW_OFFSET_X,
+      y: CARD_Y,
+      icon: direction === -1 ? drawBackIcon : drawForwardIcon,
+      diameter: ARROW_DIAMETER,
+      onClick: () => {
+        this._page = (this._page + direction + WORLD_DEFS.length) % WORLD_DEFS.length;
+        this._showPage();
+      },
     });
   }
 

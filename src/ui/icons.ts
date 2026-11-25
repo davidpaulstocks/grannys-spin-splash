@@ -110,6 +110,18 @@ export function drawBackIcon(g: Phaser.GameObjects.Graphics, size: number, colou
   g.fillRect(half * 0.05, -half * 0.3, half * 0.9, half * 0.6);
 }
 
+/** A right-pointing arrow: for "forward". The mirror of `drawBackIcon`. */
+export function drawForwardIcon(
+  g: Phaser.GameObjects.Graphics,
+  size: number,
+  colour: number,
+): void {
+  const half = size / 2;
+  g.fillStyle(colour, 1);
+  g.fillTriangle(half, 0, -half * 0.1, -half * 0.85, -half * 0.1, half * 0.85);
+  g.fillRect(-half * 0.95, -half * 0.3, half * 0.9, half * 0.6);
+}
+
 /** A flag on a pole: for the tour map. */
 export function drawTourIcon(g: Phaser.GameObjects.Graphics, size: number, colour: number): void {
   const half = size / 2;

@@ -27,20 +27,25 @@ import { ScoreCounter } from '../ui/ScoreCounter';
 import { TimerDial } from '../ui/TimerDial';
 import { UrgencyOverlay } from '../ui/UrgencyOverlay';
 import { SpinnerState } from '../entities/spinner/spinner.types';
-import { FrenzyProgress } from '../ui/FrenzyProgress';
+import { BandMeter } from '../ui/BandMeter';
 import { WaterBar } from '../ui/WaterBar';
 
-/** Top 8% of the canvas (CLAUDE.md §5.8) — where the timer dial sits. */
-const TIMER_Y = GAME_HEIGHT * 0.04;
-/** Same top band as the timer, offset to its left so the two pills read as one HUD row, not a collision. */
+/**
+ * The top row, left to right: coins, the band meter (centre — it is the
+ * goal, so it gets the middle), the clock, and on touch devices the pause
+ * button in the corner. The meter's stars rise above its track, so the row
+ * sits a little lower than the old top-8% band did.
+ */
+const TOP_ROW_Y = 46;
 const SCORE_X = 150;
-/** Under the timer/score pills, clear of every world's wall top (lowest is Garden's 96). */
-const FRENZY_PROGRESS_Y = 74;
+const BAND_METER_Y = 58;
+/** Just right of the meter, clear of the touch pause button in the corner. */
+const TIMER_X = GAME_WIDTH / 2 + 320;
 
 export class HUDScene extends Phaser.Scene {
   private _timerDial!: TimerDial;
   private _waterBar!: WaterBar;
-  private _frenzyProgress!: FrenzyProgress;
+  private _bandMeter!: BandMeter;
   private _frenzyMeterUI!: FrenzyMeterUI;
   private _urgencyOverlay!: UrgencyOverlay;
   private _scoreCounter!: ScoreCounter;
@@ -51,11 +56,11 @@ export class HUDScene extends Phaser.Scene {
   }
 
   create(): void {
-    this._timerDial = new TimerDial(this, GAME_WIDTH / 2, TIMER_Y);
-    this._scoreCounter = new ScoreCounter(this, SCORE_X, TIMER_Y);
-    // Below the top pill band and above the wall — see FrenzyProgress's own
+    this._timerDial = new TimerDial(this, TIMER_X, TOP_ROW_Y);
+    this._scoreCounter = new ScoreCounter(this, SCORE_X, TOP_ROW_Y);
+    // Below the top pill band and above the wall — see BandMeter's own
     // doc comment for why the game's objective needed stating outright.
-    this._frenzyProgress = new FrenzyProgress(this, GAME_WIDTH / 2, FRENZY_PROGRESS_Y);
+    this._bandMeter = new BandMeter(this, GAME_WIDTH / 2, BAND_METER_Y);
     this._waterBar = new WaterBar(
       this,
       WATER_BAR_MARGIN_X,
@@ -77,7 +82,7 @@ export class HUDScene extends Phaser.Scene {
     this._timerDial.update(data.secondsRemaining);
     this._scoreCounter.update(data.score, deltaMs);
     this._waterBar.update(data.waterPct, data.isPumping);
-    this._frenzyProgress.update(
+    this._bandMeter.update(
       data.spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
       data.spinners.length,
       data.stars,

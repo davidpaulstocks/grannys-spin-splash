@@ -15,11 +15,23 @@ import { audioOrchestra } from '../audio/AudioOrchestra';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import * as poki from '../poki';
 import { createButton } from '../ui/Button';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { createPanel } from '../ui/Panel';
+import { COLOUR } from '../utils/colour';
 import { DURATION } from '../utils/tween';
-import { textStyle } from '../utils/typography';
 
 const DIM_ALPHA = 0.7;
+
+/**
+ * Layout. One card in the middle of the dimmed game: the ribbon names the
+ * state, RESUME is the one large action, and QUIT sits below it, smaller.
+ */
+const CENTRE_X = GAME_WIDTH / 2;
+const CENTRE_Y = GAME_HEIGHT / 2;
+const PANEL_WIDTH = 460;
+const PANEL_HEIGHT = 330;
+const RESUME_Y = CENTRE_Y - 44;
+const QUIT_Y = CENTRE_Y + 66;
+const BUTTON_MIN_WIDTH = 320;
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -28,30 +40,31 @@ export class PauseScene extends Phaser.Scene {
 
   create(): void {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.ink, DIM_ALPHA).setOrigin(0);
-    this.add
-      .text(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT * 0.38,
-        'PAUSED',
-        textStyle('displayL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
-      )
-      .setOrigin(0.5);
+    createPanel(this, {
+      x: CENTRE_X,
+      y: CENTRE_Y,
+      width: PANEL_WIDTH,
+      height: PANEL_HEIGHT,
+      ribbon: 'PAUSED',
+    });
 
     createButton(this, {
-      x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT * 0.52,
+      x: CENTRE_X,
+      y: RESUME_Y,
       label: 'RESUME',
       variant: 'primary',
-      minWidth: 260,
+      size: 'lg',
+      minWidth: BUTTON_MIN_WIDTH,
       onClick: () => this._resume(),
     });
 
     createButton(this, {
-      x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT * 0.7,
+      x: CENTRE_X,
+      y: QUIT_Y,
       label: 'QUIT',
       variant: 'secondary',
-      minWidth: 260,
+      size: 'md',
+      minWidth: BUTTON_MIN_WIDTH,
       onClick: () => this._quit(),
     });
   }

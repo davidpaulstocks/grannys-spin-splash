@@ -36,7 +36,7 @@ export class TutorialSequence {
       scene,
       GAME_WIDTH / 2,
       CAPTION_Y,
-      'Squirt the spinners to make them spin faster!',
+      'Squirt a sleepy musician to wake it up!',
     );
   }
 
@@ -44,11 +44,6 @@ export class TutorialSequence {
   maybeShowPurpose(scene: Phaser.Scene): void {
     if (this._shownPurpose) return;
     this._shownPurpose = true;
-    showTutorialCaption(
-      scene,
-      GAME_WIDTH / 2,
-      CAPTION_Y,
-      'Get every spinner to FULL for SPLASH FRENZY!',
-    );
+    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, 'Keep the whole band awake at once!');
   }
 }

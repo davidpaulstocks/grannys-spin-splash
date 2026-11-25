@@ -12,6 +12,7 @@
  */
 
 import type { ObstacleKind } from '../obstacle/obstacle.types';
+import { FRENZY_THRESHOLDS } from '../spinner/spinner.data';
 import { WORLD_DEFS } from './world.data';
 import type { WorldDef } from './world.types';
 
@@ -111,4 +112,20 @@ export function gigFor(world: WorldDef, index: number): GigDef {
 export function newMusicianCount(world: WorldDef, index: number): number {
   const here = gigFor(world, index).band;
   return index <= 0 ? here : here - gigFor(world, index - 1).band;
+}
+
+/**
+ * How many of a band must be wide awake at once for one, two and three
+ * stars. The same thresholds `FrenzyMeter` fires on, expressed as a head
+ * count so the HUD and the goal card can say "4 awake" instead of "80%".
+ * Small bands skip a star: a trio needs two for the first and all three for
+ * both the second and third.
+ */
+export function awakeNeededForStars(band: number): readonly [number, number, number] {
+  const needed = (fraction: number): number => Math.max(1, Math.ceil(fraction * band - 1e-9));
+  return [
+    needed(FRENZY_THRESHOLDS.miniLow),
+    needed(FRENZY_THRESHOLDS.miniHigh),
+    needed(FRENZY_THRESHOLDS.full),
+  ];
 }

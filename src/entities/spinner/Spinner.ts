@@ -9,7 +9,9 @@ import Phaser from 'phaser';
 import { MAX_SPEED_HOLD_MS, MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
 import { SpinnerState, type SpinnerDef } from './spinner.types';
 import { drawSpinner } from './spinnerRenderers';
-import { COLOUR } from '../../utils/colour';
+import { COLOUR, COLOUR_HEX } from '../../utils/colour';
+import { EASE } from '../../utils/tween';
+import { textStyle } from '../../utils/typography';
 
 /** Degrees-per-second-per-speed-unit for the visible spin (prototype: `angle += speed * 0.065 * dt`). */
 const SPIN_ROTATION_FACTOR = 0.065;
@@ -30,6 +32,22 @@ const PULSE_SCALE = 0.2;
 const PULSE_FLASH_ALPHA = 0.5;
 /** Seconds for a pulse to fall to about a third — short enough to read as a beat, not a throb. */
 const PULSE_DECAY_SECONDS = 0.11;
+
+/**
+ * A stopped spinner is a musician asleep, and says so: three Zs drift up
+ * from it. An awake one that is about to drop out of full speed nods — a
+ * slow rock from side to side — so the player can see which musician needs
+ * them next. Together these are the game's goal made visible: wake the
+ * band, and keep them awake (2026-11-25, direct user feedback: "I'm not
+ * entirely sure what the purpose of the game is").
+ */
+const SLEEP_TEXT = 'z z z';
+const SLEEP_BOB_PX = 10;
+const SLEEP_BOB_MS = 1100;
+/** Below this speed a spinner at full is on its way out, and nods. */
+const DROWSY_SPEED = 90;
+const DROWSY_ROCK_DEGREES = 7;
+const DROWSY_ROCK_HZ = 2.2;
 
 const MOUNT_RADIUS_FACTOR = 1.16;
 const MOUNT_FILL_ALPHA = 0.42;
@@ -88,6 +106,7 @@ export class Spinner extends Phaser.GameObjects.Container {
   private readonly _bladeGfx: Phaser.GameObjects.Graphics;
   private readonly _glowGfx: Phaser.GameObjects.Graphics;
   private readonly _flashGfx: Phaser.GameObjects.Graphics;
+  private readonly _sleep: Phaser.GameObjects.Text;
   private _pulse = 0;
 
   // Funfair-only: side-to-side drift (§1, world.data.ts's `movingTargets`).
@@ -118,7 +137,24 @@ export class Spinner extends Phaser.GameObjects.Container {
     this._flashGfx.fillStyle(0xffffff, 1);
     this._flashGfx.fillCircle(0, 0, def.r);
     this._flashGfx.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    this.add([this._glowGfx, this._bladeGfx, this._flashGfx]);
+    this._sleep = scene.add
+      .text(
+        def.r * 0.55,
+        -def.r * 0.95,
+        SLEEP_TEXT,
+        textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
+      )
+      .setOrigin(0, 1);
+    scene.tweens.add({
+      targets: this._sleep,
+      y: this._sleep.y - SLEEP_BOB_PX,
+      alpha: 0.55,
+      duration: SLEEP_BOB_MS,
+      ease: EASE.standardOut,
+      yoyo: true,
+      repeat: -1,
+    });
+    this.add([this._glowGfx, this._bladeGfx, this._flashGfx, this._sleep]);
     scene.add.existing(this);
 
     drawSpinner(this._bladeGfx, this._glowGfx, this.def, this.currentState);
@@ -139,6 +175,8 @@ export class Spinner extends Phaser.GameObjects.Container {
     this._bladeGfx.rotation += this.currentSpeed * SPIN_ROTATION_FACTOR * dt;
     this._pulse *= Math.exp(-dt / PULSE_DECAY_SECONDS);
     this._flashGfx.setAlpha(this._pulse * PULSE_FLASH_ALPHA);
+    this._sleep.setVisible(this.currentSpeed <= 0);
+    this._updateDrowsiness(time);
     this._updateWobble(time);
     this._updateDrift(dt);
 
@@ -186,6 +224,21 @@ export class Spinner extends Phaser.GameObjects.Container {
     if (this._driftBaseX === null) return;
     this._driftPhase += dt * this._driftSpeed;
     this.x = this._driftBaseX + Math.sin(this._driftPhase) * this._driftRange;
+  }
+
+  /** An awake musician about to drop out of full speed nods; everyone else sits straight. */
+  private _updateDrowsiness(time: number): void {
+    const drowsy =
+      this.currentState === SpinnerState.FULL &&
+      !this.locked &&
+      this._holdUntilMs <= 0 &&
+      this.currentSpeed < DROWSY_SPEED;
+    if (!drowsy) {
+      if (this.angle !== 0) this.setAngle(0);
+      return;
+    }
+    const phase = (time / 1000) * DROWSY_ROCK_HZ * Math.PI * 2;
+    this.setAngle(Math.sin(phase) * DROWSY_ROCK_DEGREES);
   }
 
   /** Near-max speed gets a subtle scale wobble (CLAUDE.md §5.6) — settles flat again below the threshold. */

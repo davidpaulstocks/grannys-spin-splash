@@ -52,6 +52,7 @@ import { FirstRunGuide } from './game/FirstRunGuide';
 import { FrenzyController } from './game/FrenzyController';
 import { GigScore } from './game/GigScore';
 import { LevelUpFlair } from './game/LevelUpFlair';
+import { GoalCard } from './game/GoalCard';
 import { MusicReactions } from './game/MusicReactions';
 import { PowerUpEffects } from './game/PowerUpEffects';
 import { WaterCollisions } from './game/WaterCollisions';
@@ -104,6 +105,7 @@ export class GameScene extends Phaser.Scene {
   );
   // Built per round in create(), once the world, gig and wall exist.
   private _music!: MusicReactions;
+  private _goalCard!: GoalCard;
   private _guide!: FirstRunGuide;
   private _flair!: LevelUpFlair;
   private _collisions!: WaterCollisions;
@@ -203,17 +205,13 @@ export class GameScene extends Phaser.Scene {
     this._input.on('first-input', () => this._onFirstInput());
     this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._frenzy.start());
-    // The 60%/80% mini-frenzy thresholds were already emitted by
-    // FrenzyMeter but nothing ever listened for them (found by spec
-    // audit) — wired to the same encouragement-toast beat as a spinner
-    // reaching FULL, just with their own specific lines since these are
-    // meaningful wall-wide milestones, not a per-spinner moment.
+    // FrenzyMeter's 60% / 80% thresholds are the first and second star.
     this._frenzyMeter.on('miniLow', () => {
-      this._flair.onMiniFrenzy("You're on fire!");
+      this._flair.onMiniFrenzy();
       this._gigScore.awardStars(1);
     });
     this._frenzyMeter.on('miniHigh', () => {
-      this._flair.onMiniFrenzy('Almost there!!');
+      this._flair.onMiniFrenzy();
       audioOrchestra.onFrenzyNear();
       this._gigScore.awardStars(2);
     });
@@ -226,6 +224,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this._music.showGigIntro(this._spinners);
+    this._goalCard = new GoalCard(this);
+    this._goalCard.show(this._spinners.length);
     this._guide.maybeShowGhostFinger(this._spinners);
     this._guide.maybeStartTutorial();
 
@@ -408,6 +408,7 @@ export class GameScene extends Phaser.Scene {
     this._intro = null;
     this._guide.dismissGhostFinger();
     this._music.dismissGigIntro();
+    this._goalCard.dismiss();
     const save = saveManager.load();
     if (!save.hasPlayed) saveManager.save({ ...save, hasPlayed: true });
     poki.gameplayStart();

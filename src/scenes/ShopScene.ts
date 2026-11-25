@@ -23,11 +23,11 @@ import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
 import type { CarouselItem } from '../ui/Carousel';
-import { drawCoinIcon } from '../ui/icons';
 import { LoadoutStage } from '../ui/LoadoutStage';
+import { createStatPill, type StatPill } from '../ui/StatPill';
 import { ThumbnailSelector } from '../ui/ThumbnailSelector';
 import { showToast } from '../ui/Toast';
-import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
+import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { textStyle } from '../utils/typography';
 
 /** Placeholder swatch colours standing in for real world backdrop thumbnails — one hero colour per world's vibe. */
@@ -39,7 +39,14 @@ const WORLD_SWATCH: Readonly<Record<string, number>> = {
   disco: COLOUR.waterBlue,
 };
 
-const CAROUSEL_Y = 405;
+/**
+ * Vertical composition, top to bottom: wordmark (ends 170), the loadout row
+ * (stage 340 tall, so 195-535), DONE (large: 84 face + 9 lip, 546-639), the
+ * rewarded button (small: 52 + 6, 646-704). The row sits higher than it used
+ * to because the coin readout moved to a pill in the top-left corner, which
+ * freed the band it occupied and let the two buttons below it have room.
+ */
+const CAROUSEL_Y = 365;
 /**
  * 2026-09-12, second pass: moved in from 170/1110 alongside CompactSelector
  * and LoadoutStage switching their arrows to an inset design. With three
@@ -72,19 +79,20 @@ const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
  */
 const TITLE_CENTRE_Y = 110;
 const TITLE_WORDMARK_HEIGHT = 120;
-const VAULT_Y = 205;
-const PLAY_Y = 604;
+const VAULT_PILL_X = 104;
+const VAULT_PILL_Y = 50;
+const PLAY_Y = 588;
 /**
  * The row under PLAY holds exactly one thing. For a first-time player it's
  * CLAUDE.md §6.5's hint; for everyone after, the rewarded-ad offer. They
  * swap rather than stack because there is no free band left between the
- * loadout card (ends at 575) and the bottom edge — squeezing both in put the
+ * loadout card (ends at 535) and the bottom edge — squeezing both in put the
  * hint on top of PLAY's own edge and pushed the ad row flush against the
  * canvas edge. Swapping also makes the first impression a line telling a
  * new player what to do, rather than an ad offer for a gun they have no
  * context for yet.
  */
-const BOTTOM_ROW_Y = 684;
+const BOTTOM_ROW_Y = 672;
 /**
  * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
  * to the rewarded button beside/above it. The reward button's own label —
@@ -93,7 +101,7 @@ const BOTTOM_ROW_Y = 684;
  * floor rather than relying on its text to win that comparison (found by
  * spec audit: PLAY's old 300 was narrower than the reward button's 340).
  */
-const PLAY_BUTTON_MIN_WIDTH = 400;
+const PLAY_BUTTON_MIN_WIDTH = 360;
 const REWARD_BUTTON_MIN_WIDTH = 340;
 
 export class ShopScene extends Phaser.Scene {
@@ -101,7 +109,7 @@ export class ShopScene extends Phaser.Scene {
   private _grannySelector!: ThumbnailSelector;
   private _loadoutStage!: LoadoutStage;
   private _gunSelector!: ThumbnailSelector;
-  private _vaultText!: Phaser.GameObjects.Text;
+  private _vaultPill!: StatPill;
 
   constructor() {
     super('ShopScene');
@@ -153,6 +161,7 @@ export class ShopScene extends Phaser.Scene {
       y: PLAY_Y,
       label: 'DONE',
       variant: 'primary',
+      size: 'lg',
       minWidth: PLAY_BUTTON_MIN_WIDTH,
       onClick: () => this.scene.start('HomeScene'),
     });
@@ -303,18 +312,17 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private _buildVaultDisplay(): void {
-    const y = VAULT_Y;
-    const coinGfx = this.add.graphics().setPosition(GAME_WIDTH / 2 - 70, y);
-    drawCoinIcon(coinGfx, 17, COLOUR.ink, COLOUR.ink);
-    drawCoinIcon(coinGfx, 14, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
-    this._vaultText = this.add
-      .text(GAME_WIDTH / 2 - 48, y, '', textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud))
-      .setOrigin(0, 0.5);
-    this._refreshVaultText();
+    this._vaultPill = createStatPill(
+      this,
+      VAULT_PILL_X,
+      VAULT_PILL_Y,
+      'coins',
+      this._unlocks.getVault(),
+    );
   }
 
   private _refreshVaultText(): void {
-    this._vaultText.setText(`${this._unlocks.getVault()} coins`);
+    this._vaultPill.setValue(this._unlocks.getVault());
   }
 
   /** CLAUDE.md §11.1/§11.3: rewarded button must never be Mint Green, must be visible alongside PLAY, one reward per ad. */
@@ -323,7 +331,8 @@ export class ShopScene extends Phaser.Scene {
       x: GAME_WIDTH / 2,
       y: BOTTOM_ROW_Y,
       label: 'Watch an ad for a free gun',
-      variant: 'secondary',
+      variant: 'reward',
+      size: 'sm',
       minWidth: REWARD_BUTTON_MIN_WIDTH,
       showPlayIcon: true,
       // The only button in the game that keeps its hit zone at its drawn

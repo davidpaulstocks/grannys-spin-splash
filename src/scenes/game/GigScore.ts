@@ -21,7 +21,6 @@ export const ENCORE_COIN_INTERVAL_MS = 500;
 
 /** Where the "one star!" call-outs appear, each a step lower so two earned at once don't overprint. */
 const STAR_TEXT_Y = GAME_HEIGHT * 0.2;
-const STAR_TEXT_STEP_Y = 34;
 const STAR_LABELS = ['ONE STAR!', 'TWO STARS!', 'THREE STARS!'] as const;
 
 /** Combo multiplier at which the floating "+N" turns pink / gold (below the gold one it stays blue). */
@@ -113,12 +112,17 @@ export class GigScore {
    * there and then loses the wall has still won it.
    */
   awardStars(reached: number): void {
+    const before = this._stars;
     while (this._stars < reached) {
       this._stars++;
       this._coins += COINS_PER_STAR;
+    }
+    // One call-out, for the rating now held — a trio earns its second and
+    // third star in the same instant, and two labels there just overprint.
+    if (this._stars > before) {
       this._float(
         GAME_WIDTH / 2,
-        STAR_TEXT_Y + this._stars * STAR_TEXT_STEP_Y,
+        STAR_TEXT_Y,
         STAR_LABELS[this._stars - 1] ?? '',
         COLOUR_HEX.sunnyGold,
       );

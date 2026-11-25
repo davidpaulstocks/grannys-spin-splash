@@ -19,11 +19,16 @@ function makeScore(): { score: GigScore; float: ReturnType<typeof vi.fn> } {
 }
 
 describe('GigScore stars', () => {
-  it('pays COINS_PER_STAR for each star reached, with a call-out per star', () => {
+  it('pays COINS_PER_STAR for each star reached, with one call-out for the rating now held', () => {
     const { score, float } = makeScore();
     score.awardStars(2);
     expect(score.stars).toBe(2);
     expect(score.coins).toBe(2 * COINS_PER_STAR);
+    // Two stars earned in the same instant are one moment, not two labels overprinting.
+    expect(float).toHaveBeenCalledTimes(1);
+    score.awardStars(2);
+    expect(float).toHaveBeenCalledTimes(1); // nothing new, nothing said
+    score.awardStars(3);
     expect(float).toHaveBeenCalledTimes(2);
   });
 
