@@ -74,7 +74,7 @@ describe('daily gift', () => {
     const save = fresh();
     expect(dailyGift(save, monday).available).toBe(true);
     const claimed = claimDailyGift(save, monday);
-    expect(claimed.vault).toBe(20);
+    expect(claimed.vault).toBe(800);
     expect(claimed.daily).toEqual({ lastDay: dayKey(monday), streak: 1 });
     expect(dailyGift(claimed, monday).available).toBe(false);
     expect(claimDailyGift(claimed, monday)).toBe(claimed); // a second claim changes nothing
@@ -84,10 +84,10 @@ describe('daily gift', () => {
     const one = claimDailyGift(fresh(), monday);
     const two = claimDailyGift(one, tuesday);
     expect(two.daily.streak).toBe(2);
-    expect(two.vault).toBe(20 + 30);
+    expect(two.vault).toBe(800 + 1200);
     const afterGap = dailyGift(two, thursday);
     expect(afterGap.streak).toBe(1);
-    expect(afterGap.coins).toBe(20);
+    expect(afterGap.coins).toBe(800);
   });
 
   it('stops growing after a week but keeps counting the streak', () => {
@@ -97,6 +97,6 @@ describe('daily gift', () => {
     };
     const gift = dailyGift(longStreak, tuesday);
     expect(gift.streak).toBe(31);
-    expect(gift.coins).toBe(20 + 10 * 6);
+    expect(gift.coins).toBe(800 + 400 * 6);
   });
 });

@@ -21,9 +21,15 @@ import { pillRadius } from '../utils/math';
 import { drawCoinIcon } from './icons';
 import { textStyle } from '../utils/typography';
 
+/** `pill`: a number in its own Cloud pill. `bare`: a large number with a coin beside it, on whatever is behind. */
+export type ScoreCounterLayout = 'pill' | 'bare';
+
 const PILL_WIDTH = 158;
 const PILL_HEIGHT = 56;
 const COIN_RADIUS = 15;
+const BARE_COIN_RADIUS = 21;
+/** Gap from the bare coin's centre to the left edge of its number. */
+const BARE_TEXT_OFFSET_X = 34;
 /** How quickly the displayed number races to catch up to the real score — higher = snappier. */
 const CATCH_UP_RATE = 10;
 /** Below this gap the counter just snaps — avoids an endless fractional crawl on the last ~1 point. */
@@ -39,7 +45,30 @@ export class ScoreCounter {
   private _lastTarget = 0;
   private _lastRendered = -1;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  /**
+   * `x`/`y` is the pill's centre for the `pill` layout, and the coin's centre
+   * for `bare` (the number then runs rightward from it).
+   */
+  constructor(scene: Phaser.Scene, x: number, y: number, layout: ScoreCounterLayout = 'pill') {
+    if (layout === 'bare') {
+      this._coinGfx = scene.add.graphics().setPosition(x, y);
+      drawCoinIcon(this._coinGfx, BARE_COIN_RADIUS + 3, COLOUR.ink, COLOUR.ink);
+      drawCoinIcon(
+        this._coinGfx,
+        BARE_COIN_RADIUS,
+        COLOUR.sunnyGold,
+        shade(COLOUR.sunnyGold, 0.72),
+      );
+      this._text = scene.add
+        .text(
+          x + BARE_TEXT_OFFSET_X,
+          y,
+          '0',
+          textStyle('displayL', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+        )
+        .setOrigin(0, 0.5);
+      return;
+    }
     const radius = pillRadius(PILL_WIDTH, PILL_HEIGHT);
     const bg = scene.add.graphics();
     bg.fillStyle(COLOUR.cloud, 1);

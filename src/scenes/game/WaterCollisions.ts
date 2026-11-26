@@ -1,8 +1,8 @@
 /**
  * Where the water meets the wall: tests every pooled particle against the
  * obstacles first, then its candidate spinner(s), and applies the hit —
- * power, splash, sound, Frenzy flourish and the combo with its hot-streak
- * shake.
+ * power, splash, sound and the Frenzy flourish. Coins are not paid here:
+ * they come from the pay clock (RewardLoop.ts).
  */
 
 import type Phaser from 'phaser';
@@ -18,12 +18,8 @@ import type { Spinner } from '../../entities/spinner/Spinner';
 import { FIRE_DENSITY_SCALE } from '../../entities/waterParticle/WaterCannon';
 import type { WaterParticle } from '../../entities/waterParticle/WaterParticle';
 import { spawnSplash } from '../../entities/waterParticle/splashVFX';
-import type { ComboTracker } from '../../systems/ComboTracker';
 import type { FrenzyController } from './FrenzyController';
 import type { PowerUpEffects } from './PowerUpEffects';
-
-/** Combo tiers ≥ this shake (prototype: `if(combo>=4) shake(150, 0.005*(combo-2))`). */
-const COMBO_SHAKE_THRESHOLD = 4;
 
 /** How hard a spinner kicks when water lands on it. */
 const HIT_PULSE = 0.3;
@@ -38,7 +34,6 @@ export interface WaterCollisionDeps {
   /** The grid plus a live Golden Spinner, if any — for collision only. */
   readonly activeSpinners: () => readonly Spinner[];
   readonly gun: GunDef;
-  readonly combo: ComboTracker;
   readonly frenzy: FrenzyController;
   readonly powerups: PowerUpEffects;
 }
@@ -46,7 +41,7 @@ export interface WaterCollisionDeps {
 export class WaterCollisions {
   constructor(private readonly _d: WaterCollisionDeps) {}
 
-  /** Tests every pooled particle against obstacles first, then its candidate spinner(s); applies hits/combo/score. */
+  /** Tests every pooled particle against obstacles first, then its candidate spinner(s); applies the hits. */
   update(): void {
     const d = this._d;
     const particles = d.pool.getChildren() as WaterParticle[];
@@ -85,16 +80,6 @@ export class WaterCollisions {
       const seat = d.spinners.indexOf(hitSpinner);
       if (seat >= 0) audioOrchestra.onSpinnerHit(seat);
       if (d.frenzy.active) d.frenzy.celebrateHit(hitSpinner);
-      const comboBefore = d.combo.combo;
-      const comboAfter = d.combo.registerHit(hitSpinner.id);
-      if (comboAfter !== comboBefore) {
-        audioOrchestra.accent('combo', comboAfter);
-        // Escalating shake on a hot streak (prototype: combo>=4) — never on
-        // every single hit, only when the combo itself actually climbs.
-        if (comboAfter >= COMBO_SHAKE_THRESHOLD) {
-          d.scene.cameras.main.shake(150, 0.005 * (comboAfter - 2));
-        }
-      }
     }
   }
 }

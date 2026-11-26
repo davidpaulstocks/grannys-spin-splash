@@ -1,6 +1,6 @@
 /**
  * Dev-only balance harness: plays gigs with a scripted player, far faster
- * than real time, and reports stars and coins. It exists because difficulty
+ * than real time, and reports stars, coins, the groove and drop-outs. It exists because difficulty
  * here is an emergent property of gun power, wind-down, hold time, band
  * size, obstacles and how a person actually sweeps a wall — and guessing at
  * it is how the game ended up with every wall solvable in five seconds.
@@ -57,8 +57,12 @@ interface SceneView {
   _roundOver: boolean;
   _started: boolean;
   _timeRemainingMs: number;
-  _stars: number;
-  _score: number;
+  readonly _reward: {
+    readonly coins: number;
+    readonly stars: number;
+    readonly dropOuts: number;
+    readonly groove: { readonly level: number };
+  };
   _peakFullSpinners: number;
   readonly _gig: { readonly seconds: number };
   readonly _spinners: readonly { readonly x: number; readonly y: number; currentSpeed: number }[];
@@ -133,6 +137,9 @@ export function installBotSim(game: Phaser.Game): BotSim {
     let since = 0;
     let freeAt = 0;
     let pending: { at: number; x: number; y: number } | null = null;
+    let grooveSum = 0;
+    let groovePeak = 0;
+    let grooveFrames = 0;
 
     for (let frame = 0; frame < MAX_FRAMES && !scene._roundOver; frame++) {
       const elapsed = roundMs - scene._timeRemainingMs;
@@ -164,12 +171,18 @@ export function installBotSim(game: Phaser.Game): BotSim {
         pending = null;
       }
       step(1);
+      const groove = scene._reward.groove.level;
+      grooveSum += groove;
+      grooveFrames++;
+      groovePeak = Math.max(groovePeak, groove);
       for (let k = 0; k < starAt.length; k++) {
-        if (starAt[k] === null && scene._stars > k) starAt[k] = Math.round(elapsed / 1000);
+        if (starAt[k] === null && scene._reward.stars > k) starAt[k] = Math.round(elapsed / 1000);
       }
     }
     const times = starAt.map((t) => (t === null ? '-' : String(t))).join('/');
-    return `${scene._stars} stars at ${times}s, peak ${scene._peakFullSpinners}/${scene._spinners.length}, ${scene._score} coins`;
+    const average = grooveFrames > 0 ? (grooveSum / grooveFrames).toFixed(1) : '-';
+    const { coins, stars, dropOuts } = scene._reward;
+    return `${stars} stars at ${times}s, ${coins} coins, groove avg ${average} peak ${groovePeak}, ${dropOuts} drop-outs, peak full ${scene._peakFullSpinners}/${scene._spinners.length}`;
   };
 
   const ladder = async (

@@ -43,6 +43,12 @@ const PULSE_DECAY_SECONDS = 0.11;
 const DROWSY_SPEED = 90;
 const DROWSY_ROCK_DEGREES = 7;
 const DROWSY_ROCK_HZ = 2.2;
+/** The Heat Orange ring that pulses around it as well, so the danger shows at a glance. */
+const WARN_RING_GAP_PX = 6;
+const WARN_RING_PX = 5;
+const WARN_PULSE_HZ = 4;
+const WARN_ALPHA_MIN = 0.45;
+const WARN_SCALE_DEPTH = 0.06;
 
 const MOUNT_RADIUS_FACTOR = 1.16;
 const MOUNT_FILL_ALPHA = 0.42;
@@ -75,6 +81,8 @@ function resolveState(speed: number): SpinnerState {
  */
 export interface SpinnerUpdateResult {
   readonly state: SpinnerState;
+  /** The state it was in before this change. */
+  readonly previous: SpinnerState;
   readonly leveledUp: boolean;
 }
 
@@ -101,6 +109,7 @@ export class Spinner extends Phaser.GameObjects.Container {
   private readonly _bladeGfx: Phaser.GameObjects.Graphics;
   private readonly _glowGfx: Phaser.GameObjects.Graphics;
   private readonly _flashGfx: Phaser.GameObjects.Graphics;
+  private readonly _warnGfx: Phaser.GameObjects.Graphics;
   private readonly _instrument: InstrumentMount | null = null;
   private _pulse = 0;
 
@@ -145,6 +154,11 @@ export class Spinner extends Phaser.GameObjects.Container {
     this.add([this._glowGfx, this._bladeGfx, badge]);
     if (this._instrument) this.add(this._instrument);
     this.add(this._flashGfx);
+    this._warnGfx = scene.add.graphics();
+    this._warnGfx.lineStyle(WARN_RING_PX, COLOUR.heatOrange, 1);
+    this._warnGfx.strokeCircle(0, 0, def.r * MOUNT_RADIUS_FACTOR + WARN_RING_GAP_PX);
+    this._warnGfx.setVisible(false);
+    this.add(this._warnGfx);
     scene.add.existing(this);
 
     drawSpinner(this._bladeGfx, this._glowGfx, this.def, this.currentState);
@@ -177,6 +191,7 @@ export class Spinner extends Phaser.GameObjects.Container {
     drawSpinner(this._bladeGfx, this._glowGfx, this.def, this.currentState);
     return {
       state: this.currentState,
+      previous: prevState,
       leveledUp: STATE_ORDINAL[this.currentState] > STATE_ORDINAL[prevState],
     };
   }
@@ -216,19 +231,23 @@ export class Spinner extends Phaser.GameObjects.Container {
     this.x = this._driftBaseX + Math.sin(this._driftPhase) * this._driftRange;
   }
 
-  /** An awake musician about to drop out of full speed nods; everyone else sits straight. */
+  /** An instrument about to drop out of full speed nods and shows a warning ring; everyone else sits straight. */
   private _updateDrowsiness(time: number): void {
     const drowsy =
       this.currentState === SpinnerState.FULL &&
       !this.locked &&
       this._holdUntilMs <= 0 &&
       this.currentSpeed < DROWSY_SPEED;
+    if (this._warnGfx.visible !== drowsy) this._warnGfx.setVisible(drowsy);
     if (!drowsy) {
       if (this.angle !== 0) this.setAngle(0);
       return;
     }
     const phase = (time / 1000) * DROWSY_ROCK_HZ * Math.PI * 2;
     this.setAngle(Math.sin(phase) * DROWSY_ROCK_DEGREES);
+    const pulse = 0.5 + 0.5 * Math.sin((time / 1000) * WARN_PULSE_HZ * Math.PI * 2);
+    this._warnGfx.setAlpha(WARN_ALPHA_MIN + (1 - WARN_ALPHA_MIN) * pulse);
+    this._warnGfx.setScale(1 + WARN_SCALE_DEPTH * pulse);
   }
 
   /** Near-max speed gets a subtle scale wobble (CLAUDE.md §5.6) — settles flat again below the threshold. */

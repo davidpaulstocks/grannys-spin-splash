@@ -32,6 +32,8 @@ export interface GunDef {
   readonly power: number;
   /** Number of water streams per shot. */
   readonly streams: number;
+  /** Multiplier on every coin earned with this gun (docs/REWARD_LOOP.md): the reason a bigger gun means a bigger number. */
+  readonly coinBoost: number;
   /** Particle size in px. */
   readonly sz: number;
   readonly type: GunType;

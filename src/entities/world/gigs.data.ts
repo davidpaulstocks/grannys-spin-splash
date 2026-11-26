@@ -147,3 +147,43 @@ export function awakeNeededForStars(band: number): readonly [number, number, num
     needed(FRENZY_THRESHOLDS.full),
   ];
 }
+
+/**
+ * Coin targets for one, two and three stars (docs/REWARD_LOOP.md). They are
+ * fractions of "par": the whole band at full speed for the whole gig with no
+ * groove. Three stars is above par on purpose, so it cannot be reached
+ * without building the groove multiplier.
+ */
+const PAY_TICKS_PER_SECOND = 2;
+const FULL_SPEED_PAY = 4;
+const STAR_TARGET_FRACTIONS = [0.5, 1.8, 3.2] as const;
+/**
+ * Later venues ask for more, because by then the player owns a gun that
+ * multiplies coins. Each step is smaller than the gun a player would
+ * plausibly own there, so an upgrade always makes the targets easier.
+ */
+const STAR_TARGET_VENUE_GAIN = [1, 1.25, 1.6, 2, 2.6] as const;
+const STAR_TARGET_ROUND_TO = 10;
+
+export function starTargets(gig: GigDef): readonly [number, number, number] {
+  const venueTier = Math.max(
+    0,
+    WORLD_DEFS.findIndex((world) => world.id === gig.venueId),
+  );
+  const par =
+    gig.band *
+    FULL_SPEED_PAY *
+    gig.seconds *
+    PAY_TICKS_PER_SECOND *
+    (STAR_TARGET_VENUE_GAIN[venueTier] ?? 1);
+  const target = (fraction: number): number =>
+    Math.max(
+      STAR_TARGET_ROUND_TO,
+      Math.round((par * fraction) / STAR_TARGET_ROUND_TO) * STAR_TARGET_ROUND_TO,
+    );
+  return [
+    target(STAR_TARGET_FRACTIONS[0]),
+    target(STAR_TARGET_FRACTIONS[1]),
+    target(STAR_TARGET_FRACTIONS[2]),
+  ];
+}

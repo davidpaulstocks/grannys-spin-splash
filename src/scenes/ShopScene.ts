@@ -19,6 +19,7 @@ import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { frontier } from '../systems/Progress';
+import { gunPerk } from '../systems/Rewards';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
@@ -93,6 +94,8 @@ const PLAY_Y = 588;
  * context for yet.
  */
 const BOTTOM_ROW_Y = 672;
+/** The gun's perk ("Coins ×1.5") sits just under its card, so the benefit of an upgrade is stated where its price is. */
+const GUN_PERK_Y = 500;
 /**
  * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
  * to the rewarded button beside/above it. The reward button's own label —
@@ -110,6 +113,8 @@ export class ShopScene extends Phaser.Scene {
   private _loadoutStage!: LoadoutStage;
   private _gunSelector!: ThumbnailSelector;
   private _vaultPill!: StatPill;
+  private _gunPerk!: Phaser.GameObjects.Text;
+  private _perkGunId = '';
 
   constructor() {
     super('ShopScene');
@@ -156,6 +161,16 @@ export class ShopScene extends Phaser.Scene {
     );
     this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
 
+    this._gunPerk = this.add
+      .text(
+        GUN_CAROUSEL_X,
+        GUN_PERK_Y,
+        '',
+        textStyle('bodyL', COLOUR_HEX.grannyPink, COLOUR_HEX.cloud),
+      )
+      .setOrigin(0.5);
+    this._perkGunId = '';
+
     createButton(this, {
       x: GAME_WIDTH / 2,
       y: PLAY_Y,
@@ -166,6 +181,15 @@ export class ShopScene extends Phaser.Scene {
       onClick: () => this.scene.start('HomeScene'),
     });
     this._buildRewardButton();
+  }
+
+  /** The arrows change the shown gun without telling the scene, so the perk line follows it here. */
+  override update(): void {
+    const id = this._gunSelector.getSelectedId();
+    if (id === this._perkGunId) return;
+    this._perkGunId = id;
+    const gun = GUN_DEFS.find((g) => g.id === id);
+    this._gunPerk.setText(gun ? gunPerk(gun) : '');
   }
 
   private _grannyItems(): CarouselItem[] {

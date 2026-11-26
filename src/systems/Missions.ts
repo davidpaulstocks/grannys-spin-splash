@@ -28,16 +28,22 @@ export interface MissionDef {
  * so the first rewards arrive quickly and teach that missions pay.
  */
 export const MISSIONS: readonly MissionDef[] = [
-  { id: 'play2', kind: 'playGigs', target: 2, reward: 25, text: 'Play 2 gigs' },
-  { id: 'stars4', kind: 'earnStars', target: 4, reward: 35, text: 'Earn 4 new stars' },
-  { id: 'full2', kind: 'fullBand', target: 2, reward: 40, text: 'Get the FULL BAND twice' },
-  { id: 'coins250', kind: 'collectCoins', target: 250, reward: 40, text: 'Collect 250 coins' },
-  { id: 'three2', kind: 'threeStars', target: 2, reward: 50, text: 'Get three stars on 2 gigs' },
-  { id: 'play5', kind: 'playGigs', target: 5, reward: 40, text: 'Play 5 gigs' },
-  { id: 'stars6', kind: 'earnStars', target: 6, reward: 50, text: 'Earn 6 new stars' },
-  { id: 'full3', kind: 'fullBand', target: 3, reward: 50, text: 'Get the FULL BAND 3 times' },
-  { id: 'coins500', kind: 'collectCoins', target: 500, reward: 60, text: 'Collect 500 coins' },
-  { id: 'three3', kind: 'threeStars', target: 3, reward: 60, text: 'Get three stars on 3 gigs' },
+  { id: 'play2', kind: 'playGigs', target: 2, reward: 1000, text: 'Play 2 gigs' },
+  { id: 'stars4', kind: 'earnStars', target: 4, reward: 1400, text: 'Earn 4 new stars' },
+  { id: 'full2', kind: 'fullBand', target: 2, reward: 1600, text: 'Get the FULL BAND twice' },
+  { id: 'coins250', kind: 'collectCoins', target: 5000, reward: 1600, text: 'Collect 5,000 coins' },
+  { id: 'three2', kind: 'threeStars', target: 2, reward: 2000, text: 'Get three stars on 2 gigs' },
+  { id: 'play5', kind: 'playGigs', target: 5, reward: 1600, text: 'Play 5 gigs' },
+  { id: 'stars6', kind: 'earnStars', target: 6, reward: 2000, text: 'Earn 6 new stars' },
+  { id: 'full3', kind: 'fullBand', target: 3, reward: 2000, text: 'Get the FULL BAND 3 times' },
+  {
+    id: 'coins500',
+    kind: 'collectCoins',
+    target: 15000,
+    reward: 2400,
+    text: 'Collect 15,000 coins',
+  },
+  { id: 'three3', kind: 'threeStars', target: 3, reward: 2400, text: 'Get three stars on 3 gigs' },
 ];
 
 /** Once the list has been played through, the harder half repeats forever. */

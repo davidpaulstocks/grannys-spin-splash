@@ -243,7 +243,7 @@ function buildThumb(scene: Phaser.Scene, venueId: string): Phaser.GameObjects.Ga
 }
 
 /** Bakes the rounded, cover-cropped thumbnail once per venue; returns its texture key, or null without art. */
-function ensureThumbTexture(scene: Phaser.Scene, venueId: string): string | null {
+export function ensureThumbTexture(scene: Phaser.Scene, venueId: string): string | null {
   const source = worldBackgroundKey(venueId);
   if (!source || !scene.textures.exists(source)) return null;
   const key = `${source}${THUMB_KEY_SUFFIX}`;

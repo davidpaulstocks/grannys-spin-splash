@@ -13,16 +13,18 @@ import type { Spinner } from '../../entities/spinner/Spinner';
 import { newMusicianCount, type GigDef } from '../../entities/world/gigs.data';
 import type { WorldDef } from '../../entities/world/world.types';
 import { spawnFloatingText } from '../../ui/FloatingText';
-import { spawnNoteGlyph } from '../../ui/NoteGlyph';
 import { COLOUR_HEX } from '../../utils/colour';
 import { textStyle } from '../../utils/typography';
 import { EASE } from '../../utils/tween';
+import { NoteFountain } from './NoteFountain';
 
 /** How hard a spinner kicks when it is sprayed into sounding, and on its own written notes. */
 const SPRAY_PULSE = 0.85;
 const NOTE_PULSE = 0.6;
-/** One floating note per spinner at most this often — the pulse carries every note, the glyph only some. */
-const NOTE_GLYPH_MIN_INTERVAL_MS = 420;
+/** How hard the whole wall kicks together on each beat of Splash Frenzy. */
+const BEAT_PULSE = 0.35;
+/** A beat phase that falls by more than this has wrapped round to the next beat. */
+const BEAT_WRAP_DROP = 0.5;
 /** Gap below a spinner for its musician's name, clear of the "+N ★" text that rises from above it. */
 const MUSICIAN_NAME_OFFSET = 18;
 
@@ -37,13 +39,16 @@ export class MusicReactions {
   private _introLabels: Phaser.GameObjects.Text[] = [];
   /** Spinners whose musician has already been introduced by name this round. */
   private readonly _joined = new Set<number>();
-  private readonly _lastNoteGlyphAt = new Map<number, number>();
+  private readonly _fountain: NoteFountain;
+  private _lastBeatPhase = 0;
 
   constructor(
     private readonly _scene: Phaser.Scene,
     private readonly _world: WorldDef,
     private readonly _gig: GigDef,
-  ) {}
+  ) {
+    this._fountain = new NoteFountain(_scene);
+  }
 
   /**
    * Before the first squirt, the musicians who are new at this gig are
@@ -104,10 +109,14 @@ export class MusicReactions {
 
   /**
    * Makes the wall move with the music: each note a musician plays kicks its
-   * own spinner and, now and then, sends a little note floating off it. The
-   * first time a spinner sounds in a round, its musician is introduced by name.
+   * own spinner and throws a visual from its instrument, landing on the note.
+   * The first time a spinner sounds in a round, its musician is introduced by
+   * name. In Splash Frenzy the fountain turns gold and the whole wall pulses
+   * on every beat.
    */
-  react(time: number, spinners: readonly Spinner[]): void {
+  react(time: number, spinners: readonly Spinner[], frenzy: boolean): void {
+    this._fountain.update(time);
+    const centre = wallCentre(spinners);
     for (const note of audioOrchestra.pollNotes()) {
       const spinner = spinners[note.spinner];
       if (!spinner) continue;
@@ -123,15 +132,29 @@ export class MusicReactions {
           COLOUR_HEX.cloud,
         );
       }
-      const last = this._lastNoteGlyphAt.get(spinner.id) ?? -Infinity;
-      if (time - last < NOTE_GLYPH_MIN_INTERVAL_MS) continue;
-      this._lastNoteGlyphAt.set(spinner.id, time);
-      spawnNoteGlyph(
-        this._scene,
-        spinner.x + (Math.random() - 0.5) * spinner.def.r,
-        spinner.y - spinner.def.r,
-        Phaser.Display.Color.HexStringToColor(spinner.def.colors[0] ?? '#ffffff').color,
-      );
+      this._fountain.note(spinner, note, centre, frenzy);
     }
+    this._pulseOnBeat(spinners, frenzy);
   }
+
+  /** On each beat of Splash Frenzy every spinner kicks together, slightly. */
+  private _pulseOnBeat(spinners: readonly Spinner[], frenzy: boolean): void {
+    const phase = audioOrchestra.beatPhase();
+    const wrapped = this._lastBeatPhase - phase > BEAT_WRAP_DROP;
+    this._lastBeatPhase = phase;
+    if (!frenzy || !wrapped) return;
+    for (const spinner of spinners) spinner.pulse(BEAT_PULSE);
+  }
+}
+
+/** The middle of the wall, which the fountain's visuals rise away from. */
+function wallCentre(spinners: readonly Spinner[]): { x: number; y: number } {
+  if (spinners.length === 0) return { x: 0, y: 0 };
+  let x = 0;
+  let y = 0;
+  for (const s of spinners) {
+    x += s.x;
+    y += s.y;
+  }
+  return { x: x / spinners.length, y: y / spinners.length };
 }

@@ -17,6 +17,7 @@ import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import { claimDailyGift, dailyGift } from '../systems/DailyGift';
 import { currentGig, frontier, totalStars } from '../systems/Progress';
+import { nextReward } from '../systems/Rewards';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
@@ -26,6 +27,7 @@ import { spawnFloatingText } from '../ui/FloatingText';
 import { createGigCard } from '../ui/GigCard';
 import { createIconButton } from '../ui/IconButton';
 import { drawTourIcon } from '../ui/icons';
+import { createSavingForStrip } from '../ui/SavingForStrip';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { createVenueStrip, type VenueStrip } from '../ui/VenueStrip';
 import { COLOUR_HEX } from '../utils/colour';
@@ -68,6 +70,10 @@ const CARD_Y = 302;
 const PLAY_Y = 524;
 const PLAY_MIN_WIDTH = 420;
 
+/** "Saving for" strip: under the pills, above ALL GIGS, clear of Granny's left edge (about 270). */
+const SAVING_X = 136;
+const SAVING_Y = 194;
+
 const STRIP_Y = 652;
 
 export class HomeScene extends Phaser.Scene {
@@ -100,6 +106,12 @@ export class HomeScene extends Phaser.Scene {
     this._buildGranny();
     this._setCard();
     this._buildDailyGift();
+    createSavingForStrip(this, {
+      x: SAVING_X,
+      y: SAVING_Y,
+      reward: nextReward(save),
+      onTap: () => this._goTo('ShopScene'),
+    });
 
     createButton(this, {
       x: SHOP_X,

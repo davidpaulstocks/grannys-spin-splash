@@ -32,6 +32,12 @@ export interface SaveData {
    * fills in `{}`, which reads as "no gig passed yet".
    */
   gigStars: Record<string, readonly number[]>;
+  /**
+   * Best coin total on each gig, by venue id and gig index (docs/REWARD_LOOP.md):
+   * the number the results screen asks a player to beat. Absent from older
+   * saves; the default-merge fills in `{}`, which reads as "never played".
+   */
+  gigBest: Record<string, readonly number[]>;
   /** The one mission on the go: its position in `MISSIONS` and progress toward it (systems/Missions.ts). */
   mission: { readonly index: number; readonly progress: number };
   /** The last day a daily gift was taken (`YYYY-MM-DD`, '' if never) and the streak it set (systems/DailyGift.ts). */

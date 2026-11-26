@@ -1,7 +1,6 @@
 /**
- * The rare, chanced extras layered on top of a level-up or a wall-wide
- * milestone: a quiet spoken "well done!", the world's easter egg, and the
- * mini-frenzy encouragement toasts.
+ * The rare, chanced extras layered on top of a level-up: a quiet spoken
+ * "well done!" and the world's easter egg.
  */
 
 import Phaser from 'phaser';
@@ -81,15 +80,5 @@ export class LevelUpFlair {
       egg.text,
       egg.textColour,
     );
-  }
-
-  /**
-   * The band crosses 60% / 80% awake — the first and second star. The star
-   * itself is the message (it lights on the meter and is called out once),
-   * so this is only the orchestra's cheer; a toast as well put three lines
-   * of text on top of each other mid-screen.
-   */
-  onMiniFrenzy(): void {
-    audioOrchestra.accent('cheer');
   }
 }

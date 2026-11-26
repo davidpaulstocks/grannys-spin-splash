@@ -13,7 +13,7 @@ import type { SaveData } from '../types/save';
 
 export const MAX_STARS_PER_GIG = 3;
 /** Coins paid the first time each star is earned on a gig — replaying for a better rating always pays. */
-export const COINS_PER_NEW_STAR = 15;
+export const COINS_PER_NEW_STAR = 200;
 
 /** Best stars on each of a venue's gigs, always `GIGS_PER_VENUE` long. */
 export function venueStars(save: SaveData, venueId: string): readonly number[] {
@@ -24,6 +24,12 @@ export function venueStars(save: SaveData, venueId: string): readonly number[] {
 /** Stars held in one venue, 0 to `GIGS_PER_VENUE * MAX_STARS_PER_GIG` — the "n / 24" on a venue tile. */
 export function venueStarTotal(save: SaveData, venueId: string): number {
   return venueStars(save, venueId).reduce((sum, stars) => sum + stars, 0);
+}
+
+/** Best coin total on each of a venue's gigs, always `GIGS_PER_VENUE` long; 0 where never played. */
+export function venueBests(save: SaveData, venueId: string): readonly number[] {
+  const stored = save.gigBest[venueId] ?? [];
+  return Array.from({ length: GIGS_PER_VENUE }, (_, i) => stored[i] ?? 0);
 }
 
 export function totalStars(save: SaveData): number {
@@ -58,6 +64,10 @@ export interface GigResult {
   readonly newStars: number;
   /** Coins those new stars paid. Already added to the returned save's vault. */
   readonly starCoins: number;
+  /** This gig's best coin total before this play, 0 if never played. */
+  readonly previousBest: number;
+  /** True when this play beat `previousBest`. */
+  readonly isNewBest: boolean;
 }
 
 /** Banks a finished gig: keeps the best rating, pays for any newly earned stars, and adds the gig's coins. */
@@ -74,14 +84,24 @@ export function recordGig(
   const newStars = Math.max(0, earned - previous);
   const starCoins = newStars * COINS_PER_NEW_STAR;
   const updated = best.map((value, i) => (i === gig ? Math.max(value, earned) : value));
+  const bests = venueBests(save, venueId);
+  const previousBest = bests[gig] ?? 0;
+  const score = Math.max(0, Math.floor(coinsEarned));
+  const isNewBest = score > previousBest;
   return {
     save: {
       ...save,
       vault: save.vault + Math.max(0, coinsEarned) + starCoins,
       gigStars: { ...save.gigStars, [venueId]: updated },
+      gigBest: {
+        ...save.gigBest,
+        [venueId]: bests.map((value, i) => (i === gig ? Math.max(value, score) : value)),
+      },
     },
     newStars,
     starCoins,
+    previousBest,
+    isNewBest,
   };
 }
 
@@ -115,6 +135,22 @@ export function nextLockedVenue(
   const have = totalStars(save);
   const locked = venues.find((venue) => venue.starsToOpen > have);
   return locked ? { venue: locked, starsNeeded: locked.starsToOpen - have } : null;
+}
+
+/**
+ * The venue that the stars just earned opened, if any: the lowest venue whose
+ * requirement was out of reach before `newStars` and is met now. `save` must
+ * already include those stars.
+ */
+export function venueJustOpened(
+  save: SaveData,
+  venues: readonly WorldDef[],
+  newStars: number,
+): WorldDef | null {
+  if (newStars <= 0) return null;
+  const now = totalStars(save);
+  const before = now - newStars;
+  return venues.find((venue) => venue.starsToOpen > before && venue.starsToOpen <= now) ?? null;
 }
 
 /**

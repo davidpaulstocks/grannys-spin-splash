@@ -21,11 +21,18 @@ export interface HudRefreshData {
   readonly isPumping: boolean;
   readonly spinners: readonly HudSpinnerSnapshot[];
   /**
-   * The run's current star total — shown live via `ScoreCounter` (2026-09-12
-   * re-plan, direct user feedback: score should be visible and exciting
-   * during play, not hidden until game over as story 2.5 originally had it).
+   * The coins to show on the counter: the gig's total less the coins still
+   * flying to it, so the number rises as each coin lands (docs/REWARD_LOOP.md).
    */
-  readonly score: number;
+  readonly coins: number;
+  /** The coin totals that earn one, two and three stars. */
+  readonly starTargets: readonly [number, number, number];
   /** Stars locked in so far this gig, 0–3. */
   readonly stars: number;
+  /** Groove level, 1–5 — the multiplier on every coin. */
+  readonly grooveLevel: number;
+  /** Progress toward the next groove level, 0–1. */
+  readonly grooveRing: number;
+  /** True during Splash Frenzy, when the groove is at its top and every coin counts double. */
+  readonly jackpot: boolean;
 }

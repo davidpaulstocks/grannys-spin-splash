@@ -14,10 +14,12 @@ export interface GigResultData {
   readonly score: number;
   /** Which world was played — so the end screen can name the best it's comparing against. */
   readonly worldId: string;
-  /** The best for that world BEFORE this run, so the end screen can show what was beaten. */
+  /** This gig's best coin total BEFORE this run (0 = never played), so the end screen can show what was beaten. */
   readonly previousBest: number;
-  /** True when this run set a new best for that world (see SaveData.bestByWorld). */
+  /** True when this run beat that best (see SaveData.gigBest). */
   readonly isNewBest: boolean;
+  /** Coin totals that earn one, two and three stars on this gig. */
+  readonly targets: readonly [number, number, number];
   /** How many spinners reached FULL at once at the peak, and out of how many. */
   readonly peakFullSpinners: number;
   readonly totalSpinners: number;

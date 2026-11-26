@@ -19,10 +19,10 @@ describe('UnlockManager', () => {
     expect(unlocks.getVault()).toBe(0);
     expect(unlocks.isGrannyUnlocked('classic')).toBe(true); // free
     expect(unlocks.isGrannyUnlocked('squirt')).toBe(true); // also free
-    expect(unlocks.isGrannyUnlocked('punk')).toBe(false); // 600 coins
+    expect(unlocks.isGrannyUnlocked('punk')).toBe(false); // 30,000 coins
     expect(unlocks.isGunUnlocked('pistol')).toBe(true); // free
     expect(unlocks.isGunUnlocked('squirter')).toBe(true); // also free
-    expect(unlocks.isGunUnlocked('hose')).toBe(false); // 150 coins
+    expect(unlocks.isGunUnlocked('hose')).toBe(false); // 6,000 coins
     expect(unlocks.isWorldUnlocked('garden')).toBe(true); // open from the start
     expect(unlocks.isWorldUnlocked('workshop')).toBe(false); // needs stars
   });
@@ -41,10 +41,10 @@ describe('UnlockManager', () => {
   });
 
   it('unlockGranny() fails when the vault is short, succeeds once it is enough', () => {
-    unlocks.addStars(599);
+    unlocks.addStars(29999);
     expect(unlocks.unlockGranny('punk')).toBe(false);
     expect(unlocks.isGrannyUnlocked('punk')).toBe(false);
-    expect(unlocks.getVault()).toBe(599); // nothing deducted on failure
+    expect(unlocks.getVault()).toBe(29999); // nothing deducted on failure
 
     unlocks.addStars(1);
     expect(unlocks.unlockGranny('punk')).toBe(true);
@@ -91,7 +91,7 @@ describe('UnlockManager', () => {
     unlocks.selectGranny('punk'); // locked — ignored
     expect(unlocks.getSelectedGrannyId()).toBe('classic');
 
-    unlocks.addStars(600);
+    unlocks.addStars(30000);
     unlocks.unlockGranny('punk');
     unlocks.selectGranny('punk');
     expect(unlocks.getSelectedGrannyId()).toBe('punk');

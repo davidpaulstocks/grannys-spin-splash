@@ -35,7 +35,7 @@ export class PowerUpEffects {
     return time < this._soakerEndAt;
   }
 
-  /** Double Stars' window: stacks on top of the combo multiplier (prototype: `awardStars`'s `dsMult`). */
+  /** Double Stars' window: doubles every coin the pay clock pays while it lasts. */
   doubleStarsActive(time: number): boolean {
     return time < this._doubleStarsEndAt;
   }

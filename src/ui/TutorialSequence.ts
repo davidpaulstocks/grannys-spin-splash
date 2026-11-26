@@ -39,6 +39,11 @@ export class TutorialSequence {
   maybeShowPurpose(scene: Phaser.Scene): void {
     if (this._shownPurpose) return;
     this._shownPurpose = true;
-    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, 'Get the whole band playing at once!');
+    showTutorialCaption(
+      scene,
+      GAME_WIDTH / 2,
+      CAPTION_Y,
+      'Spinning instruments throw coins. Keep them all going!',
+    );
   }
 }

@@ -7,8 +7,8 @@
 
 import type { SaveData } from '../types/save';
 
-const FIRST_DAY_COINS = 20;
-const COINS_PER_STREAK_DAY = 10;
+const FIRST_DAY_COINS = 800;
+const COINS_PER_STREAK_DAY = 400;
 /** The gift stops growing after a week; the streak itself keeps counting. */
 const MAX_STREAK_FOR_BONUS = 7;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

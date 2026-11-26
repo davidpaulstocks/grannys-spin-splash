@@ -1,6 +1,6 @@
 /**
- * Core gameplay loop — orchestrates spinners, Granny, water, combo, and
- * Frenzy for a single 30-second run (CLAUDE.md §7.2, story 1.5). HUDScene
+ * Core gameplay loop — orchestrates spinners, Granny, water, the reward
+ * loop, and Frenzy for a single gig (CLAUDE.md §7.2, story 1.5). HUDScene
  * runs alongside it as a parallel overlay (CLAUDE.md §7.2) — GameScene
  * feeds it fresh state once per frame; ResultsScene takes over once the
  * round ends.
@@ -28,7 +28,6 @@ import { GoldenSpinnerSpawner, type GoldenClaim } from '../entities/spinner/Gold
 import { WaterParticle } from '../entities/waterParticle/WaterParticle';
 import { WaterCannon } from '../entities/waterParticle/WaterCannon';
 import * as poki from '../poki';
-import { ComboTracker } from '../systems/ComboTracker';
 import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
 import { saveManager } from '../systems/SaveManager';
@@ -50,11 +49,11 @@ import { CountdownUrgency } from './game/CountdownUrgency';
 import { FireControl } from './game/FireControl';
 import { FirstRunGuide } from './game/FirstRunGuide';
 import { FrenzyController } from './game/FrenzyController';
-import { GigScore } from './game/GigScore';
 import { LevelUpFlair } from './game/LevelUpFlair';
 import { GoalCard } from './game/GoalCard';
 import { MusicReactions } from './game/MusicReactions';
 import { PowerUpEffects } from './game/PowerUpEffects';
+import { RewardLoop } from './game/RewardLoop';
 import { WaterCollisions } from './game/WaterCollisions';
 import type { HUDScene } from './HUDScene';
 
@@ -77,7 +76,6 @@ export class GameScene extends Phaser.Scene {
   private _input!: InputManager;
   private _waterPool!: Phaser.GameObjects.Group;
   private _frenzyMeter = new FrenzyMeter();
-  private _combo = new ComboTracker();
   private _world!: WorldDef;
   private _grannyId!: string;
   private _gun!: GunDef;
@@ -92,18 +90,15 @@ export class GameScene extends Phaser.Scene {
   private _started = false;
   private _roundOver = false;
   private readonly _urgency = new CountdownUrgency(this);
-  // Coins, stars and the rules that pay them (see game/GigScore.ts). `_score` / `_stars` below stay
-  // as read-only views because src/dev/botSim.ts reaches in for them by name.
-  private readonly _gigScore = new GigScore((x, y, message, colourHex) =>
-    spawnFloatingText(this, x, y, message, colourHex),
-  );
-  // Frenzy's start/window/flourish (see game/FrenzyController.ts).
+  // Frenzy's start/window/flourish (see game/FrenzyController.ts); starting it is the jackpot.
   private readonly _frenzy = new FrenzyController(
     this,
     () => this._spinners,
-    (reached) => this._gigScore.awardStars(reached),
+    () => this._reward.jackpotStarted(),
   );
   // Built per round in create(), once the world, gig and wall exist.
+  /** Coins, stars, the groove and the coin fountain (see game/RewardLoop.ts); src/dev/botSim.ts reads it by name. */
+  private _reward!: RewardLoop;
   private _music!: MusicReactions;
   private _goalCard!: GoalCard;
   private _guide!: FirstRunGuide;
@@ -123,16 +118,6 @@ export class GameScene extends Phaser.Scene {
 
   constructor() {
     super('GameScene');
-  }
-
-  /** Coins banked this gig. */
-  private get _score(): number {
-    return this._gigScore.coins;
-  }
-
-  /** Stars earned so far this gig (0–3) — they lock in the moment they are reached. */
-  private get _stars(): number {
-    return this._gigScore.stars;
   }
 
   /**
@@ -192,9 +177,17 @@ export class GameScene extends Phaser.Scene {
       spinners: this._spinners,
       activeSpinners: () => this._activeSpinners(),
       gun: this._gun,
-      combo: this._combo,
       frenzy: this._frenzy,
       powerups: this._powerups,
+    });
+
+    this._reward = new RewardLoop({
+      scene: this,
+      gun: this._gun,
+      gig: this._gig,
+      spinners: () => this._spinners,
+      frenzyActive: () => this._frenzy.active,
+      doubleStarsActive: (time) => this._powerups.doubleStarsActive(time),
     });
 
     this._createOverlays();
@@ -205,16 +198,8 @@ export class GameScene extends Phaser.Scene {
     this._input.on('first-input', () => this._onFirstInput());
     this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._frenzy.start());
-    // FrenzyMeter's 60% / 80% thresholds are the first and second star.
-    this._frenzyMeter.on('miniLow', () => {
-      this._flair.onMiniFrenzy();
-      this._gigScore.awardStars(1);
-    });
-    this._frenzyMeter.on('miniHigh', () => {
-      this._flair.onMiniFrenzy();
-      audioOrchestra.onFrenzyNear();
-      this._gigScore.awardStars(2);
-    });
+    // At 80% of the band at full the orchestra leans in toward the Frenzy drop.
+    this._frenzyMeter.on('miniHigh', () => audioOrchestra.onFrenzyNear());
 
     // A brief turn-to-face-the-wall before play, skipped by any input. The
     // round clock doesn't start until first input, so this costs the player
@@ -225,7 +210,7 @@ export class GameScene extends Phaser.Scene {
 
     this._music.showGigIntro(this._spinners);
     this._goalCard = new GoalCard(this);
-    this._goalCard.show(this._spinners.length);
+    this._goalCard.show(this._gig);
     this._guide.maybeShowGhostFinger(this._spinners);
     this._guide.maybeStartTutorial();
 
@@ -260,7 +245,9 @@ export class GameScene extends Phaser.Scene {
 
     for (const spinner of this._spinners) {
       const result = spinner.update(time, delta);
-      if (result?.leveledUp) this._onSpinnerLeveledUp(spinner, result.state, time);
+      if (!result) continue;
+      this._reward.onSpinnerStateChange(spinner, result.previous, result.state, time);
+      if (result.leveledUp) this._onSpinnerLeveledUp(spinner, result.state);
     }
     // Read spinner states into the Frenzy meter right after they're fresh —
     // NOT from inside the HUD refresh. See FrenzyMeter.ts's header comment:
@@ -303,19 +290,12 @@ export class GameScene extends Phaser.Scene {
     );
 
     this._fire.update(time, this._started, introPlaying);
-    this._music.react(time, this._spinners);
+    this._music.react(time, this._spinners, this._frenzy.active);
     this._collisions.update();
-    this._combo.update(delta);
-    // Tips: instruments at full speed earn by the second, so one left to wind down costs coins.
-    if (this._started) {
-      this._gigScore.payTips(
-        delta,
-        this._spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
-      );
-    }
     this._frenzy.updateWindow(time);
 
     if (this._started) {
+      this._reward.update(time, delta);
       this._timeRemainingMs = Math.max(0, this._timeRemainingMs - delta);
       this._urgency.update(this._timeRemainingMs);
       if (this._timeRemainingMs <= 0) {
@@ -350,12 +330,10 @@ export class GameScene extends Phaser.Scene {
     this._spinners = [];
     this._obstacles = [];
 
-    this._gigScore.reset();
     this._started = false;
     this._roundOver = false;
     this._frenzy.reset();
     this._frenzyMeter.reset();
-    this._combo.reset();
     this._urgency.reset();
     this._peakFullSpinners = 0;
   }
@@ -366,15 +344,9 @@ export class GameScene extends Phaser.Scene {
     return golden ? [...this._spinners, golden] : this._spinners;
   }
 
-  /** Stars are awarded only on an upward state transition (CLAUDE.md §2) — never per-hit, never on decay. */
-  private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState, time: number): void {
-    // Double Stars power-up stacks on top of the combo multiplier (prototype: `awardStars`'s `dsMult`).
-    const doubleStarsActive = this._powerups.doubleStarsActive(time);
-    const multiplier = this._combo.multiplier * (doubleStarsActive ? 2 : 1);
-    const total = this._gigScore.levelUp(spinner.id, newState, multiplier);
+  /** A spinner climbed a tier: the orchestra answers, with sparks. Coins come from the pay clock, not from this. */
+  private _onSpinnerLeveledUp(spinner: Spinner, newState: SpinnerState): void {
     audioOrchestra.accent(LEVEL_UP_ACCENT[newState]);
-    this._gigScore.showCoinText(total, multiplier, spinner.x, spinner.y - spinner.def.r - 12);
-
     this._flair.sparkBurst(spinner, newState);
     this._flair.maybeEasterEgg(spinner);
     if (newState === SpinnerState.FULL) {
@@ -385,7 +357,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Pays out a Golden Spinner the player just took to FULL (CLAUDE.md §1's timed bonus spawn). */
   private _onGoldenClaimed(claim: GoldenClaim): void {
-    this._gigScore.addCoins(claim.stars);
+    this._reward.addCoins(claim.stars);
     spawnFloatingText(
       this,
       claim.x,
@@ -420,6 +392,7 @@ export class GameScene extends Phaser.Scene {
     this._guide.dismissGhostFinger();
     this._music.dismissGigIntro();
     this._goalCard.dismiss();
+    this._reward.start(this.time.now);
     const save = saveManager.load();
     if (!save.hasPlayed) saveManager.save({ ...save, hasPlayed: true });
     poki.gameplayStart();
@@ -453,8 +426,8 @@ export class GameScene extends Phaser.Scene {
     const resultData = bankGig({
       world: this._world,
       gig: this._gig,
-      score: this._score,
-      stars: this._stars,
+      score: this._reward.coins,
+      stars: this._reward.stars,
       peakFullSpinners: this._peakFullSpinners,
       totalSpinners: this._spinners.length,
       reachedFrenzy: this._frenzy.reached,
@@ -475,8 +448,12 @@ export class GameScene extends Phaser.Scene {
         currentSpeed: s.currentSpeed,
         currentState: s.currentState,
       })),
-      score: this._score,
-      stars: this._stars,
+      coins: this._reward.displayedCoins(this.time.now),
+      starTargets: this._reward.targets,
+      stars: this._reward.stars,
+      grooveLevel: this._reward.groove.level,
+      grooveRing: this._reward.groove.ring,
+      jackpot: this._reward.jackpot,
     };
     this._hud.refresh(data);
   }

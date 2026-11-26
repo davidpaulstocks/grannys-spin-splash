@@ -13,7 +13,6 @@ import type { Spinner } from '../../entities/spinner/Spinner';
 import { spawnConfetti, spawnSparks } from '../../entities/waterParticle/splashVFX';
 import { hideBanner, playFrenzyCelebration } from '../../ui/Banner';
 import { COLOUR } from '../../utils/colour';
-import { MAX_STARS_PER_GIG } from '../../systems/Progress';
 
 /**
  * How often landed hits during the SPLASH FRENZY window are celebrated with
@@ -30,8 +29,8 @@ import { MAX_STARS_PER_GIG } from '../../systems/Progress';
  * its only scoring and feedback dead zone. CLAUDE.md §1 calls Frenzy "a
  * 5-second bonus burst worth bonus stars", which is exactly what it wasn't.
  *
- * Every hit now pays, multiplied by the live combo, so the window rewards
- * firing flat out. Only a fraction spawn their own text/sparks — at up to 60
+ * The window now pays double on the pay clock (the jackpot, see
+ * RewardLoop.ts). Only a fraction spawn their own text/sparks — at up to 60
  * hits a second the screen would otherwise be unreadable confetti.
  */
 const FRENZY_HIT_FLOURISH_CHANCE = 0.14;
@@ -60,8 +59,8 @@ export class FrenzyController {
   constructor(
     private readonly _scene: Phaser.Scene,
     private readonly _spinners: () => readonly Spinner[],
-    /** Frenzy awards the full set of stars the moment it fires — GameScene binds this to its score. */
-    private readonly _awardStars: (reached: number) => void,
+    /** Called the moment Frenzy fires — GameScene binds this to the groove's jackpot. */
+    private readonly _onStart: () => void,
   ) {}
 
   /** Whether the Frenzy window is open right now. */
@@ -96,7 +95,7 @@ export class FrenzyController {
       GAME_HEIGHT / 2,
       'SPLASH FRENZY!',
     );
-    this._awardStars(MAX_STARS_PER_GIG);
+    this._onStart();
     audioOrchestra.onFrenzyStart();
     // The drop should hit the eyes as hard as the ears: a flash, a punch of
     // zoom, and confetti off the whole wall.
@@ -131,7 +130,7 @@ export class FrenzyController {
    * Keeps the encore loud: nothing can level up while the whole band is
    * locked at full, so without this the climax would be the one stretch of
    * the gig with no sparks and no chime. The coins themselves are paid by
-   * the clock (`GigScore.payTips`), not per hit — a fast gun lands sixty
+   * the clock (`GigScore.tick`), not per hit — a fast gun lands sixty
    * hits a second, and paying each one emptied the shop in two rounds.
    */
   celebrateHit(spinner: Spinner): void {

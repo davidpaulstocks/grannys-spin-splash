@@ -1,12 +1,17 @@
 /**
- * The end of a gig — docs/ENGAGEMENT_DESIGN.md §5. One job: make the result
- * feel earned and make the next gig one tap away.
+ * The end of a gig — docs/REWARD_LOOP.md. Three beats, top to bottom, and one
+ * row of buttons:
  *
- * Stars land one at a time, each with a note climbing the home chord; coins
- * count up; then a single large button carries on the tour. Retry and the
- * rewarded "double coins" are smaller and sit below it — Poki requires the
+ *  1. The score: the coin total counting up large, the stars landing as it
+ *     passes each target, NEW BEST, and how far the next star is.
+ *  2. What now: the next gun or granny worth saving for, with a bar of coins
+ *     toward it or a BUY button when it is within reach.
+ *  3. The path: this venue's eight gigs, where the player is on them, and the
+ *     next venue at the end with the stars it still needs.
+ *
+ * NEXT GIG is the largest button and the only green one. Poki requires the
  * standard continue to be at least as prominent as any rewarded option, and
- * never to be gated by it.
+ * never gated by it (CLAUDE.md §11.3).
  */
 
 import Phaser from 'phaser';
@@ -14,90 +19,67 @@ import Phaser from 'phaser';
 import { SPRITE_KEYS } from '../assets/keys';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { playStarChime } from '../audio/ResultsMusic';
-import * as SFX from '../audio/SFX';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { musiciansJoining } from '../audio/scores';
 import { spawnConfetti } from '../entities/waterParticle/splashVFX';
-import { gigFor } from '../entities/world/gigs.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import { applyGigToMission } from '../systems/Missions';
-import { MAX_STARS_PER_GIG, nextLockedVenue, nextStop, type TourStop } from '../systems/Progress';
+import { nextStop, venueJustOpened, venueStars, type TourStop } from '../systems/Progress';
+import { nextReward, nextVenue, type NextReward } from '../systems/Rewards';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
 import type { GameSceneData, GigResultData } from '../types/sceneData';
 import { createButton } from '../ui/Button';
 import { createIconButton } from '../ui/IconButton';
-import { drawCoinIcon, drawHomeIcon, drawRetryIcon, drawStarIcon } from '../ui/icons';
-import { createPanel } from '../ui/Panel';
-import { showMissionCard } from '../ui/MissionCard';
-import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
+import { joinsLine } from '../ui/joinsLine';
+import { drawHomeIcon, drawRetryIcon } from '../ui/icons';
+import { createNextRewardCard, type NextRewardCard } from '../ui/NextRewardCard';
+import { ResultsScore } from '../ui/ResultsScore';
+import { createStatPill, type StatPill } from '../ui/StatPill';
+import { showToast } from '../ui/Toast';
+import { createTourPath, type TourPath } from '../ui/TourPath';
+import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 
 const CENTRE_X = GAME_WIDTH / 2;
-
-/**
- * Layout. One card in the middle holds the whole result, top to bottom:
- * ribbon (which gig), headline, stars, coins, one hint, then the row of
- * actions along the card's bottom — all inside it. The rewarded option sits
- * below the card on its own, smaller than the main action (CLAUDE.md §11.3).
- * Granny stands to the left and the mission card to the right, so the screen
- * reads as three columns with the result in the centre.
- */
-const PANEL_WIDTH = 700;
-const PANEL_HEIGHT = 524;
-const PANEL_Y = 340;
-const PANEL_BOTTOM = PANEL_Y + PANEL_HEIGHT / 2;
 const BACKDROP_DIM_ALPHA = 0.5;
 
-const HEADLINE_Y = 158;
-const STARS_Y = 262;
-const STAR_SPACING = 150;
-const STAR_RADIUS = 54;
-/** The middle star sits a little higher and larger — the classic three-star arc. */
-const MIDDLE_STAR_LIFT = 16;
-const MIDDLE_STAR_SCALE = 1.14;
-const STAR_OUTLINE_PX = 7;
-const STAR_FIRST_DELAY_MS = 350;
-const STAR_STEP_MS = 380;
-
-const COINS_Y = 362;
-const COIN_RADIUS = 22;
-const BANK_Y = 404;
-const HINT_Y = 442;
-/** The action row: its buttons' lips end 22px above the card's bottom edge. */
-const ACTIONS_Y = PANEL_BOTTOM - 74;
+/** Every element has an explicit place on the 1280x720 canvas; nothing is laid out by flow. */
+const SCORE_Y = 140;
+const REWARD_Y = 346;
+const PATH_Y = 514;
+const PILL_X = 104;
+const PILL_Y = 50;
+const GRANNY_X = 130;
+const GRANNY_Y = 480;
+const GRANNY_HEIGHT = 300;
+const ACTIONS_Y = 632;
 const NEXT_MIN_WIDTH = 340;
-const SIDE_ACTION_OFFSET_X = 254;
-const DOUBLE_Y = PANEL_BOTTOM + 62;
-const DOUBLE_MIN_WIDTH = 320;
+const ICON_DIAMETER = 64;
+const RETRY_X = 380;
+const HOME_X = 300;
+const DOUBLE_X = 1000;
+const DOUBLE_MIN_WIDTH = 300;
+const JOINS_Y = 700;
+const TOAST_X = 150;
+const TOAST_Y = 100;
+const BUY_TOAST_Y = 432;
+const FADE_IN_MS = 300;
+const PATH_DELAY_MS = 250;
+const MOMENT_DELAY_MS = 350;
+const BAR_START_ALPHA = 0;
 
-const GRANNY_X = 150;
-const GRANNY_Y = 452;
-const GRANNY_HEIGHT = 340;
-
-const MISSION_X = GAME_WIDTH - 144;
-const MISSION_Y = 320;
-
-const COUNT_UP_MS = 800;
-const TICK_EVERY_MS = 90;
-
-const HEADLINES = ['SO CLOSE!', 'NICE GIG!', 'GREAT GIG!', 'FULL BAND!'] as const;
-const CONFETTI_COLOURS = [
-  COLOUR.grannyPink,
-  COLOUR.sunnyGold,
-  COLOUR.waterBlue,
-  COLOUR.mintGreen,
-] as const;
-const UNEARNED_STAR = 0xd8d4c6;
+const CONFETTI_COLOURS = [COLOUR.grannyPink, COLOUR.sunnyGold, COLOUR.waterBlue, COLOUR.mintGreen];
 
 export class ResultsScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
-  private _coinsText!: Phaser.GameObjects.Text;
-  private _bankText!: Phaser.GameObjects.Text;
+  private _score!: ResultsScore;
+  private _card!: NextRewardCard;
+  private _path!: TourPath;
+  private _pill!: StatPill;
   private _doubleButton: Phaser.GameObjects.Container | null = null;
   /** Phaser reuses scene instances, so this is reset in create() rather than at construction. */
   private _isLeaving = false;
@@ -108,56 +90,83 @@ export class ResultsScene extends Phaser.Scene {
 
   create(data: GigResultData): void {
     this._isLeaving = false;
+    this._doubleButton = null;
     const passed = data.stars > 0;
     const venue = WORLD_DEFS.find((w) => w.id === data.worldId) ?? WORLD_DEFS[0];
+    if (!venue) return;
     const coins = data.score + data.starCoins;
 
-    // Count the gig toward Granny's request before anything reads the bank.
     const mission = applyGigToMission(saveManager.load(), {
       stars: data.stars,
       newStars: data.newStars,
       coins,
     });
     saveManager.save(mission.save);
+    const save = saveManager.load();
+    const vaultBefore = save.vault - coins - (mission.completed ? mission.mission.reward : 0);
 
-    this._buildBackdrop(
-      data.worldId,
-      `${venue?.name ?? ''}  ·  GIG ${data.gig + 1}`.toUpperCase(),
-      passed,
-    );
+    this._buildBackdrop(data.worldId, passed);
+    this._pill = createStatPill(this, PILL_X, PILL_Y, 'coins', vaultBefore);
 
-    this.add
-      .text(
-        CENTRE_X,
-        HEADLINE_Y,
-        HEADLINES[Math.min(data.stars, MAX_STARS_PER_GIG)] ?? '',
-        textStyle('displayL', passed ? COLOUR_HEX.grannyPink : COLOUR_HEX.cloud, COLOUR_HEX.ink),
-      )
-      .setOrigin(0.5);
+    this._score = new ResultsScore(this, {
+      x: CENTRE_X,
+      y: SCORE_Y,
+      ribbon: `${venue.name}  ·  GIG ${data.gig + 1}`.toUpperCase(),
+      data,
+    });
+    this._card = createNextRewardCard(this, {
+      x: CENTRE_X,
+      y: REWARD_Y,
+      onBuy: (reward) => this._buy(reward),
+    });
+    this._card.container.setAlpha(BAR_START_ALPHA);
 
-    this._buildStars(data.stars);
-    this._buildCoins(coins, data.stars);
-    this._buildHint(data);
-    this._buildButtons(data, passed);
-    showMissionCard(this, MISSION_X, MISSION_Y, mission, {
-      celebrateAfterMs: STAR_FIRST_DELAY_MS + data.stars * STAR_STEP_MS + COUNT_UP_MS,
-      onReward: () => this._refreshBank(),
+    const onward = passed ? nextStop(save, WORLD_DEFS, data.worldId, data.gig) : null;
+    this._path = createTourPath(this, {
+      x: CENTRE_X,
+      y: PATH_Y,
+      venue,
+      stars: venueStars(save, data.worldId),
+      played: data.gig,
+      next: onward && onward.venueId === data.worldId ? onward.gig : data.gig,
+      opened: venueJustOpened(save, WORLD_DEFS, data.newStars),
+      locked: nextVenue(save),
+    });
+    this._path.container.setAlpha(BAR_START_ALPHA);
+
+    this._buildButtons(data, passed, onward, coins);
+
+    this._score.start(() => {
+      this._pill.setValue(saveManager.load().vault);
+      if (mission.completed) {
+        showToast(this, TOAST_X, TOAST_Y, `Request done! +${mission.mission.reward}`);
+      }
+      const reward = nextReward(saveManager.load());
+      this._card.show(reward, reward ? Math.min(1, vaultBefore / Math.max(1, reward.cost)) : 0);
+      this._fadeIn(this._card.container, 0);
+      this._fadeIn(this._path.container, PATH_DELAY_MS);
+      this.time.delayedCall(PATH_DELAY_MS + FADE_IN_MS + MOMENT_DELAY_MS, () =>
+        this._path.celebrate(),
+      );
     });
   }
 
-  /** The venue's own art, softened, with the result card on top — the gig happened somewhere, and it still looks like there. */
-  private _buildBackdrop(worldId: string, ribbon: string, passed: boolean): void {
+  private _fadeIn(target: Phaser.GameObjects.Container, delay: number): void {
+    this.tweens.add({
+      targets: target,
+      alpha: 1,
+      duration: FADE_IN_MS,
+      delay,
+      ease: EASE.standardOut,
+    });
+  }
+
+  /** The venue's own art, softened, with Granny on the left — the gig happened somewhere, and it still looks like there. */
+  private _buildBackdrop(worldId: string, passed: boolean): void {
     drawWorldBackground(this, worldId);
     this.add
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud, BACKDROP_DIM_ALPHA)
       .setOrigin(0);
-    createPanel(this, {
-      x: CENTRE_X,
-      y: PANEL_Y,
-      width: PANEL_WIDTH,
-      height: PANEL_HEIGHT,
-      ribbon,
-    });
 
     const key = SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front');
     if (!this.textures.exists(key)) return;
@@ -176,139 +185,18 @@ export class ResultsScene extends Phaser.Scene {
     }
   }
 
-  private _buildStars(earned: number): void {
-    for (let i = 0; i < MAX_STARS_PER_GIG; i++) {
-      const isMiddle = i === 1;
-      const x = CENTRE_X + (i - 1) * STAR_SPACING;
-      const y = STARS_Y - (isMiddle ? MIDDLE_STAR_LIFT : 0);
-      const size = isMiddle ? MIDDLE_STAR_SCALE : 1;
-
-      const slot = this.add.graphics({ x, y }).setScale(size);
-      drawStarIcon(slot, STAR_RADIUS + STAR_OUTLINE_PX, shade(UNEARNED_STAR, 0.8));
-      drawStarIcon(slot, STAR_RADIUS, UNEARNED_STAR);
-      if (i >= earned) continue;
-
-      const star = this.add.graphics({ x, y }).setScale(0);
-      drawStarIcon(star, STAR_RADIUS + STAR_OUTLINE_PX, COLOUR.ink);
-      drawStarIcon(star, STAR_RADIUS, COLOUR.sunnyGold);
-      this.tweens.add({
-        targets: star,
-        scale: size,
-        duration: DURATION.celebration,
-        ease: EASE.bouncy,
-        delay: STAR_FIRST_DELAY_MS + i * STAR_STEP_MS,
-        onStart: () => {
-          playStarChime(i);
-          if (i === MAX_STARS_PER_GIG - 1) {
-            this.cameras.main.shake(160, 0.006);
-            spawnConfetti(this, CENTRE_X - STAR_SPACING, STARS_Y, CONFETTI_COLOURS);
-            spawnConfetti(this, CENTRE_X, STARS_Y - MIDDLE_STAR_LIFT, CONFETTI_COLOURS);
-            spawnConfetti(this, CENTRE_X + STAR_SPACING, STARS_Y, CONFETTI_COLOURS);
-          }
-        },
-      });
-    }
-  }
-
-  private _buildCoins(coins: number, stars: number): void {
-    const icon = this.add.graphics({ x: CENTRE_X - 70, y: COINS_Y });
-    drawCoinIcon(icon, COIN_RADIUS + 4, COLOUR.ink, COLOUR.ink);
-    drawCoinIcon(icon, COIN_RADIUS, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
-
-    this._coinsText = this.add
-      .text(
-        CENTRE_X - 34,
-        COINS_Y,
-        '+0',
-        textStyle('displayL', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
-      )
-      .setOrigin(0, 0.5);
-    this._bankText = this.add
-      .text(CENTRE_X, BANK_Y, '', textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud))
-      .setOrigin(0.5);
-    this._refreshBank();
-
-    // The count-up waits for the stars: one beat at a time.
-    this.time.delayedCall(STAR_FIRST_DELAY_MS + stars * STAR_STEP_MS, () =>
-      this._countUp(0, coins),
-    );
-  }
-
-  private _refreshBank(): void {
-    this._bankText.setText(`${this._unlocks.getVault()} coins in the bank`);
-  }
-
-  private _countUp(from: number, to: number): void {
-    const counter = { value: from };
-    let lastTickAt = 0;
-    this.tweens.add({
-      targets: counter,
-      value: to,
-      duration: to > from ? COUNT_UP_MS : 0,
-      ease: EASE.standardOut,
-      onUpdate: (tween) => {
-        this._coinsText.setText(`+${Math.round(counter.value)}`);
-        if (tween.elapsed - lastTickAt >= TICK_EVERY_MS) {
-          lastTickAt = tween.elapsed;
-          SFX.playTick(false);
-        }
-      },
-      onComplete: () => this._coinsText.setText(`+${to}`),
-    });
-  }
-
   /**
-   * One line that always points at the next thing worth doing. After a pass
-   * that is who joins the band next — the strongest reason to press NEXT is
-   * a new musician waiting behind it.
+   * The action row. Exactly one large primary action — NEXT GIG after a pass,
+   * TRY AGAIN after a miss — flanked by round icon buttons for retry and home
+   * and the smaller gold rewarded option. Under NEXT GIG: who joins.
    */
-  private _buildHint(data: GigResultData): void {
-    this.add
-      .text(
-        CENTRE_X,
-        HINT_Y,
-        this._hintFor(data),
-        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
-      )
-      .setOrigin(0.5);
-  }
-
-  private _hintFor(data: GigResultData): string {
-    if (data.stars === 0) {
-      return `${data.peakFullSpinners} of ${data.totalSpinners} playing at once — get more of the band going for a star`;
-    }
-    const save = saveManager.load();
-    const onward = nextStop(save, WORLD_DEFS, data.worldId, data.gig);
-    const venue = WORLD_DEFS.find((w) => w.id === data.worldId);
-    if (onward && venue && onward.venueId === data.worldId) {
-      const joining = musiciansJoining(
-        data.worldId,
-        gigFor(venue, data.gig).band,
-        gigFor(venue, onward.gig).band,
-      );
-      if (joining.length > 0) {
-        const last = joining[joining.length - 1] ?? '';
-        const names =
-          joining.length === 1 ? last : `${joining.slice(0, -1).join(', ')} and ${last}`;
-        return `Next gig adds ${names}`;
-      }
-    }
-    if (data.stars < MAX_STARS_PER_GIG) return 'Get the whole band playing at once for three stars';
-    const locked = nextLockedVenue(save, WORLD_DEFS);
-    return locked
-      ? `${locked.starsNeeded} more ${locked.starsNeeded === 1 ? 'star' : 'stars'} to open the ${locked.venue.name}`
-      : 'The whole band, playing together!';
-  }
-
-  /**
-   * The action row. Exactly one large primary action — carry on if there is
-   * somewhere to go, otherwise play this gig again — flanked by round icon
-   * buttons for the things nobody needs to read: retry and home.
-   */
-  private _buildButtons(data: GigResultData, passed: boolean): void {
+  private _buildButtons(
+    data: GigResultData,
+    passed: boolean,
+    onward: TourStop | null,
+    coins: number,
+  ): void {
     const here: TourStop = { venueId: data.worldId, gig: data.gig };
-    const onward = passed ? nextStop(saveManager.load(), WORLD_DEFS, data.worldId, data.gig) : null;
-
     createButton(this, {
       x: CENTRE_X,
       y: ACTIONS_Y,
@@ -320,31 +208,58 @@ export class ResultsScene extends Phaser.Scene {
     });
     if (onward) {
       createIconButton(this, {
-        x: CENTRE_X - SIDE_ACTION_OFFSET_X,
+        x: RETRY_X,
         y: ACTIONS_Y,
         icon: drawRetryIcon,
+        diameter: ICON_DIAMETER,
         onClick: () => void this._play(here),
       });
+      this._buildJoins(data, onward);
     }
     createIconButton(this, {
-      x: CENTRE_X + SIDE_ACTION_OFFSET_X,
+      x: HOME_X,
       y: ACTIONS_Y,
       icon: drawHomeIcon,
+      diameter: ICON_DIAMETER,
       onClick: () => this._toMenu(),
     });
-
-    const coins = data.score + data.starCoins;
     if (coins <= 0) return; // nothing worth doubling
     this._doubleButton = createButton(this, {
-      x: CENTRE_X,
-      y: DOUBLE_Y,
-      label: 'Double your coins',
+      x: DOUBLE_X,
+      y: ACTIONS_Y,
+      label: 'Double coins',
       variant: 'reward',
       size: 'sm',
       minWidth: DOUBLE_MIN_WIDTH,
       showPlayIcon: true,
       onClick: () => void this._onDouble(coins),
     });
+  }
+
+  /** "The Marimba joins!" under NEXT GIG — a new musician waiting is the strongest reason to press it. */
+  private _buildJoins(data: GigResultData, onward: TourStop): void {
+    const line = joinsLine(data.worldId, data.gig, onward);
+    if (!line) return;
+    this.add
+      .text(CENTRE_X, JOINS_Y, line, textStyle('bodyL', COLOUR_HEX.grannyPink, COLOUR_HEX.cloud))
+      .setOrigin(0.5);
+  }
+
+  /** Spends the coins, equips the purchase, celebrates, and moves the card on to the next thing to save for. */
+  private _buy(reward: NextReward): void {
+    const bought =
+      reward.kind === 'gun'
+        ? this._unlocks.unlockGun(reward.id)
+        : this._unlocks.unlockGranny(reward.id);
+    if (!bought) return;
+    if (reward.kind === 'gun') this._unlocks.selectGun(reward.id);
+    else this._unlocks.selectGranny(reward.id);
+
+    playStarChime(2);
+    spawnConfetti(this, CENTRE_X, REWARD_Y, CONFETTI_COLOURS);
+    showToast(this, CENTRE_X, BUY_TOAST_Y, `Unlocked ${reward.name}! ${reward.perk}`);
+    this._pill.setValue(this._unlocks.getVault());
+    this._card.show(nextReward(saveManager.load()));
   }
 
   /** Starts a gig through the same between-runs ad gate as every other way into play. */
@@ -373,10 +288,13 @@ export class ResultsScene extends Phaser.Scene {
   private async _onDouble(coins: number): Promise<void> {
     const watched = await adManager.playRewarded('medium', AD_MUTE_HOOKS);
     if (!watched) return;
+    const before = nextReward(saveManager.load());
     this._unlocks.addStars(coins); // the gig's coins are already banked — this adds them again
     this._doubleButton?.destroy();
     this._doubleButton = null;
-    this._countUp(coins, coins * 2);
-    this._refreshBank();
+    this._score.countTo(coins, coins * 2, DURATION.celebration * 2);
+    this._pill.setValue(this._unlocks.getVault());
+    const after = nextReward(saveManager.load());
+    this._card.show(after, before ? before.progress : undefined);
   }
 }

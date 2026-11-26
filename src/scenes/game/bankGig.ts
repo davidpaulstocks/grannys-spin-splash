@@ -3,7 +3,7 @@
  * best rating kept, coins added, newly earned stars paid.
  */
 
-import type { GigDef } from '../../entities/world/gigs.data';
+import { starTargets, type GigDef } from '../../entities/world/gigs.data';
 import type { WorldDef } from '../../entities/world/world.types';
 import { recordGig } from '../../systems/Progress';
 import { saveManager } from '../../systems/SaveManager';
@@ -26,12 +26,13 @@ export function bankGig(finished: FinishedGig): GigResultData {
   // Bank the gig: best rating kept, coins added, newly earned stars paid.
   const result = recordGig(saveManager.load(), world.id, gig.index, stars, score);
   const save = result.save;
-  const previousBest = save.bestByWorld[world.id] ?? 0;
-  const isNewBest = score > previousBest;
+  const { previousBest, isNewBest } = result;
+  // The world-wide best stays alongside the per-gig one (the dev harness and highScore read it).
+  const beatsWorldBest = score > (save.bestByWorld[world.id] ?? 0);
   saveManager.save({
     ...save,
     highScore: Math.max(save.highScore, score),
-    bestByWorld: isNewBest ? { ...save.bestByWorld, [world.id]: score } : save.bestByWorld,
+    bestByWorld: beatsWorldBest ? { ...save.bestByWorld, [world.id]: score } : save.bestByWorld,
   });
 
   return {
@@ -39,6 +40,7 @@ export function bankGig(finished: FinishedGig): GigResultData {
     worldId: world.id,
     previousBest,
     isNewBest,
+    targets: starTargets(gig),
     peakFullSpinners: finished.peakFullSpinners,
     totalSpinners: finished.totalSpinners,
     reachedFrenzy: finished.reachedFrenzy,

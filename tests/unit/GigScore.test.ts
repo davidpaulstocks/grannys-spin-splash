@@ -1,106 +1,107 @@
-/** GigScore unit tests — coin/star rules: stars never fall, each pays once, tiers pay once per spinner, playing instruments tip by the second. */
+/** GigScore unit tests — pay ticks, pay by speed, multiplier, stars locked in by coin targets. */
 
 import { describe, expect, it, vi } from 'vitest';
 
 import { SpinnerState } from '../../src/entities/spinner/spinner.types';
-import {
-  COINS_PER_LEVEL_UP,
-  COINS_PER_STAR,
-  GigScore,
-  TIP_COINS_PER_PLAYER_SECOND,
-} from '../../src/scenes/game/GigScore';
+import { GigScore, PAY_TICK_MS, payFor } from '../../src/scenes/game/GigScore';
 
 /** config.ts pulls in Phaser (which needs a canvas), and GigScore only wants the two canvas sizes. */
 vi.mock('../../src/config', () => ({ GAME_WIDTH: 1280, GAME_HEIGHT: 720 }));
 
-function makeScore(): { score: GigScore; float: ReturnType<typeof vi.fn> } {
+function makeScore(targets: readonly [number, number, number] = [10, 20, 40]): {
+  score: GigScore;
+  float: ReturnType<typeof vi.fn>;
+} {
   const float = vi.fn();
-  return { score: new GigScore(float), float };
+  return { score: new GigScore(float, targets), float };
 }
 
+describe('payFor', () => {
+  it('pays 0 / 1 / 2 / 4 by how fast an instrument spins', () => {
+    expect(payFor(SpinnerState.STOPPED)).toBe(0);
+    expect(payFor(SpinnerState.SLOW)).toBe(1);
+    expect(payFor(SpinnerState.MEDIUM)).toBe(2);
+    expect(payFor(SpinnerState.FULL)).toBe(4);
+  });
+});
+
+describe('GigScore tick', () => {
+  it('pays nothing until a whole tick has passed, then the summed pay', () => {
+    const { score } = makeScore();
+    expect(score.tick(PAY_TICK_MS - 1, [1, 2, 4], 1)).toBe(0);
+    expect(score.coins).toBe(0);
+    expect(score.tick(1, [1, 2, 4], 1)).toBe(7);
+    expect(score.coins).toBe(7);
+  });
+
+  it('applies the multiplier and rounds to whole coins', () => {
+    const { score } = makeScore();
+    expect(score.tick(PAY_TICK_MS, [4, 4], 3)).toBe(24);
+    expect(score.tick(PAY_TICK_MS, [1], 1.5)).toBe(2); // 1.5 rounds up
+  });
+
+  it('carries the leftover time into the next tick', () => {
+    const { score } = makeScore();
+    score.tick(PAY_TICK_MS * 0.75, [4], 1);
+    expect(score.tick(PAY_TICK_MS * 0.75, [4], 1)).toBe(4);
+    expect(score.tick(PAY_TICK_MS * 0.25, [4], 1)).toBe(0);
+    expect(score.tick(PAY_TICK_MS * 0.25, [4], 1)).toBe(4);
+  });
+
+  it('pays every tick a long frame spans', () => {
+    const { score } = makeScore();
+    expect(score.tick(PAY_TICK_MS * 3, [2], 1)).toBe(6);
+  });
+
+  it('pays nothing for an empty or stopped band', () => {
+    const { score } = makeScore();
+    expect(score.tick(PAY_TICK_MS, [], 5)).toBe(0);
+    expect(score.tick(PAY_TICK_MS, [0, 0], 5)).toBe(0);
+  });
+});
+
 describe('GigScore stars', () => {
-  it('pays COINS_PER_STAR for each star reached, with one call-out for the rating now held', () => {
-    const { score, float } = makeScore();
-    score.awardStars(2);
-    expect(score.stars).toBe(2);
-    expect(score.coins).toBe(2 * COINS_PER_STAR);
-    // Two stars earned in the same instant are one moment, not two labels overprinting.
+  it('locks in a star as each target is passed, calling out the rating once', () => {
+    const { score, float } = makeScore([10, 20, 40]);
+    score.tick(PAY_TICK_MS, [9], 1);
+    expect(score.stars).toBe(0);
+    score.tick(PAY_TICK_MS, [1], 1); // 10
+    expect(score.stars).toBe(1);
     expect(float).toHaveBeenCalledTimes(1);
-    score.awardStars(2);
-    expect(float).toHaveBeenCalledTimes(1); // nothing new, nothing said
-    score.awardStars(3);
-    expect(float).toHaveBeenCalledTimes(2);
-  });
-
-  it('never decreases, and each star pays only once', () => {
-    const { score } = makeScore();
-    score.awardStars(3);
-    score.awardStars(1);
-    score.awardStars(3);
+    expect(float.mock.calls[0]?.[2]).toBe('ONE STAR!');
+    score.tick(PAY_TICK_MS, [10], 1); // 20
+    expect(score.stars).toBe(2);
+    score.tick(PAY_TICK_MS, [20], 1); // 40
     expect(score.stars).toBe(3);
-    expect(score.coins).toBe(3 * COINS_PER_STAR);
+    expect(float.mock.calls.map((c) => c[2])).toEqual(['ONE STAR!', 'TWO STARS!', 'THREE STARS!']);
+  });
+
+  it('two targets passed in one go are one call-out for the rating now held', () => {
+    const { score, float } = makeScore([10, 20, 40]);
+    score.addCoins(25);
+    expect(score.stars).toBe(2);
+    expect(float).toHaveBeenCalledTimes(1);
+    expect(float.mock.calls[0]?.[2]).toBe('TWO STARS!');
+  });
+
+  it('never calls out a star twice and never goes past three', () => {
+    const { score, float } = makeScore([10, 20, 40]);
+    score.addCoins(1000);
+    score.addCoins(1000);
+    expect(score.stars).toBe(3);
+    expect(float).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('GigScore level-up coins', () => {
-  it('pays coins times the multiplier the first time a spinner reaches a tier', () => {
-    const { score } = makeScore();
-    expect(score.levelUp(1, SpinnerState.SLOW, 3)).toBe(COINS_PER_LEVEL_UP * 3);
-    expect(score.coins).toBe(COINS_PER_LEVEL_UP * 3);
-  });
-
-  it('pays nothing for re-climbing a tier that spinner already reached', () => {
-    const { score } = makeScore();
-    score.levelUp(1, SpinnerState.SLOW, 1);
-    score.levelUp(1, SpinnerState.MEDIUM, 1);
-    const before = score.coins;
-    expect(score.levelUp(1, SpinnerState.SLOW, 1)).toBe(0);
-    expect(score.levelUp(1, SpinnerState.MEDIUM, 1)).toBe(0);
-    expect(score.coins).toBe(before);
-  });
-
-  it('tracks each spinner independently', () => {
-    const { score } = makeScore();
-    score.levelUp(1, SpinnerState.FULL, 1);
-    expect(score.levelUp(2, SpinnerState.FULL, 1)).toBe(COINS_PER_LEVEL_UP);
-  });
-
-  it('forgets tiers on reset so a new gig pays again', () => {
-    const { score } = makeScore();
-    score.levelUp(1, SpinnerState.FULL, 1);
-    score.reset();
+describe('GigScore reset', () => {
+  it("empties the gig and takes the next gig's targets", () => {
+    const { score } = makeScore([10, 20, 40]);
+    score.addCoins(100);
+    score.reset([50, 100, 200]);
     expect(score.coins).toBe(0);
-    expect(score.levelUp(1, SpinnerState.FULL, 1)).toBe(COINS_PER_LEVEL_UP);
-  });
-
-  it('floats a labelled "+N" only when something was paid', () => {
-    const { score, float } = makeScore();
-    score.showCoinText(0, 1, 10, 20);
-    expect(float).not.toHaveBeenCalled();
-    score.showCoinText(2, 2, 10, 20);
-    expect(float).toHaveBeenCalledWith(10, 20, '+2 ×2', expect.any(String));
-  });
-});
-
-describe('GigScore tips', () => {
-  it('pays every playing instrument by the second', () => {
-    const { score } = makeScore();
-    const paid = score.payTips(2000, 4);
-    expect(paid).toBe(Math.floor(2 * 4 * TIP_COINS_PER_PLAYER_SECOND));
-    expect(score.coins).toBe(paid);
-  });
-
-  it('carries a part-coin across frames', () => {
-    const { score } = makeScore();
-    const frameMs = 1000 / TIP_COINS_PER_PLAYER_SECOND / 2;
-    expect(score.payTips(frameMs, 1)).toBe(0);
-    expect(score.payTips(frameMs, 1)).toBe(1);
-    expect(score.coins).toBe(1);
-  });
-
-  it('pays nothing when nothing is playing', () => {
-    const { score } = makeScore();
-    expect(score.payTips(10_000, 0)).toBe(0);
-    expect(score.coins).toBe(0);
+    expect(score.stars).toBe(0);
+    expect(score.targets).toEqual([50, 100, 200]);
+    score.addCoins(60);
+    expect(score.stars).toBe(1);
   });
 });
