@@ -53,3 +53,55 @@ export function resolveAim(
     ? { x: nearest.x, y: nearest.y, target: nearest, snapped: true }
     : { x: rawX, y: rawY, target: null, snapped: false };
 }
+
+/**
+ * Magnetic aim (2026-11-26): the water always goes to a musician. The target
+ * is the spinner nearest the pointer with no distance limit, so there are no
+ * dead zones between spinners. To stop the choice flickering along the
+ * boundary between two spinners, the current target is kept unless another
+ * is nearer by more than `margin`. With no targets the raw point comes back
+ * unsnapped.
+ */
+export function resolveMagneticAim(
+  pointer: { readonly x: number; readonly y: number },
+  targets: readonly AimTarget[],
+  currentTargetId: number | null,
+  margin: number,
+): AimResult {
+  let nearest: AimTarget | null = null;
+  let nearestDist = Infinity;
+  let current: AimTarget | null = null;
+  let currentDist = Infinity;
+  for (const t of targets) {
+    const d = distance(pointer.x, pointer.y, t.x, t.y);
+    if (d < nearestDist) {
+      nearestDist = d;
+      nearest = t;
+    }
+    if (t.id === currentTargetId) {
+      current = t;
+      currentDist = d;
+    }
+  }
+  const chosen = current && currentDist <= nearestDist + margin ? current : nearest;
+  return chosen
+    ? { x: chosen.x, y: chosen.y, target: chosen, snapped: true }
+    : { x: pointer.x, y: pointer.y, target: null, snapped: false };
+}
+
+/**
+ * Pushes `point` away from `pivot` by `gain` (1 = unchanged) and clamps the
+ * result to the rectangle `0..width` by `0..height` — the mouse reach assist.
+ */
+export function scaleAboutPivot(
+  point: { readonly x: number; readonly y: number },
+  pivot: { readonly x: number; readonly y: number },
+  gain: number,
+  width: number,
+  height: number,
+): { x: number; y: number } {
+  return {
+    x: clamp(pivot.x + (point.x - pivot.x) * gain, 0, width),
+    y: clamp(pivot.y + (point.y - pivot.y) * gain, 0, height),
+  };
+}

@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "optimise": "bash tools/sprite-optimise.sh",
+    "instruments": "python3 tools/slice-instrument-sheet.py",
     "samples": "node tools/build-orchestra-samples.ts"
   },
   "dependencies": {

@@ -16,8 +16,15 @@ export type FloatTextFn = (x: number, y: number, message: string, colourHex: str
 export const COINS_PER_LEVEL_UP = 1;
 /** Each star reached in a gig pays this many coins on the spot. */
 export const COINS_PER_STAR = 10;
-/** The encore — everything after FULL BAND — pays one coin per this much Frenzy time. */
-export const ENCORE_COIN_INTERVAL_MS = 500;
+/**
+ * Tips: every instrument playing at full speed earns this many coins a second.
+ * This is what an instrument left to wind down costs you (2026-11-26, David:
+ * "when you get the instrument started it then just is going, so you don't
+ * lose anything if you stop spinning it"). It replaced the encore payout,
+ * which only paid during Frenzy: Frenzy is every instrument at full speed, so
+ * it still pays the most, but now so does simply keeping the band going.
+ */
+export const TIP_COINS_PER_PLAYER_SECOND = 0.35;
 
 /** Where the "one star!" call-outs appear, each a step lower so two earned at once don't overprint. */
 const STAR_TEXT_Y = GAME_HEIGHT * 0.2;
@@ -46,8 +53,8 @@ export class GigScore {
   private _coins = 0;
   /** Stars earned so far this gig (0–3) — they lock in the moment they are reached. */
   private _stars = 0;
-  /** Frenzy time not yet paid out as encore coins. */
-  private _encoreUnpaidMs = 0;
+  /** Tips earned but not yet a whole coin. */
+  private _tipsOwed = 0;
   /** Highest tier each spinner has reached this gig — coins are paid once per tier, per spinner. */
   private readonly _bestTier = new Map<number, number>();
 
@@ -67,7 +74,7 @@ export class GigScore {
   reset(): void {
     this._coins = 0;
     this._stars = 0;
-    this._encoreUnpaidMs = 0;
+    this._tipsOwed = 0;
     this._bestTier.clear();
   }
 
@@ -129,13 +136,16 @@ export class GigScore {
     }
   }
 
-  /** The encore: while Frenzy runs, the clock pays coins. See `FrenzyController.celebrateHit` for why not per hit. */
-  payEncore(deltaMs: number, frenzyActive: boolean): void {
-    if (!frenzyActive) return;
-    this._encoreUnpaidMs += deltaMs;
-    while (this._encoreUnpaidMs >= ENCORE_COIN_INTERVAL_MS) {
-      this._encoreUnpaidMs -= ENCORE_COIN_INTERVAL_MS;
-      this._coins += 1;
-    }
+  /**
+   * Pays tips for `playing` instruments at full speed over `deltaMs`, and
+   * returns the whole coins paid this call (usually 0 or 1).
+   */
+  payTips(deltaMs: number, playing: number): number {
+    if (playing <= 0) return 0;
+    this._tipsOwed += (playing * TIP_COINS_PER_PLAYER_SECOND * deltaMs) / 1000;
+    const paid = Math.floor(this._tipsOwed);
+    this._tipsOwed -= paid;
+    this._coins += paid;
+    return paid;
   }
 }

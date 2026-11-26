@@ -39,6 +39,11 @@ export interface PowerUpCollection {
 export class PowerUpSpawner {
   private readonly _scene: Phaser.Scene;
   private _powerups: PowerUp[] = [];
+
+  /** Where the live pickups are, so aiming can let the player point at one instead of pulling to a spinner. */
+  get points(): readonly { readonly x: number; readonly y: number }[] {
+    return this._powerups;
+  }
   private _nextSpawnAt = 0;
 
   constructor(scene: Phaser.Scene) {

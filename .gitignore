@@ -41,6 +41,8 @@ coverage/
 
 # Sprite work-in-progress (CLAUDE.md §8.3.1 references _reference/)
 _reference/
+# Raw art sheets awaiting the slicer (npm run instruments)
+_art_inbox/
 
 # Misc
 .cache/

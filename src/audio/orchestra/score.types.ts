@@ -6,6 +6,7 @@
  * arrangement.
  */
 
+import type { InstrumentIconId } from './icons';
 import type { Mode } from './theory';
 
 /**
@@ -108,6 +109,8 @@ export interface Part extends Line {
   readonly id: string;
   /** Shown to the player the first time this musician joins: "Flute", "Harp". */
   readonly name: string;
+  /** The painted instrument on this seat's spinner, where the default for its instrument would be wrong. */
+  readonly icon?: InstrumentIconId;
   /** What a barely-spinning musician plays. Defaults to the beat-only outline of `bars`. */
   readonly light?: Bars;
   /** Lines that always sound alongside the full part — a percussionist's second instrument. */

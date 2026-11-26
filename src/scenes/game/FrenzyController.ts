@@ -131,7 +131,7 @@ export class FrenzyController {
    * Keeps the encore loud: nothing can level up while the whole band is
    * locked at full, so without this the climax would be the one stretch of
    * the gig with no sparks and no chime. The coins themselves are paid by
-   * the clock (`GigScore.payEncore`), not per hit — a fast gun lands sixty
+   * the clock (`GigScore.payTips`), not per hit — a fast gun lands sixty
    * hits a second, and paying each one emptied the shop in two rounds.
    */
   celebrateHit(spinner: Spinner): void {

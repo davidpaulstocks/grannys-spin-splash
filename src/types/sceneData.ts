@@ -30,3 +30,8 @@ export interface GigResultData {
   /** Coins paid for the new stars, on top of `score`. */
   readonly starCoins: number;
 }
+
+/** HomeScene → TourScene: which venue's page to open on. Omitted = the one the player is working through. */
+export interface TourSceneData {
+  readonly venueId?: string;
+}

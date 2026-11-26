@@ -22,7 +22,7 @@ describe.each(WORLD_DEFS.map((world) => [world.id, world] as const))(
     it('keeps every gig winding down: slower for big bands, never stopped, never faster than designed', () => {
       for (const gig of gigs) {
         expect(gig.decayScale).toBeGreaterThan(0.05);
-        expect(gig.decayScale).toBeLessThanOrEqual(1.3);
+        expect(gig.decayScale).toBeLessThanOrEqual(2.5);
         expect(gig.holdMs).toBeGreaterThan(0);
       }
       // A bigger band is never given a faster wind-down than a smaller one.

@@ -62,7 +62,7 @@ interface SceneView {
   _peakFullSpinners: number;
   readonly _gig: { readonly seconds: number };
   readonly _spinners: readonly { readonly x: number; readonly y: number; currentSpeed: number }[];
-  readonly _input: { _pointerX: number; _pointerY: number };
+  readonly _input: { _pointerX: number; _pointerY: number; _lastWasTouch: boolean };
   _onFirstInput(): void;
 }
 
@@ -160,6 +160,7 @@ export function installBotSim(game: Phaser.Game): BotSim {
       if (pending && elapsed >= pending.at) {
         scene._input._pointerX = pending.x;
         scene._input._pointerY = pending.y;
+        scene._input._lastWasTouch = true; // 1:1, no reach assist
         pending = null;
       }
       step(1);

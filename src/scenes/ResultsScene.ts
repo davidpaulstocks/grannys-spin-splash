@@ -275,7 +275,7 @@ export class ResultsScene extends Phaser.Scene {
 
   private _hintFor(data: GigResultData): string {
     if (data.stars === 0) {
-      return `${data.peakFullSpinners} of ${data.totalSpinners} awake at once — wake more of the band for a star`;
+      return `${data.peakFullSpinners} of ${data.totalSpinners} playing at once — get more of the band going for a star`;
     }
     const save = saveManager.load();
     const onward = nextStop(save, WORLD_DEFS, data.worldId, data.gig);
@@ -293,7 +293,7 @@ export class ResultsScene extends Phaser.Scene {
         return `Next gig adds ${names}`;
       }
     }
-    if (data.stars < MAX_STARS_PER_GIG) return 'Keep the whole band awake at once for three stars';
+    if (data.stars < MAX_STARS_PER_GIG) return 'Get the whole band playing at once for three stars';
     const locked = nextLockedVenue(save, WORLD_DEFS);
     return locked
       ? `${locked.starsNeeded} more ${locked.starsNeeded === 1 ? 'star' : 'stars'} to open the ${locked.venue.name}`

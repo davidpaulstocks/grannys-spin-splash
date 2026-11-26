@@ -65,6 +65,34 @@ export const BACKGROUND_COLOUR: string = COLOUR_HEX.cloud;
 /** Auto-aim snap radius in px, desktop (CLAUDE.md §6.4). Mobile scales this at call sites. */
 export const AIM_SNAP_RADIUS = 96;
 
+/**
+ * Magnetic aim (2026-11-26, owner: "the actual gameplay of aiming isn't very
+ * fun"): the water always goes to the spinner nearest the aim point, with no
+ * distance limit. The current target is kept until another is nearer by this
+ * many px, so the choice does not flicker on a boundary.
+ */
+export const AIM_MAGNET_MARGIN = 28;
+/**
+ * Mouse/trackpad reach assist: the aim point is the pointer pushed away from
+ * a pivot at the wall's bottom-centre by this factor, so the top row is
+ * reachable without the hand travelling the whole way. 1 turns it off. Touch
+ * is always 1:1 (a finger must hit what it touches).
+ */
+export const AIM_REACH_GAIN = 1.3;
+/** Extra px around a power-up pickup within which aim goes to the pickup instead of the magnet. */
+export const AIM_PICKUP_MARGIN = 16;
+/** How close a water particle must pass to collect a power-up pickup, px (mirrors PowerUp.ts). */
+export const AIM_PICKUP_RADIUS = 22;
+/** Targeting ring: gap outside the spinner's radius, stroke width, and scale-in time on a new target. */
+export const AIM_RING_PADDING = 6;
+export const AIM_RING_STROKE = 4;
+export const AIM_RING_POP_MS = 100;
+/** The ring starts this much larger than its final size when it lands on a new target. */
+export const AIM_RING_POP_FROM = 1.4;
+/** Mouse reticle at the effective aim point: radius and stroke, px. */
+export const AIM_RETICLE_RADIUS = 7;
+export const AIM_RETICLE_STROKE = 3;
+
 /** Granny's on-screen size (CLAUDE.md §8.1 sprite art, wired Sprint 3). */
 export const GRANNY_WIDTH = 96;
 /**
@@ -127,8 +155,20 @@ export const GUN_LENGTH_PX = 148;
  * from speed (`WaterParticle._lifeSeconds`), so it follows automatically.
  */
 const PROTOTYPE_SCALE = 4 / 3;
-export const WATER_PARTICLE_SPEED = Math.round(650 * PROTOTYPE_SCALE);
-export const WATER_PARTICLE_GRAVITY = Math.round(90 * PROTOTYPE_SCALE);
+/**
+ * 2026-11-26: speed raised 1.6x (867 -> 1387 px/s). Owner: "The actual
+ * gameplay of aiming isn't very fun. As you move your finger around on the
+ * cursor it just doesn't feel very good. It's quite hard work to reach the
+ * spinners at the top." The water took about half a second to reach the top
+ * row, so it lagged the hand. Gravity is scaled by the square of the same
+ * factor: droop is g*t^2/2 and flight time shrinks by 1.6, so this keeps the
+ * same gentle sag as before rather than a dead-straight line.
+ */
+const WATER_SPEED_BOOST = 1.6;
+export const WATER_PARTICLE_SPEED = Math.round(650 * PROTOTYPE_SCALE * WATER_SPEED_BOOST);
+export const WATER_PARTICLE_GRAVITY = Math.round(
+  90 * PROTOTYPE_SCALE * WATER_SPEED_BOOST * WATER_SPEED_BOOST,
+);
 export const WATER_PARTICLE_RADIUS = 5;
 export const WATER_PARTICLE_MAX_POOL = 50;
 /** Random horizontal wobble added to each shot's direction, in radians. */
@@ -198,3 +238,9 @@ export const WATER_BAR_MARGIN_X = 96;
  */
 export const WATER_BAR_HEIGHT = 48;
 export const WATER_BAR_Y = GAME_HEIGHT - WATER_BAR_HEIGHT - 24;
+
+/** Pivot of the mouse reach assist: bottom-centre of the spinner wall. */
+export const AIM_REACH_PIVOT = {
+  x: WALL_AREA.x + WALL_AREA.width / 2,
+  y: WALL_AREA.y + WALL_AREA.height,
+} as const;

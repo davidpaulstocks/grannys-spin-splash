@@ -151,3 +151,27 @@ export const SPINNER_DEFS: readonly SpinnerDef[] = [
     isGolden: true,
   },
 ];
+
+/**
+ * The painted instrument in a spinner's hub (InstrumentMount.ts). Sizes are
+ * fractions of the spinner's radius: the picture is as large as it can be
+ * while a clear ring of blade (the outer quarter) still shows around it.
+ */
+export const INSTRUMENT_MOUNT = {
+  /** The instrument picture's side, as a fraction of the spinner radius. */
+  pictureFactor: 1.55,
+  /** The soft disc behind it, as a fraction of the spinner radius. */
+  discFactor: 0.72,
+  /** Ink outline around the disc, px. */
+  discRingPx: 3,
+  discAlpha: 0.92,
+  /** Degrees an asleep instrument slumps to one side. */
+  sleepTiltDegrees: 18,
+  /** Brightness multiplier (0-1) of an asleep instrument. */
+  sleepBrightness: 0.72,
+  /** How much a full pulse enlarges the picture, and lifts it (fraction of radius). */
+  pulseScale: 0.22,
+  pulseLift: 0.08,
+  /** Wake-up straighten tween, ms (CLAUDE.md §5.6 state change). */
+  wakeMs: 200,
+} as const;

@@ -7,6 +7,7 @@
  * literals at any call site, which is the rule's actual intent.
  */
 
+import type { InstrumentIconId } from '../audio/orchestra/icons';
 import type { GrannyPose } from '../entities/granny/granny.types';
 import type { GunAngle } from '../entities/gun/gun.types';
 
@@ -21,6 +22,10 @@ export const SPRITE_KEYS = {
   gunAnglePath: (gunId: string, angle: GunAngle): string => `sprites/guns/${gunId}/${angle}.webp`,
   gunAnchorKey: (gunId: string): string => `gun_${gunId}_anchor`,
   gunAnchorPath: (gunId: string): string => `sprites/guns/${gunId}/anchor.json`,
+
+  /** public/sprites/instruments/<icon>.webp — one painted instrument per icon id (INSTRUMENT_ART_BRIEF.md). */
+  instrumentIcon: (icon: InstrumentIconId): string => `instrument_${icon}`,
+  instrumentIconPath: (icon: InstrumentIconId): string => `sprites/instruments/${icon}.webp`,
 
   /** public/sprites/ui/*.webp */
   titleWordmark: 'ui_wordmark',

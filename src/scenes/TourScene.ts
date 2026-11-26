@@ -26,7 +26,7 @@ import {
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
-import type { GameSceneData } from '../types/sceneData';
+import type { GameSceneData, TourSceneData } from '../types/sceneData';
 import { createIconButton } from '../ui/IconButton';
 import { drawBackIcon, drawForwardIcon, drawLockIcon } from '../ui/icons';
 import { createPanel } from '../ui/Panel';
@@ -77,9 +77,16 @@ export class TourScene extends Phaser.Scene {
   private _dots: Phaser.GameObjects.Arc[] = [];
   /** Phaser reuses scene instances, so this is reset in create() rather than at construction. */
   private _isLeaving = false;
+  /** The venue Home had selected, if it said so; else the tour opens on the frontier. */
+  private _startVenueId: string | undefined;
 
   constructor() {
     super('TourScene');
+  }
+
+  /** Phaser hands the scene its data on every start; remembers which venue to open on. */
+  init(data?: TourSceneData): void {
+    this._startVenueId = data?.venueId;
   }
 
   create(): void {
@@ -88,7 +95,9 @@ export class TourScene extends Phaser.Scene {
     // Open on the venue the player is working through, not always the first.
     this._page = Math.max(
       0,
-      WORLD_DEFS.findIndex((w) => w.id === frontier(save, WORLD_DEFS).venueId),
+      WORLD_DEFS.findIndex(
+        (w) => w.id === (this._startVenueId ?? frontier(save, WORLD_DEFS).venueId),
+      ),
     );
 
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud).setOrigin(0);

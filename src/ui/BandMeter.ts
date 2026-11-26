@@ -109,7 +109,7 @@ export class BandMeter {
     });
     this._awake = awake;
     this._label
-      .setText(complete ? 'FULL BAND!' : `${awake} of ${total} awake`)
+      .setText(complete ? 'FULL BAND!' : `${awake} of ${total} playing`)
       .setColor(complete ? COLOUR_HEX.sunnyGold : COLOUR_HEX.cloud);
   }
 

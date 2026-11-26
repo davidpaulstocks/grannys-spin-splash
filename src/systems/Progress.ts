@@ -21,6 +21,11 @@ export function venueStars(save: SaveData, venueId: string): readonly number[] {
   return Array.from({ length: GIGS_PER_VENUE }, (_, i) => stored[i] ?? 0);
 }
 
+/** Stars held in one venue, 0 to `GIGS_PER_VENUE * MAX_STARS_PER_GIG` — the "n / 24" on a venue tile. */
+export function venueStarTotal(save: SaveData, venueId: string): number {
+  return venueStars(save, venueId).reduce((sum, stars) => sum + stars, 0);
+}
+
 export function totalStars(save: SaveData): number {
   return Object.values(save.gigStars)
     .flat()
@@ -29,6 +34,11 @@ export function totalStars(save: SaveData): number {
 
 export function isVenueOpen(save: SaveData, venue: WorldDef): boolean {
   return totalStars(save) >= venue.starsToOpen;
+}
+
+/** How many more stars a venue needs before it opens; 0 once it is open. */
+export function starsToGo(save: SaveData, venue: WorldDef): number {
+  return Math.max(0, venue.starsToOpen - totalStars(save));
 }
 
 /** A gig can be played once the one before it has been passed (one star or more). */

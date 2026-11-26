@@ -9,10 +9,9 @@ import Phaser from 'phaser';
 import { MAX_SPEED_HOLD_MS, MAX_SPINNER_SPEED, SPINNER_STATE_THRESHOLDS } from './spinner.data';
 import { SpinnerState, type SpinnerDef } from './spinner.types';
 import { drawInstrumentBadge } from './instrumentBadge';
+import { InstrumentMount } from './InstrumentMount';
 import { drawSpinner } from './spinnerRenderers';
-import { COLOUR, COLOUR_HEX } from '../../utils/colour';
-import { EASE } from '../../utils/tween';
-import { textStyle } from '../../utils/typography';
+import { COLOUR } from '../../utils/colour';
 
 /** Degrees-per-second-per-speed-unit for the visible spin (prototype: `angle += speed * 0.065 * dt`). */
 const SPIN_ROTATION_FACTOR = 0.065;
@@ -35,16 +34,11 @@ const PULSE_FLASH_ALPHA = 0.5;
 const PULSE_DECAY_SECONDS = 0.11;
 
 /**
- * A stopped spinner is a musician asleep, and says so: three Zs drift up
- * from it. An awake one that is about to drop out of full speed nods — a
- * slow rock from side to side — so the player can see which musician needs
- * them next. Together these are the game's goal made visible: wake the
- * band, and keep them awake (2026-11-25, direct user feedback: "I'm not
- * entirely sure what the purpose of the game is").
+ * An instrument about to drop out of full speed rocks slowly from side to
+ * side, so the player can see which one needs them next. (The "z z z" over a
+ * stopped spinner went 2026-11-26 with the wake/sleep framing: a stopped
+ * instrument is simply quiet.)
  */
-const SLEEP_TEXT = 'z z z';
-const SLEEP_BOB_PX = 10;
-const SLEEP_BOB_MS = 1100;
 /** Below this speed a spinner at full is on its way out, and nods. */
 const DROWSY_SPEED = 90;
 const DROWSY_ROCK_DEGREES = 7;
@@ -107,7 +101,7 @@ export class Spinner extends Phaser.GameObjects.Container {
   private readonly _bladeGfx: Phaser.GameObjects.Graphics;
   private readonly _glowGfx: Phaser.GameObjects.Graphics;
   private readonly _flashGfx: Phaser.GameObjects.Graphics;
-  private readonly _sleep: Phaser.GameObjects.Text;
+  private readonly _instrument: InstrumentMount | null = null;
   private _pulse = 0;
 
   // Funfair-only: side-to-side drift (§1, world.data.ts's `movingTargets`).
@@ -138,28 +132,19 @@ export class Spinner extends Phaser.GameObjects.Container {
     this._flashGfx.fillStyle(0xffffff, 1);
     this._flashGfx.fillCircle(0, 0, def.r);
     this._flashGfx.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    this._sleep = scene.add
-      .text(
-        def.r * 0.55,
-        -def.r * 0.95,
-        SLEEP_TEXT,
-        textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
-      )
-      .setOrigin(0, 1);
-    scene.tweens.add({
-      targets: this._sleep,
-      y: this._sleep.y - SLEEP_BOB_PX,
-      alpha: 0.55,
-      duration: SLEEP_BOB_MS,
-      ease: EASE.standardOut,
-      yoyo: true,
-      repeat: -1,
-    });
-    // The badge is added after the blades and never rotated: the blades
-    // turn under it, so what the spinner *is* can always be read.
+    // The instrument is added after the blades and never rotated: the blades
+    // turn under it, so what the spinner *is* can always be read. Painted art
+    // when it exists; otherwise the drawn badge for the musician's section.
     const badge = scene.add.graphics();
-    if (def.family) drawInstrumentBadge(badge, def.family, def.r);
-    this.add([this._glowGfx, this._bladeGfx, badge, this._flashGfx, this._sleep]);
+    if (InstrumentMount.canMount(scene, def.icon) && def.icon) {
+      this._instrument = new InstrumentMount(scene, def.icon, def.r, this.id % 2 === 0 ? 1 : -1);
+      scene.add.existing(this._instrument);
+    } else if (def.family) {
+      drawInstrumentBadge(badge, def.family, def.r);
+    }
+    this.add([this._glowGfx, this._bladeGfx, badge]);
+    if (this._instrument) this.add(this._instrument);
+    this.add(this._flashGfx);
     scene.add.existing(this);
 
     drawSpinner(this._bladeGfx, this._glowGfx, this.def, this.currentState);
@@ -180,7 +165,7 @@ export class Spinner extends Phaser.GameObjects.Container {
     this._bladeGfx.rotation += this.currentSpeed * SPIN_ROTATION_FACTOR * dt;
     this._pulse *= Math.exp(-dt / PULSE_DECAY_SECONDS);
     this._flashGfx.setAlpha(this._pulse * PULSE_FLASH_ALPHA);
-    this._sleep.setVisible(this.currentSpeed <= 0);
+    this._instrument?.sync(this._pulse, this.currentSpeed <= 0);
     this._updateDrowsiness(time);
     this._updateWobble(time);
     this._updateDrift(dt);

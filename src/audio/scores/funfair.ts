@@ -82,6 +82,7 @@ export const FUNFAIR_SCORE: Score = {
       light: ['. . . f . . . f'],
     }),
     held('euphonium', 'Euphonium', 'trombone_sus', 46, 0.46, ['z - - - f - - -'], {
+      icon: 'euphonium',
       light: ['z -'],
     }),
     held(
@@ -96,6 +97,7 @@ export const FUNFAIR_SCORE: Score = {
       },
     ),
     struck('guitar', 'Guitar', 'jazz_guitar', 53, 0.42, ['r f o f r f o f'], {
+      icon: 'acoustic_guitar',
       light: ['r . o . r . o .'],
     }),
   ],

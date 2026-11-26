@@ -233,11 +233,15 @@ export class GameScene extends Phaser.Scene {
     // never sees those releases at all — so held pointer state is dropped
     // going both ways. Without this, one two-finger pause permanently
     // soft-locked the rest of the run (see InputManager.resetPointerState).
-    this.events.on(Phaser.Scenes.Events.PAUSE, () => this._input.resetPointerState());
+    this.events.on(Phaser.Scenes.Events.PAUSE, () => {
+      this._input.resetPointerState();
+      this._fire.showCursor();
+    });
     this.events.on(Phaser.Scenes.Events.RESUME, () => this._input.resetPointerState());
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this._input.destroy();
+      this._fire.showCursor();
       this._golden.destroy();
       // Covers every way this scene can end — round over, quit from pause,
       // or a direct scene.stop() — so the music can never outlive the run.
@@ -302,7 +306,13 @@ export class GameScene extends Phaser.Scene {
     this._music.react(time, this._spinners);
     this._collisions.update();
     this._combo.update(delta);
-    this._gigScore.payEncore(delta, this._frenzy.active);
+    // Tips: instruments at full speed earn by the second, so one left to wind down costs coins.
+    if (this._started) {
+      this._gigScore.payTips(
+        delta,
+        this._spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
+      );
+    }
     this._frenzy.updateWindow(time);
 
     if (this._started) {
@@ -329,6 +339,7 @@ export class GameScene extends Phaser.Scene {
       gun: this._gun,
       powerups: this._powerups,
       activeSpinners: () => this._activeSpinners(),
+      pickupPoints: () => this._powerupSpawner.points,
     });
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
     createPauseButton(this, this._input, () => this._pauseGame());

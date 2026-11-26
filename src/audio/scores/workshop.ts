@@ -35,6 +35,7 @@ export const WORKSHOP_SCORE: Score = {
   seats: [
     // ── The band: drums, bass, rhythm guitar, organ ──────────────────────
     struck('drums', 'Drum Kit', 'kick', 0, 0.8, ['x . . x x . . .'], {
+      icon: 'drum_kit',
       light: ['x . . . x . . .'],
       with: [
         line('snare_kit', 0, 0.6, ['. . x . . . x .']),

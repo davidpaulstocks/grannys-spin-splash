@@ -24,6 +24,7 @@
 
 import Phaser from 'phaser';
 
+import { usesTouchControls } from '../ui/touchControls';
 import { EventEmitter } from '../utils/EventEmitter';
 
 interface TrackedKeys {
@@ -45,6 +46,8 @@ export class InputManager extends EventEmitter {
   private _pointerX = 0;
   private _pointerY = 0;
   private _pointerDown = false;
+  /** Whether the latest aim input was a finger — decides if the mouse reach assist applies. */
+  private _lastWasTouch: boolean;
   private _autoFire = false;
   private _hasFiredFirstInput = false;
   /**
@@ -61,6 +64,7 @@ export class InputManager extends EventEmitter {
   constructor(scene: Phaser.Scene) {
     super();
     this._scene = scene;
+    this._lastWasTouch = usesTouchControls(scene.game);
 
     const kb = scene.input.keyboard;
     if (!kb) throw new Error('InputManager requires a scene with keyboard input enabled');
@@ -99,6 +103,7 @@ export class InputManager extends EventEmitter {
       // moving and firing at once — the whole §6.3 control scheme — sprayed
       // water at the floor. `pointerdown` had this guard; `pointermove` did not.
       if (this._excludedPointerIds.has(pointer.id)) return;
+      this._lastWasTouch = pointer.wasTouch;
       this._pointerX = pointer.worldX;
       this._pointerY = pointer.worldY;
     });
@@ -110,6 +115,7 @@ export class InputManager extends EventEmitter {
       if (this._excludedPointerIds.has(pointer.id)) return;
       this._pointerDown = true;
       this._firingPointerId = pointer.id;
+      this._lastWasTouch = pointer.wasTouch;
       this._pointerX = pointer.worldX;
       this._pointerY = pointer.worldY;
     });
@@ -176,6 +182,11 @@ export class InputManager extends EventEmitter {
   /** Raw pointer/touch position, pre-snap — pass through resolveAim() before using. */
   getPointer(): { x: number; y: number } {
     return { x: this._pointerX, y: this._pointerY };
+  }
+
+  /** True when the latest aim input was a finger (1:1 aim, no reticle); false for mouse/trackpad. */
+  isTouchAim(): boolean {
+    return this._lastWasTouch;
   }
 
   /** True while the gun should be firing — held pointer/touch, or auto-fire toggled on (§6.2). */

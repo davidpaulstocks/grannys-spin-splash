@@ -77,6 +77,7 @@ export const KITCHEN_SCORE: Score = {
       light: ['o . . . . . . .'],
     }),
     struck('guitar', 'Jazz Guitar', 'jazz_guitar', 52, 0.4, ['a+c a+c a+c a+c'], {
+      icon: 'acoustic_guitar',
       light: ['. a+c . a+c'],
     }),
     held(
@@ -111,6 +112,7 @@ export const KITCHEN_SCORE: Score = {
       light: ['r . . . f . . .'],
     }),
     struck('whisk', 'Whisk', 'shaker', 0, 0.45, ['x x? x x? x x? x x?'], {
+      icon: 'whisk',
       light: ['x . x . x . x .'],
       ornament: line('triangle', 0, 0.36, ['. . . x']),
     }),
@@ -118,6 +120,7 @@ export const KITCHEN_SCORE: Score = {
       light: ['. . . . . . . d', '. . . .'],
     }),
     struck('pots', 'Pots & Pans', 'claves', 0, 0.45, ['x . . x . . x .'], {
+      icon: 'pots',
       light: ['x . . . x . . .'],
       ornament: line('cowbell', 0, 0.28, ['. . x . . . x .']),
     }),

@@ -55,7 +55,7 @@ export class GoalCard {
         .text(
           CARD_X,
           CARD_Y + HEADLINE_OFFSET_Y,
-          'Wake the whole band!',
+          'Get the whole band playing!',
           textStyle('buttonM', COLOUR_HEX.ink, COLOUR_HEX.ink),
         )
         .setOrigin(0.5),

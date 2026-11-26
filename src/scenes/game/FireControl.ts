@@ -7,7 +7,22 @@
 import type Phaser from 'phaser';
 
 import { waterSound } from '../../audio/WaterSound';
-import { AIM_SNAP_RADIUS, GRANNY_Y_FROM_BOTTOM } from '../../config';
+import {
+  AIM_MAGNET_MARGIN,
+  AIM_PICKUP_MARGIN,
+  AIM_PICKUP_RADIUS,
+  AIM_REACH_GAIN,
+  AIM_REACH_PIVOT,
+  AIM_RETICLE_RADIUS,
+  AIM_RETICLE_STROKE,
+  AIM_RING_PADDING,
+  AIM_RING_POP_FROM,
+  AIM_RING_POP_MS,
+  AIM_RING_STROKE,
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  GRANNY_Y_FROM_BOTTOM,
+} from '../../config';
 import type { Granny } from '../../entities/granny/Granny';
 import type { Gun } from '../../entities/gun/Gun';
 import type { GunDef } from '../../entities/gun/gun.types';
@@ -17,7 +32,8 @@ import type { WaterJet } from '../../entities/waterParticle/WaterJet';
 import type { InputManager } from '../../systems/InputManager';
 import { spawnFloatingText } from '../../ui/FloatingText';
 import { COLOUR, COLOUR_HEX } from '../../utils/colour';
-import { resolveAim } from '../../utils/math';
+import type { AimResult } from '../../types/input';
+import { distance, resolveMagneticAim, scaleAboutPivot } from '../../utils/math';
 import type { PowerUpEffects } from './PowerUpEffects';
 
 /** What the firing line reads from the rest of the scene. */
@@ -32,15 +48,37 @@ export interface FireControlDeps {
   readonly powerups: PowerUpEffects;
   /** The fixed grid plus a live Golden Spinner, if any — for aim/fire only. */
   readonly activeSpinners: () => readonly Spinner[];
+  /**
+   * Live power-up pickups, so aim can go to one the pointer is on instead of
+   * the magnet pulling to the nearest spinner. Optional: without it pickups
+   * are only collected by shots passing through them.
+   */
+  readonly pickupPoints?: () => readonly { readonly x: number; readonly y: number }[];
 }
 
 export class FireControl {
-  private readonly _crosshair: Phaser.GameObjects.Arc;
+  /** One ring, moved between targets. */
+  private readonly _ring: Phaser.GameObjects.Arc;
+  /** Mouse-only dot at the effective aim point (the OS cursor is hidden). */
+  private readonly _reticle: Phaser.GameObjects.Arc;
+  private _targetId: number | null = null;
+  private _cursorHidden: boolean | null = null;
 
   constructor(private readonly _d: FireControlDeps) {
-    this._crosshair = _d.scene.add
-      .circle(0, 0, 10, COLOUR.softSlate, 0)
-      .setStrokeStyle(3, COLOUR.softSlate);
+    this._ring = _d.scene.add
+      .circle(0, 0, 1, COLOUR.mintGreen, 0)
+      .setStrokeStyle(AIM_RING_STROKE, COLOUR.mintGreen)
+      .setVisible(false);
+    this._reticle = _d.scene.add
+      .circle(0, 0, AIM_RETICLE_RADIUS, COLOUR.cloud)
+      .setStrokeStyle(AIM_RETICLE_STROKE, COLOUR.ink)
+      .setVisible(false);
+  }
+
+  /** Gives the OS cursor back — call on pause and when the scene shuts down. */
+  showCursor(): void {
+    this._d.scene.input.setDefaultCursor('');
+    this._cursorHidden = null;
   }
 
   /**
@@ -93,16 +131,63 @@ export class FireControl {
     );
   }
 
-  /** Resolves the crosshair position against the spinner wall and updates its visual snap feedback. */
-  private _updateAim(): ReturnType<typeof resolveAim> {
-    const pointer = this._d.input.getPointer();
-    const targets = this._d.activeSpinners().map((s) => ({ id: s.id, x: s.x, y: s.y }));
-    const aim = resolveAim(pointer.x, pointer.y, targets, AIM_SNAP_RADIUS);
+  /**
+   * Resolves the aim point: the pointer (pushed outward for mouse/trackpad),
+   * then pulled to the nearest spinner, or left on a pickup it is over.
+   * Also moves the targeting ring and the mouse reticle.
+   */
+  private _updateAim(): AimResult {
+    const d = this._d;
+    const touch = d.input.isTouchAim();
+    const raw = d.input.getPointer();
+    const point = touch
+      ? raw
+      : scaleAboutPivot(raw, AIM_REACH_PIVOT, AIM_REACH_GAIN, GAME_WIDTH, GAME_HEIGHT);
+    this._setCursorHidden(!touch);
+    this._reticle.setVisible(!touch).setPosition(point.x, point.y);
 
-    this._crosshair.setPosition(aim.x, aim.y);
-    this._crosshair.setScale(aim.snapped ? 1.3 : 1);
-    this._crosshair.setStrokeStyle(3, aim.snapped ? COLOUR.mintGreen : COLOUR.softSlate);
+    const onPickup = (d.pickupPoints?.() ?? []).some(
+      (p) => distance(point.x, point.y, p.x, p.y) < AIM_PICKUP_RADIUS + AIM_PICKUP_MARGIN,
+    );
+    const spinners = d.activeSpinners();
+    const targets = spinners.map((s) => ({ id: s.id, x: s.x, y: s.y }));
+    const aim = onPickup
+      ? { x: point.x, y: point.y, target: null, snapped: false }
+      : resolveMagneticAim(point, targets, this._targetId, AIM_MAGNET_MARGIN);
+    this._showRing(aim.target ? (spinners.find((s) => s.id === aim.target?.id) ?? null) : null);
     return aim;
+  }
+
+  /** Keeps the ring on the targeted spinner, popping it in when the target changes. */
+  private _showRing(spinner: Spinner | null): void {
+    const ring = this._ring;
+    if (!spinner) {
+      this._targetId = null;
+      ring.setVisible(false);
+      return;
+    }
+    if (spinner.id !== this._targetId) {
+      this._targetId = spinner.id;
+      this._d.scene.tweens.killTweensOf(ring);
+      ring.setScale(AIM_RING_POP_FROM);
+      this._d.scene.tweens.add({
+        targets: ring,
+        scale: 1,
+        duration: AIM_RING_POP_MS,
+        ease: 'Quad.easeOut',
+      });
+    }
+    ring
+      .setVisible(true)
+      .setPosition(spinner.x, spinner.y)
+      .setRadius(spinner.def.r * spinner.scaleX + AIM_RING_PADDING);
+  }
+
+  /** Hides the OS cursor while a mouse is steering (the reticle replaces it); only touches the DOM on a change. */
+  private _setCursorHidden(hidden: boolean): void {
+    if (hidden === this._cursorHidden) return;
+    this._cursorHidden = hidden;
+    this._d.scene.input.setDefaultCursor(hidden ? 'none' : '');
   }
 
   /**

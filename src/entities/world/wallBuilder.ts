@@ -14,7 +14,8 @@
 import Phaser from 'phaser';
 
 import { WALL_AREA } from '../../config';
-import { musicianAt } from '../../audio/scores';
+import { iconFor, type InstrumentIconId } from '../../audio/orchestra/icons';
+import { musicianAt, resolveScore } from '../../audio/scores';
 import { fitScaleForBand, layoutBand } from '../../utils/grid';
 import { FAMILY_PALETTE } from '../spinner/instrumentBadge';
 import { Obstacle } from '../obstacle/Obstacle';
@@ -33,6 +34,13 @@ import type { WorldDef } from './world.types';
 
 /** How far a drifting spinner swings either side of its mount (prototype: 55px). */
 const MOVING_TARGET_DRIFT_RANGE = 55;
+
+/** The painted instrument for spinner `index` of a venue's wall, or undefined beyond the line-up. */
+function iconAtSeat(worldId: string, index: number): InstrumentIconId | undefined {
+  const score = resolveScore(worldId);
+  const seat = score.seats.find((part) => part.id === score.lineup[index]);
+  return seat ? iconFor(seat) : undefined;
+}
 
 export interface WallArea {
   readonly x: number;
@@ -86,6 +94,7 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
     // colours and the hub badge, so colour means something across every
     // world; the world keeps its identity through its shapes and backdrop.
     const musician = musicianAt(world.id, i);
+    const icon = iconAtSeat(world.id, i);
     const colours = musician ? FAMILY_PALETTE[musician.family] : (typePalettes?.[kind] ?? palette);
     const themedDef: SpinnerDef = {
       ...def,
@@ -96,6 +105,7 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
       ...(sparkle ? { sparkle: true } : {}),
       ...(mount ? { mount } : {}),
       ...(musician ? { family: musician.family } : {}),
+      ...(icon ? { icon } : {}),
     };
     return new Spinner(scene, pos.x, pos.y, themedDef);
   });

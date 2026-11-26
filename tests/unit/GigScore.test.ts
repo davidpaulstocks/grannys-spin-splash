@@ -1,4 +1,4 @@
-/** GigScore unit tests — coin/star rules: stars never fall, each pays once, tiers pay once per spinner, encore pays by the clock. */
+/** GigScore unit tests — coin/star rules: stars never fall, each pays once, tiers pay once per spinner, playing instruments tip by the second. */
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -6,8 +6,8 @@ import { SpinnerState } from '../../src/entities/spinner/spinner.types';
 import {
   COINS_PER_LEVEL_UP,
   COINS_PER_STAR,
-  ENCORE_COIN_INTERVAL_MS,
   GigScore,
+  TIP_COINS_PER_PLAYER_SECOND,
 } from '../../src/scenes/game/GigScore';
 
 /** config.ts pulls in Phaser (which needs a canvas), and GigScore only wants the two canvas sizes. */
@@ -82,24 +82,25 @@ describe('GigScore level-up coins', () => {
   });
 });
 
-describe('GigScore encore', () => {
-  it('pays one coin per interval of Frenzy time', () => {
+describe('GigScore tips', () => {
+  it('pays every playing instrument by the second', () => {
     const { score } = makeScore();
-    score.payEncore(ENCORE_COIN_INTERVAL_MS * 3, true);
-    expect(score.coins).toBe(3);
+    const paid = score.payTips(2000, 4);
+    expect(paid).toBe(Math.floor(2 * 4 * TIP_COINS_PER_PLAYER_SECOND));
+    expect(score.coins).toBe(paid);
   });
 
-  it('carries a part-interval across frames', () => {
+  it('carries a part-coin across frames', () => {
     const { score } = makeScore();
-    score.payEncore(ENCORE_COIN_INTERVAL_MS / 2, true);
-    expect(score.coins).toBe(0);
-    score.payEncore(ENCORE_COIN_INTERVAL_MS / 2, true);
+    const frameMs = 1000 / TIP_COINS_PER_PLAYER_SECOND / 2;
+    expect(score.payTips(frameMs, 1)).toBe(0);
+    expect(score.payTips(frameMs, 1)).toBe(1);
     expect(score.coins).toBe(1);
   });
 
-  it('pays nothing outside Frenzy', () => {
+  it('pays nothing when nothing is playing', () => {
     const { score } = makeScore();
-    score.payEncore(ENCORE_COIN_INTERVAL_MS * 10, false);
+    expect(score.payTips(10_000, 0)).toBe(0);
     expect(score.coins).toBe(0);
   });
 });

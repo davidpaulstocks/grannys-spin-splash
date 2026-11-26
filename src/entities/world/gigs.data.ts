@@ -62,7 +62,7 @@ const SECONDS_BY_GIG = [20, 20, 25, 25, 30, 30, 30, 30] as const;
  * three-stars the Grand Concert near the end.
  */
 const FULL_DECAY_BAND = 4;
-const DECAY_FALLOFF = 1.2;
+const DECAY_FALLOFF = 1.6;
 /**
  * Later venues do not wind down any faster. They are already harder in ways
  * Garden is not — obstacles that block water, whirligigs that deflect it,
@@ -70,8 +70,22 @@ const DECAY_FALLOFF = 1.2;
  * Workshop's middle gigs at one star for every bot, with any gun.
  */
 const DECAY_GAIN_PER_VENUE = 0;
-/** How long a topped-up spinner holds before winding down at all. */
-const HOLD_MS = 2500;
+/**
+ * How long a topped-up spinner holds before winding down at all, and how
+ * fast it then goes, as a multiple of each spinner's own rate.
+ *
+ * Tightened 2026-11-26 (David: "when you get the instrument started it then
+ * just is going... maybe you need to be in a bit more of a rush to go back
+ * and re-spin it. Should the spinners lose momentum a little bit more?").
+ * The hold was 2.5 s and the rate 1x, which left a trio playing untouched
+ * for five seconds and a twelve-piece for twelve. Affordable now because
+ * aiming is quicker: the water always finds an instrument and flies faster.
+ */
+const HOLD_MS = 1200;
+const DECAY_RATE = 1.6;
+/** Bigger bands get a little longer: there is further to travel before coming back round. */
+const HOLD_MS_PER_EXTRA_MUSICIAN = 120;
+const HOLD_MS_MAX = 2400;
 
 /** Drifting spinners arrive one at a time through a venue's later gigs, up to this many. */
 const MAX_MOVING = 3;
@@ -99,9 +113,13 @@ export function gigFor(world: WorldDef, index: number): GigDef {
     band: grid + (feature ? 1 : 0),
     seconds: SECONDS_BY_GIG[gig] ?? world.time,
     decayScale:
+      DECAY_RATE *
       Math.min(1, Math.pow(FULL_DECAY_BAND / grid, DECAY_FALLOFF)) *
       (1 + DECAY_GAIN_PER_VENUE * venueTier),
-    holdMs: HOLD_MS,
+    holdMs: Math.min(
+      HOLD_MS_MAX,
+      HOLD_MS + HOLD_MS_PER_EXTRA_MUSICIAN * Math.max(0, grid - FULL_DECAY_BAND),
+    ),
     obstacles: world.obstacles.slice(0, obstacleCount),
     moving: world.movingTargets ? Math.min(MAX_MOVING, Math.floor(gig / 2)) : 0,
     feature,

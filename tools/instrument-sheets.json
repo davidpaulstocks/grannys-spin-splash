@@ -1,0 +1,32 @@
+{
+  "_comment": "Each sheet is a 3x2 grid read left to right, top to bottom. The list is the icon id of each cell in that order. Keep in step with INSTRUMENT_ICON_IDS in src/audio/orchestra/icons.ts.",
+  "sheets": {
+    "sheet-1-strings": [
+      "violin",
+      "cello",
+      "double_bass",
+      "harp",
+      "acoustic_guitar",
+      "electric_guitar"
+    ],
+    "sheet-2-woodwind-brass": ["flute", "clarinet", "bassoon", "saxophone", "trumpet", "trombone"],
+    "sheet-3-brass-keys": ["french_horn", "tuba", "euphonium", "piano", "organ", "electric_piano"],
+    "sheet-4-mallets-rhythm": [
+      "glockenspiel",
+      "marimba",
+      "vibraphone",
+      "bass_guitar",
+      "drum_kit",
+      "bass_drum"
+    ],
+    "sheet-5-drums-percussion": [
+      "snare_drum",
+      "cymbal",
+      "tom_toms",
+      "congas",
+      "tambourine",
+      "cowbell"
+    ],
+    "sheet-6-shakers-kitchen-odd": ["maracas", "clappers", "whisk", "pots", "anvil", "mirror_ball"]
+  }
+}

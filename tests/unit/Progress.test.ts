@@ -10,8 +10,10 @@ import {
   nextLockedVenue,
   nextStop,
   recordGig,
+  starsToGo,
   totalStars,
   venueStars,
+  venueStarTotal,
 } from '../../src/systems/Progress';
 import { SaveManager } from '../../src/systems/SaveManager';
 import type { SaveData } from '../../src/types/save';
@@ -83,5 +85,31 @@ describe('tour progress', () => {
     WORLD_DEFS.forEach((venue, i) => {
       expect(venue.starsToOpen).toBeLessThanOrEqual(i * GIGS_PER_VENUE * 3);
     });
+  });
+});
+
+describe('venue tiles on Home', () => {
+  it('sums the stars held in one venue only', () => {
+    let save = fresh();
+    save = recordGig(save, 'garden', 0, 3, 0).save;
+    save = recordGig(save, 'garden', 1, 2, 0).save;
+    expect(venueStarTotal(save, 'garden')).toBe(5);
+    expect(venueStarTotal(save, 'workshop')).toBe(0);
+  });
+
+  it('says how many stars a locked venue still needs, and 0 once open', () => {
+    const save = recordGig(fresh(), 'garden', 0, 3, 0).save;
+    if (!workshop) throw new Error('workshop missing');
+    expect(starsToGo(save, workshop)).toBe(workshop.starsToOpen - 3);
+    const garden = WORLD_DEFS[0];
+    if (!garden) throw new Error('garden missing');
+    expect(starsToGo(save, garden)).toBe(0);
+  });
+
+  it('picks a venue gig with currentGig: first unpassed, else the Grand Concert', () => {
+    let save = fresh();
+    expect(currentGig(save, 'workshop')).toBe(0);
+    for (let g = 0; g < GIGS_PER_VENUE; g++) save = recordGig(save, 'workshop', g, 1, 0).save;
+    expect(currentGig(save, 'workshop')).toBe(GIGS_PER_VENUE - 1);
   });
 });

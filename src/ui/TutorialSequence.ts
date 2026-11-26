@@ -32,18 +32,13 @@ export class TutorialSequence {
 
   /** Round start: the "how to play" beat. */
   playHowToPlay(scene: Phaser.Scene): void {
-    showTutorialCaption(
-      scene,
-      GAME_WIDTH / 2,
-      CAPTION_Y,
-      'Squirt a sleepy musician to wake it up!',
-    );
+    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, 'Squirt an instrument to make it play!');
   }
 
   /** First spinner this run to reach FULL: the "purpose of the game" beat. Fires once per round, ever. */
   maybeShowPurpose(scene: Phaser.Scene): void {
     if (this._shownPurpose) return;
     this._shownPurpose = true;
-    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, 'Keep the whole band awake at once!');
+    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, 'Get the whole band playing at once!');
   }
 }

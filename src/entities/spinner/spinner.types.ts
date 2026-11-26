@@ -1,6 +1,7 @@
 /** Spinner state machine + shared types. CLAUDE.md §2, §7.2. */
 
 import type { InstrumentFamily } from '../../audio/orchestra/families';
+import type { InstrumentIconId } from '../../audio/orchestra/icons';
 
 export enum SpinnerState {
   STOPPED = 'STOPPED',
@@ -82,4 +83,9 @@ export interface SpinnerDef {
    * that section's badge in the hub — see instrumentBadge.ts.
    */
   readonly family?: InstrumentFamily;
+  /**
+   * The painted instrument mounted in this spinner's hub, if its art exists —
+   * see InstrumentMount.ts. Without the art the drawn badge is used instead.
+   */
+  readonly icon?: InstrumentIconId;
 }

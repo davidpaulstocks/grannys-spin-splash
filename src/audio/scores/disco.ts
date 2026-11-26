@@ -156,6 +156,7 @@ export const DISCO_SCORE: Score = {
 
     // ── The mirror ball ──────────────────────────────────────────────────
     struck('mirrorball', 'Mirror Ball', 'triangle', 0, 0.62, ['x? x x? x x? x x? x'], {
+      icon: 'mirror_ball',
       light: ['. x . x'],
       with: [line('bell_tree', 0, 0.3, ['x . . .', '. . . .', '. . . .', '. . . .'])],
     }),
