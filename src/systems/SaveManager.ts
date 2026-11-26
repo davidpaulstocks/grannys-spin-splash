@@ -72,6 +72,7 @@ export class SaveManager {
       vault: 0,
       unlockedGrannies: GRANNY_DEFS.filter((g) => g.unlockCost === 0).map((g) => g.id),
       unlockedGuns: GUN_DEFS.filter((g) => g.cost === 0).map((g) => g.id),
+      gunLevels: {},
       selectedGrannyId: DEFAULT_GRANNY_ID,
       selectedGunId: DEFAULT_GUN_ID,
       selectedWorldId: DEFAULT_WORLD_ID,

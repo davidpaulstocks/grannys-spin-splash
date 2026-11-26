@@ -13,7 +13,7 @@ import { EASE } from '../utils/tween';
 
 /** The gun's 0-degree sprite or the granny's front pose. */
 export function rewardTextureKey(reward: Pick<NextReward, 'kind' | 'id'>): string {
-  return reward.kind === 'gun'
+  return reward.kind !== 'granny'
     ? SPRITE_KEYS.gunAngle(reward.id, 0)
     : SPRITE_KEYS.grannyPose(reward.id, 'front');
 }

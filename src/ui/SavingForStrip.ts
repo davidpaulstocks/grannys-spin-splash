@@ -41,6 +41,12 @@ const BAR_WIDTH = 184;
 const BAR_HEIGHT = 14;
 const NUMBERS_Y = 144;
 
+/** The ribbon: gold and "can buy" when affordable, else "saving for". */
+function ribbonFor(reward: NextReward): string {
+  if (reward.kind === 'upgrade') return reward.canAfford ? 'UPGRADE READY!' : 'SAVING FOR';
+  return reward.canAfford ? 'YOU CAN BUY!' : 'SAVING FOR';
+}
+
 /** Builds the strip; returns the container so the scene can destroy it. */
 export function createSavingForStrip(
   scene: Phaser.Scene,
@@ -54,7 +60,7 @@ export function createSavingForStrip(
     y: config.y,
     width: SAVING_FOR_WIDTH,
     height: SAVING_FOR_HEIGHT,
-    ribbon: reward ? (reward.canAfford ? 'YOU CAN BUY!' : 'SAVING FOR') : 'YOUR SHOP',
+    ribbon: reward ? ribbonFor(reward) : 'YOUR SHOP',
     ribbonColour: reward?.canAfford ? COLOUR.sunnyGold : COLOUR.grannyPink,
   });
 
@@ -108,7 +114,9 @@ export function createSavingForStrip(
         config.x,
         top + NUMBERS_Y,
         reward.canAfford
-          ? 'Tap to buy!'
+          ? reward.kind === 'upgrade'
+            ? 'Tap to upgrade!'
+            : 'Tap to buy!'
           : `${formatCount(reward.have)} / ${formatCount(reward.cost)}`,
         textStyle(
           'bodyM',

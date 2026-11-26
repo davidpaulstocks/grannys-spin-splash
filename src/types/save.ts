@@ -9,6 +9,11 @@ export interface SaveData {
   vault: number;
   unlockedGrannies: readonly string[];
   unlockedGuns: readonly string[];
+  /**
+   * Upgrade level (1–5) of each gun, by gun id. A gun with no entry is level
+   * 1, so older saves need no migration; the default-merge fills in `{}`.
+   */
+  gunLevels: Record<string, number>;
   selectedGrannyId: string;
   selectedGunId: string;
   selectedWorldId: string;

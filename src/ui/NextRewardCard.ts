@@ -54,6 +54,12 @@ const BUY_PULSE_MS = 520;
 const BAR_FILL_MS = 600;
 const NAME_MAX_WIDTH = 330;
 
+/** The ribbon: says what is on offer and whether it can be had right now. */
+function ribbonFor(reward: NextReward): string {
+  if (reward.kind === 'upgrade') return reward.canAfford ? 'UPGRADE READY!' : 'SAVING TO UPGRADE';
+  return reward.canAfford ? 'YOU CAN BUY IT!' : 'SAVING FOR';
+}
+
 /** Builds the card (empty until `show` is called) and returns its handle. */
 export function createNextRewardCard(
   scene: Phaser.Scene,
@@ -72,7 +78,7 @@ export function createNextRewardCard(
       y: config.y,
       width: NEXT_REWARD_CARD_WIDTH,
       height: NEXT_REWARD_CARD_HEIGHT,
-      ribbon: reward ? (reward.canAfford ? 'YOU CAN BUY IT!' : 'SAVING FOR') : 'ALL UNLOCKED',
+      ribbon: reward ? ribbonFor(reward) : 'ALL UNLOCKED',
       ribbonColour: reward?.canAfford ? COLOUR.sunnyGold : COLOUR.grannyPink,
     });
     container.add(panel);
@@ -143,7 +149,7 @@ export function createNextRewardCard(
       const buy = createButton(scene, {
         x: left + BUY_X,
         y: top + BUY_Y,
-        label: 'BUY',
+        label: reward.kind === 'upgrade' ? 'UPGRADE' : 'BUY',
         variant: 'secondary',
         size: 'sm',
         minWidth: BUY_MIN_WIDTH,

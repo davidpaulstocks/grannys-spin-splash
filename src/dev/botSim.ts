@@ -75,7 +75,7 @@ export interface BotSim {
   readonly KEEN: BotProfile;
   /** Resolves when the game has loaded. `ladder` calls it; call it yourself before a bare `play`. */
   ready(): Promise<void>;
-  play(worldId: string, gig: number, bot: BotProfile, gunId?: string): string;
+  play(worldId: string, gig: number, bot: BotProfile, gunId?: string, gunLevel?: number): string;
   ladder(worldId: string, gunId?: string, gigs?: readonly number[]): Promise<string[]>;
 }
 
@@ -111,7 +111,13 @@ export function installBotSim(game: Phaser.Game): BotSim {
     if (!isLoaded()) throw new Error('game did not finish loading');
   };
 
-  const play = (worldId: string, gig: number, bot: BotProfile, gunId = 'pistol'): string => {
+  const play = (
+    worldId: string,
+    gig: number,
+    bot: BotProfile,
+    gunId = 'pistol',
+    gunLevel = 1,
+  ): string => {
     // Starting before the first screen is up would stop BootScene mid-load
     // and leave half the assets missing. `ladder()` waits; a bare `play()`
     // must be preceded by `await __bot.ready()`.
@@ -121,7 +127,7 @@ export function installBotSim(game: Phaser.Game): BotSim {
     step(10);
     for (const active of game.scene.getScenes(true)) game.scene.stop(active.scene.key);
     step(10);
-    game.scene.start('GameScene', { worldId, gig, grannyId: 'classic', gunId });
+    game.scene.start('GameScene', { worldId, gig, grannyId: 'classic', gunId, gunLevel });
     const scene = game.scene.getScene('GameScene') as unknown as SceneView;
     let waits = 0;
     do {

@@ -112,4 +112,36 @@ describe('UnlockManager', () => {
     unlocks.selectWorld('workshop');
     expect(unlocks.getSelectedWorldId()).toBe('workshop');
   });
+
+  it('upgradeGun() spends coins, raises the level and persists', () => {
+    expect(unlocks.getGunLevel('pistol')).toBe(1);
+    unlocks.addStars(2000);
+    expect(unlocks.upgradeGun('pistol')).toBe(true); // 1,500
+    expect(unlocks.getGunLevel('pistol')).toBe(2);
+    expect(unlocks.getVault()).toBe(500);
+    expect(new UnlockManager(new SaveManager()).getGunLevel('pistol')).toBe(2);
+  });
+
+  it('upgradeGun() refuses when short, unowned, unknown or at the top', () => {
+    unlocks.addStars(1000);
+    expect(unlocks.upgradeGun('pistol')).toBe(false); // short
+    expect(unlocks.upgradeGun('hose')).toBe(false); // not owned
+    expect(unlocks.upgradeGun('nope')).toBe(false);
+    expect(unlocks.getVault()).toBe(1000);
+    unlocks.addStars(1_000_000);
+    for (let i = 0; i < 4; i++) expect(unlocks.upgradeGun('squirter')).toBe(true);
+    const vault = unlocks.getVault();
+    expect(unlocks.getGunLevel('squirter')).toBe(5);
+    expect(unlocks.upgradeGun('squirter')).toBe(false);
+    expect(unlocks.getVault()).toBe(vault);
+  });
+
+  it('buy() unlocks and equips a gun, or upgrades for an upgrade reward', () => {
+    unlocks.addStars(10_000);
+    expect(unlocks.buy({ kind: 'gun', id: 'hose' })).toBe(true);
+    expect(unlocks.getSelectedGunId()).toBe('hose');
+    expect(unlocks.buy({ kind: 'upgrade', id: 'hose' })).toBe(true);
+    expect(unlocks.getGunLevel('hose')).toBe(2);
+    expect(unlocks.buy({ kind: 'gun', id: 'inferno' })).toBe(false);
+  });
 });

@@ -4,6 +4,8 @@
 export interface GameSceneData {
   readonly grannyId: string;
   readonly gunId: string;
+  /** Upgrade level to fire the gun at. Omitted = the level the save holds (the balance bot passes 1). */
+  readonly gunLevel?: number;
   readonly worldId: string;
   /** 0-based gig on the venue's ladder. Omitted = the first gig not yet passed. */
   readonly gig?: number;

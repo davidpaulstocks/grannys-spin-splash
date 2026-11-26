@@ -10,6 +10,7 @@ import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH, GRANNY_Y_FROM_BOTTOM, WATER_PARTICLE_MAX_POOL } from '../config';
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
+import { gunAtLevel, gunLevelIn } from '../entities/gun/gunLevels';
 import { Obstacle } from '../entities/obstacle/Obstacle';
 import { PowerUpSpawner } from '../entities/powerup/PowerUpSpawner';
 import { MAX_SPINNER_SPEED } from '../entities/spinner/spinner.data';
@@ -131,7 +132,8 @@ export class GameScene extends Phaser.Scene {
     this._world = WORLD_DEFS.find((w) => w.id === worldId) ?? WORLD_DEFS[0];
     this._grannyId = data.grannyId ?? DEFAULT_GRANNY_ID;
     const gunId = data.gunId ?? DEFAULT_GUN_ID;
-    this._gun = GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0];
+    const level = data.gunLevel ?? gunLevelIn(saveManager.load().gunLevels, gunId);
+    this._gun = gunAtLevel(GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0], level);
     this._gig = gigFor(this._world, data.gig ?? currentGig(saveManager.load(), this._world.id));
   }
 

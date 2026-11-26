@@ -247,17 +247,16 @@ export class ResultsScene extends Phaser.Scene {
 
   /** Spends the coins, equips the purchase, celebrates, and moves the card on to the next thing to save for. */
   private _buy(reward: NextReward): void {
-    const bought =
-      reward.kind === 'gun'
-        ? this._unlocks.unlockGun(reward.id)
-        : this._unlocks.unlockGranny(reward.id);
-    if (!bought) return;
-    if (reward.kind === 'gun') this._unlocks.selectGun(reward.id);
-    else this._unlocks.selectGranny(reward.id);
+    if (!this._unlocks.buy(reward)) return;
 
     playStarChime(2);
     spawnConfetti(this, CENTRE_X, REWARD_Y, CONFETTI_COLOURS);
-    showToast(this, CENTRE_X, BUY_TOAST_Y, `Unlocked ${reward.name}! ${reward.perk}`);
+    showToast(
+      this,
+      CENTRE_X,
+      BUY_TOAST_Y,
+      `${reward.kind === 'upgrade' ? 'Upgraded' : 'Unlocked'} ${reward.name}! ${reward.perk}`,
+    );
     this._pill.setValue(this._unlocks.getVault());
     this._card.show(nextReward(saveManager.load()));
   }

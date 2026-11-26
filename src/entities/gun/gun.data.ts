@@ -99,6 +99,19 @@
 import { COLOUR, shade } from '../../utils/colour';
 import type { GunDef } from './gun.types';
 
+/** Upgrade levels (see `gunLevels.ts`): every owned gun runs from level 1 to this. */
+export const MIN_GUN_LEVEL = 1;
+export const MAX_GUN_LEVEL = 5;
+/** Each level above 1 adds this share of the gun's base `coinBoost` (level 5 = base x 1.6). */
+export const GUN_LEVEL_COIN_STEP = 0.15;
+/** Each level above 1 adds this share of the gun's base fill `power` (level 5 = base x 1.32). */
+export const GUN_LEVEL_POWER_STEP = 0.08;
+/** Upgrade price: `max(min, gun cost x share) x growth ^ (level - 1)`, rounded to the nearest `rounding`. */
+export const GUN_UPGRADE_MIN_COST = 1500;
+export const GUN_UPGRADE_BASE_COST_SHARE = 0.3;
+export const GUN_UPGRADE_COST_GROWTH = 2;
+export const GUN_UPGRADE_ROUNDING = 100;
+
 export const GUN_DEFS: readonly GunDef[] = [
   {
     id: 'pistol',

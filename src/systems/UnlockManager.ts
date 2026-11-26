@@ -7,6 +7,7 @@
 
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
+import { clampGunLevel, gunLevelIn, upgradeCost } from '../entities/gun/gunLevels';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import type { SaveManager } from './SaveManager';
 import { isVenueOpen } from './Progress';
@@ -64,6 +65,37 @@ export class UnlockManager {
     const def = GUN_DEFS.find((g) => g.id === id);
     if (!def) return false;
     return this._unlock(id, def.cost, 'unlockedGuns');
+  }
+
+  /** A gun's upgrade level, 1 to 5; guns with no record (and old saves) are level 1. */
+  getGunLevel(id: string): number {
+    return gunLevelIn(this._save.load().gunLevels, id);
+  }
+
+  /** Spends coins to take an owned gun up one level. False if not owned, already at the maximum, or coins are short. */
+  upgradeGun(id: string): boolean {
+    const def = GUN_DEFS.find((g) => g.id === id);
+    const save = this._save.load();
+    if (!def || !save.unlockedGuns.includes(id)) return false;
+    const level = this.getGunLevel(id);
+    const cost = upgradeCost(def, level);
+    if (cost === null || save.vault < cost) return false;
+    const gunLevels = { ...save.gunLevels, [id]: clampGunLevel(level + 1) };
+    this._save.save({ ...save, vault: save.vault - cost, gunLevels });
+    return true;
+  }
+
+  /**
+   * Buys what the results card offers: a gun or granny is unlocked and
+   * equipped, an upgrade raises the gun's level. False if it could not be bought.
+   */
+  buy(reward: { readonly kind: 'gun' | 'granny' | 'upgrade'; readonly id: string }): boolean {
+    if (reward.kind === 'upgrade') return this.upgradeGun(reward.id);
+    const isGun = reward.kind === 'gun';
+    if (!(isGun ? this.unlockGun(reward.id) : this.unlockGranny(reward.id))) return false;
+    if (isGun) this.selectGun(reward.id);
+    else this.selectGranny(reward.id);
+    return true;
   }
 
   /** Grants a gun for free — a successful rewarded-ad watch (CLAUDE.md §11.1/§11.4), never a purchase. */
