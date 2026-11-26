@@ -31,16 +31,6 @@ describe.each(WORLD_DEFS.map((world) => [world.id, world] as const))(
       }
     });
 
-    it('brings obstacles in through the ladder, none at the first gig', () => {
-      for (let i = 1; i < gigs.length; i++) {
-        expect(gigs[i]?.obstacles.length).toBeGreaterThanOrEqual(
-          gigs[i - 1]?.obstacles.length ?? 0,
-        );
-      }
-      expect(gigs[0]?.obstacles).toHaveLength(0);
-      expect(gigs[GIGS_PER_VENUE - 1]?.obstacles).toHaveLength(world.obstacles.length);
-    });
-
     it('has a musician in the score for every spinner, each seated once', () => {
       const score = resolveScore(id);
       expect(new Set(score.lineup).size).toBe(score.lineup.length);

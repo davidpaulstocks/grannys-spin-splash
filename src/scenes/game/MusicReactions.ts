@@ -119,7 +119,7 @@ export class MusicReactions {
     const centre = wallCentre(spinners);
     for (const note of audioOrchestra.pollNotes()) {
       const spinner = spinners[note.spinner];
-      if (!spinner) continue;
+      if (!spinner || spinner.silenced) continue; // a sat-on instrument makes no sound
       spinner.pulse(note.spray ? SPRAY_PULSE : NOTE_PULSE * note.velocity);
 
       if (!this._joined.has(spinner.id)) {

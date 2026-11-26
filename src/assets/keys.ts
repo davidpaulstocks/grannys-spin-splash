@@ -8,6 +8,7 @@
  */
 
 import type { InstrumentIconId } from '../audio/orchestra/icons';
+import type { VisitorId } from '../entities/visitor/visitor.types';
 import type { GrannyPose } from '../entities/granny/granny.types';
 import type { GunAngle } from '../entities/gun/gun.types';
 
@@ -26,6 +27,10 @@ export const SPRITE_KEYS = {
   /** public/sprites/instruments/<icon>.webp — one painted instrument per icon id (INSTRUMENT_ART_BRIEF.md). */
   instrumentIcon: (icon: InstrumentIconId): string => `instrument_${icon}`,
   instrumentIconPath: (icon: InstrumentIconId): string => `sprites/instruments/${icon}.webp`,
+
+  /** public/sprites/visitors/<id>.webp — one painted visitor per id (entities/visitor/visitorArt.data.ts). */
+  visitor: (id: VisitorId): string => `visitor_${id}`,
+  visitorPath: (id: VisitorId): string => `sprites/visitors/${id}.webp`,
 
   /** public/sprites/ui/*.webp */
   titleWordmark: 'ui_wordmark',

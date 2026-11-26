@@ -1,5 +1,5 @@
 /**
- * Builds a world's spinner wall and obstacle roster — everything that turns
+ * Builds a world's spinner wall — everything that turns
  * a `WorldDef` into live objects, kept out of GameScene so the scene
  * orchestrates a round rather than also knowing how a wall is laid out
  * (CLAUDE.md §7.3 rules 1 and 4).
@@ -18,7 +18,6 @@ import { iconFor, type InstrumentIconId } from '../../audio/orchestra/icons';
 import { musicianAt, resolveScore } from '../../audio/scores';
 import { fitScaleForBand, layoutBand } from '../../utils/grid';
 import { FAMILY_PALETTE } from '../spinner/instrumentBadge';
-import { Obstacle } from '../obstacle/Obstacle';
 import { MOUNT_RADIUS_SCALE, SPINNER_DEFS } from '../spinner/spinner.data';
 import type { SpinnerDef, SpinnerStyle } from '../spinner/spinner.types';
 import { Spinner } from '../spinner/Spinner';
@@ -50,7 +49,7 @@ export interface WallArea {
 }
 
 /**
- * Where this world's spinners, obstacles and bonus spawns mount — the
+ * Where this world's spinners, visitors and bonus spawns mount — the
  * world's own art-matched rectangle if it declares one, else config.ts's
  * generic fallback. See WorldDef.wallArea's doc comment for why each world
  * needed its own.
@@ -136,21 +135,4 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
     spinner.setDrift(MOVING_TARGET_DRIFT_RANGE, 0.4 + Math.random() * 0.4);
   }
   return spinners;
-}
-
-/** Spawns this gig's cat/umbrella/duck roster (CLAUDE.md §1, §4) within the wall's play field. */
-export function buildObstacles(
-  scene: Phaser.Scene,
-  world: WorldDef,
-  gig: GigDef,
-  spinners: readonly Spinner[],
-): Obstacle[] {
-  const area = wallAreaFor(world);
-  const bounds = {
-    x0: area.x,
-    y0: area.y,
-    x1: area.x + area.width,
-    y1: area.y + area.height,
-  };
-  return gig.obstacles.map((kind) => new Obstacle(scene, kind, bounds, spinners));
 }

@@ -33,12 +33,7 @@ const PULSE_FLASH_ALPHA = 0.5;
 /** Seconds for a pulse to fall to about a third — short enough to read as a beat, not a throb. */
 const PULSE_DECAY_SECONDS = 0.11;
 
-/**
- * An instrument about to drop out of full speed rocks slowly from side to
- * side, so the player can see which one needs them next. (The "z z z" over a
- * stopped spinner went 2026-11-26 with the wake/sleep framing: a stopped
- * instrument is simply quiet.)
- */
+/** An instrument about to drop out of full speed rocks slowly side to side, so the player sees which needs them next. */
 /** Below this speed a spinner at full is on its way out, and nods. */
 const DROWSY_SPEED = 90;
 const DROWSY_ROCK_DEGREES = 7;
@@ -101,6 +96,8 @@ export class Spinner extends Phaser.GameObjects.Container {
   currentState: SpinnerState = SpinnerState.STOPPED;
   /** While true (SPLASH FRENZY's bonus window), decay is suspended. */
   locked = false;
+  /** A sitter is on it (entities/visitor): frozen as it was, not playing, cannot charge. Not a drop-out. */
+  silenced = false;
   /** How long this spinner holds at top speed before winding down — set per gig, see gigs.data.ts. */
   holdMs = MAX_SPEED_HOLD_MS;
   /** Remaining decay-free grace after being topped right up, ms — see MAX_SPEED_HOLD_MS. */
@@ -171,6 +168,10 @@ export class Spinner extends Phaser.GameObjects.Container {
    */
   override update(time: number, deltaMs: number): SpinnerUpdateResult | null {
     const dt = deltaMs / 1000;
+    if (this.silenced) {
+      this._frozenUpdate(time, dt);
+      return null;
+    }
     if (this._holdUntilMs > 0) {
       this._holdUntilMs = Math.max(0, this._holdUntilMs - deltaMs);
     } else if (!this.locked) {
@@ -202,6 +203,7 @@ export class Spinner extends Phaser.GameObjects.Container {
    * GameScene knows whether to play a deflect vs. a hit reaction.
    */
   hit(power: number = this.def.power): boolean {
+    if (this.silenced) return false;
     if (this.def.deflects && Math.random() < WHIRLIGIG_DEFLECT_CHANCE) {
       return false;
     }
@@ -214,7 +216,28 @@ export class Spinner extends Phaser.GameObjects.Container {
 
   /** Instantly maxes this spinner out (Golden Splash power-up). */
   maxOut(): void {
+    if (this.silenced) return;
     this.currentSpeed = MAX_SPINNER_SPEED;
+  }
+
+  /** The state it counts as for the band: a silenced instrument is not playing. */
+  get playingState(): SpinnerState {
+    return this.silenced ? SpinnerState.STOPPED : this.currentState;
+  }
+
+  /** Its speed as the music hears it. */
+  get playingSpeed(): number {
+    return this.silenced ? 0 : this.currentSpeed;
+  }
+
+  /** One frame while silenced: no decay or spin, just the reaction to a squirt and any drift. */
+  private _frozenUpdate(time: number, dt: number): void {
+    this._pulse *= Math.exp(-dt / PULSE_DECAY_SECONDS);
+    this._flashGfx.setAlpha(this._pulse * PULSE_FLASH_ALPHA);
+    this._instrument?.sync(this._pulse, true);
+    this._updateDrowsiness(time);
+    this.setScale(1 + this._pulse * PULSE_SCALE);
+    this._updateDrift(dt);
   }
 
   /** Funfair-only: starts a sinusoidal side-to-side drift around the spinner's current x (prototype: `driftRange:55`). */
@@ -234,6 +257,7 @@ export class Spinner extends Phaser.GameObjects.Container {
   /** An instrument about to drop out of full speed nods and shows a warning ring; everyone else sits straight. */
   private _updateDrowsiness(time: number): void {
     const drowsy =
+      !this.silenced &&
       this.currentState === SpinnerState.FULL &&
       !this.locked &&
       this._holdUntilMs <= 0 &&

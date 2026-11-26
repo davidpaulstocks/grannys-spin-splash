@@ -1,8 +1,8 @@
 /**
- * Procedural draw routines for each obstacle kind — simple, round,
- * friendly shapes matching CLAUDE.md §5.4/§5.9 (no sharp corners, single
- * light source, kid-friendly silhouettes over detail). Module-internal to
- * Obstacle.ts.
+ * The original cat, umbrella and duck drawings — simple, round, friendly
+ * shapes matching CLAUDE.md §5.4/§5.9 (no sharp corners, single light
+ * source, kid-friendly silhouettes over detail). They began as the fixed
+ * obstacles; visitorDrawings.ts reuses them for the cat, umbrella and duck.
  */
 
 import Phaser from 'phaser';

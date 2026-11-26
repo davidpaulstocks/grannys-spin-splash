@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Slices Nano Banana instrument sheets into one transparent 256x256 icon each.
+"""Slices Nano Banana sheets into one transparent 256x256 picture each.
 
 Usage:  npm run instruments           (reads _art_inbox/instruments/<sheet name>.png, .jpg, .jpeg or .webp)
+        npm run visitors              (the same for the visitors: --set visitors)
 
-For every sheet named in tools/instrument-sheets.json that exists in the inbox:
+--set instruments (the default) cuts the instrument sheets named in tools/instrument-sheets.json
+into public/sprites/instruments. --set visitors cuts the two visitor sheets named in
+tools/visitor-sheets.json (hurdles, then treats) from _art_inbox/visitors into public/sprites/visitors.
+
+For every sheet named in the set's JSON file that exists in the inbox:
   1. Removes the pure-white background by flood-filling inward from the image
      border (within a tolerance), so white INSIDE a closed ink outline (piano
      keys, drum skins) survives.
@@ -13,10 +18,11 @@ For every sheet named in tools/instrument-sheets.json that exists in the inbox:
      then column.
   4. Crops each tight with a 4% margin, pads to a square, resizes to 256x256
      and writes public/sprites/instruments/<icon>.png.
-Then it runs `npm run optimise` (PNG -> WebP, PNG removed) and prints the icon
-ids to add to INSTRUMENT_ART_READY in src/entities/spinner/instrumentArt.data.ts.
+Then it runs `npm run optimise` (PNG -> WebP, PNG removed) and prints the ids to add to
+INSTRUMENT_ART_READY (src/entities/spinner/instrumentArt.data.ts) or, for visitors,
+VISITOR_ART_READY (src/entities/visitor/visitorArt.data.ts).
 
-Needs Python 3 with Pillow. Options: --inbox DIR  --out DIR  --no-optimise
+Needs Python 3 with Pillow. Options: --set instruments|visitors  --inbox DIR  --out DIR  --no-optimise
 """
 
 import argparse
@@ -29,7 +35,22 @@ from collections import deque
 from PIL import Image, ImageChops, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHEETS_JSON = os.path.join(ROOT, "tools", "instrument-sheets.json")
+
+# What each --set reads, where it writes and which list the printed ids go into.
+SETS = {
+    "instruments": {
+        "sheets_json": os.path.join(ROOT, "tools", "instrument-sheets.json"),
+        "inbox": os.path.join(ROOT, "_art_inbox", "instruments"),
+        "out": os.path.join(ROOT, "public", "sprites", "instruments"),
+        "ready_list": "INSTRUMENT_ART_READY in src/entities/spinner/instrumentArt.data.ts",
+    },
+    "visitors": {
+        "sheets_json": os.path.join(ROOT, "tools", "visitor-sheets.json"),
+        "inbox": os.path.join(ROOT, "_art_inbox", "visitors"),
+        "out": os.path.join(ROOT, "public", "sprites", "visitors"),
+        "ready_list": "VISITOR_ART_READY in src/entities/visitor/visitorArt.data.ts",
+    },
+}
 
 CELLS_PER_SHEET = 6
 COLUMNS = 3
@@ -183,12 +204,17 @@ def slice_sheet(path, icons, out_dir):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--inbox", default=os.path.join(ROOT, "_art_inbox", "instruments"))
-    parser.add_argument("--out", default=os.path.join(ROOT, "public", "sprites", "instruments"))
+    parser.add_argument("--set", dest="art_set", choices=sorted(SETS), default="instruments",
+                        help="which sheets to cut (default: instruments)")
+    parser.add_argument("--inbox", help="where the sheets are (default depends on --set)")
+    parser.add_argument("--out", help="where the pictures go (default depends on --set)")
     parser.add_argument("--no-optimise", action="store_true", help="skip `npm run optimise` (PNG -> WebP)")
     args = parser.parse_args()
+    chosen = SETS[args.art_set]
+    args.inbox = args.inbox or chosen["inbox"]
+    args.out = args.out or chosen["out"]
 
-    with open(SHEETS_JSON) as f:
+    with open(chosen["sheets_json"]) as f:
         sheets = json.load(f)["sheets"]
     done = []
     for name, icons in sheets.items():
@@ -213,7 +239,7 @@ def main():
         os.path.splitext(n)[0] for n in os.listdir(args.out) if n.endswith((".webp", ".png"))
     )
     print("\nIcons sliced this run: " + ", ".join(done))
-    print("\nSet INSTRUMENT_ART_READY in src/entities/spinner/instrumentArt.data.ts to:")
+    print(f"\nSet {chosen['ready_list']} to:")
     print("[" + ", ".join(f"'{i}'" for i in ready) + "]")
 
 

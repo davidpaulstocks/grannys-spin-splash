@@ -11,7 +11,6 @@
  * numbers were set against a bot that plays like a child (see gun.data.ts).
  */
 
-import type { ObstacleKind } from '../obstacle/obstacle.types';
 import { FRENZY_THRESHOLDS } from '../spinner/spinner.data';
 import { WORLD_DEFS } from './world.data';
 import type { WorldDef } from './world.types';
@@ -29,7 +28,6 @@ export interface GigDef {
   readonly decayScale: number;
   /** How long a topped-up spinner holds before it starts winding down. */
   readonly holdMs: number;
-  readonly obstacles: readonly ObstacleKind[];
   /** How many spinners drift side to side. */
   readonly moving: number;
   /** Whether the venue's painted centrepiece (Disco's mirror ball) is in play. */
@@ -65,7 +63,7 @@ const FULL_DECAY_BAND = 4;
 const DECAY_FALLOFF = 1.6;
 /**
  * Later venues do not wind down any faster. They are already harder in ways
- * Garden is not — obstacles that block water, whirligigs that deflect it,
+ * Garden is not — whirligigs that deflect water, visitors that block it,
  * drifting targets — and stacking a faster wind-down on top left the
  * Workshop's middle gigs at one star for every bot, with any gun.
  */
@@ -98,14 +96,9 @@ function ladderFor(venueId: string): readonly number[] {
 export function gigFor(world: WorldDef, index: number): GigDef {
   const gig = Math.min(GIGS_PER_VENUE - 1, Math.max(0, Math.floor(index)));
   const venueTier = Math.max(0, WORLD_DEFS.indexOf(world));
-  const progress = gig / (GIGS_PER_VENUE - 1);
   const isFinal = gig === GIGS_PER_VENUE - 1;
   const feature = isFinal && world.featureSpinner !== undefined;
   const grid = ladderFor(world.id)[gig] ?? world.grid.cols * world.grid.rows;
-
-  // Obstacles join through the ladder: none at the first gig, the venue's
-  // whole roster by the last.
-  const obstacleCount = Math.round(world.obstacles.length * progress);
 
   return {
     venueId: world.id,
@@ -120,7 +113,6 @@ export function gigFor(world: WorldDef, index: number): GigDef {
       HOLD_MS_MAX,
       HOLD_MS + HOLD_MS_PER_EXTRA_MUSICIAN * Math.max(0, grid - FULL_DECAY_BAND),
     ),
-    obstacles: world.obstacles.slice(0, obstacleCount),
     moving: world.movingTargets ? Math.min(MAX_MOVING, Math.floor(gig / 2)) : 0,
     feature,
   };

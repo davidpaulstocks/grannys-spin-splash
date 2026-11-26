@@ -24,6 +24,8 @@ import { GigScore, payFor, type StarTargets } from './GigScore';
 const DROP_OUT_GRACE_MS = 1000;
 /** After Splash Frenzy ends the whole band winds down together; that is the party ending, not a mistake. */
 const AFTER_FRENZY_GRACE_MS = 2500;
+/** A visitor's coins fly as full-speed coins. */
+const COIN_BURST_PAY = 4;
 /** Where the "x2" of a drop-out floats, above the instrument that dropped. */
 const DROP_TEXT_LIFT_PX = 12;
 
@@ -103,7 +105,7 @@ export class RewardLoop {
     if (d.frenzyActive())
       this._dropOutsAllowedAt = Math.max(this._dropOutsAllowedAt, time + AFTER_FRENZY_GRACE_MS);
 
-    const full = spinners.filter((s) => s.currentState === SpinnerState.FULL).length;
+    const full = spinners.filter((s) => s.playingState === SpinnerState.FULL).length;
     this.groove.update(deltaMs, full, spinners.length);
 
     const multiplier =
@@ -113,15 +115,15 @@ export class RewardLoop {
       (d.doubleStarsActive(time) ? 2 : 1);
     const paid = this._score.tick(
       deltaMs,
-      spinners.map((s) => payFor(s.currentState)),
+      spinners.map((s) => payFor(s.playingState)),
       multiplier,
     );
     if (paid <= 0) return;
     this._flying.push({ at: time, amount: paid });
     this._fountain.throwCoins(
       spinners
-        .filter((s) => payFor(s.currentState) > 0)
-        .map((s) => ({ x: s.x, y: s.y, pay: payFor(s.currentState) })),
+        .filter((s) => payFor(s.playingState) > 0)
+        .map((s) => ({ x: s.x, y: s.y, pay: payFor(s.playingState) })),
     );
   }
 
@@ -144,6 +146,16 @@ export class RewardLoop {
         COLOUR_HEX.heatOrange,
       );
     }
+  }
+
+  /**
+   * A visitor's payout: `amount` coins straight into the total, thrown as
+   * one coin from each of `from` so it shows where it came from.
+   */
+  payBurst(from: readonly { readonly x: number; readonly y: number }[], amount: number): void {
+    this._score.addCoins(amount);
+    this._flying.push({ at: this._d.scene.time.now, amount });
+    this._fountain.throwCoins(from.map((p) => ({ x: p.x, y: p.y, pay: COIN_BURST_PAY })));
   }
 
   /** Splash Frenzy has started: straight to the top groove. */

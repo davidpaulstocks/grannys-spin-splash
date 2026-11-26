@@ -17,6 +17,7 @@ import { audioOrchestra } from '../audio/AudioOrchestra';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import type { GrannyPose } from '../entities/granny/granny.types';
 import { INSTRUMENT_ART_READY } from '../entities/spinner/instrumentArt.data';
+import { VISITOR_ART_READY } from '../entities/visitor/visitorArt.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import type { GunAngle } from '../entities/gun/gun.types';
 import { WORLD_DEFS } from '../entities/world/world.data';
@@ -78,6 +79,10 @@ export class BootScene extends Phaser.Scene {
     // icon not yet painted costs no 404 and its spinner keeps the drawn badge.
     for (const icon of INSTRUMENT_ART_READY) {
       this.load.image(SPRITE_KEYS.instrumentIcon(icon), SPRITE_KEYS.instrumentIconPath(icon));
+    }
+    // Painted visitors likewise: only the ones that exist; the rest are drawn.
+    for (const id of VISITOR_ART_READY) {
+      this.load.image(SPRITE_KEYS.visitor(id), SPRITE_KEYS.visitorPath(id));
     }
     this.load.image(SPRITE_KEYS.titleWordmark, 'sprites/ui/wordmark.webp');
     this.load.image(SPRITE_KEYS.titleFlourish, 'sprites/ui/title_flourish.webp');

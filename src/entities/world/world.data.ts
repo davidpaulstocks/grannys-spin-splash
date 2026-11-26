@@ -4,15 +4,15 @@
  * with the other 4 as post-launch drops, but the whole prototype roster
  * ships together now). Round length is 30 s for every world per §4.
  *
- * Grid/types/obstacles/movingTargets/goldenFrequent are extracted
+ * Grid/types/movingTargets/goldenFrequent are extracted
  * verbatim from the reference prototype's `WORLDS` table
  * (`game prototype/granny-spin-splash.html`) per CLAUDE.md §2's
  * extraction instructions. `starsToOpen` is this game's own: venues open on
  * total stars earned across the tour (docs/ENGAGEMENT_DESIGN.md §4), never
  * on coins, so replaying a gig for a better rating always moves the tour
  * forward. Ordered by the prototype's own escalating spinner count/
- * mechanic complexity (12 → 15 → 16 → 16 → 20 spinners; no obstacles →
- * obstacles → double obstacles → moving targets → golden fever), with
+ * mechanic complexity (12 → 15 → 16 → 16 → 20 spinners; moving targets →
+ * golden fever; visitors arrive per venue, see entities/visitor), with
  * Workshop/Disco's costs matching the original C1/C2 post-launch plan
  * and Kitchen/Funfair filled in between.
  */
@@ -28,7 +28,6 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     bg: 'world_garden_bg',
     grid: { cols: 4, rows: 3 },
     types: ['pinwheel', 'fan', 'windmill'],
-    obstacles: [],
     time: ROUND_LENGTH_SECONDS,
     starsToOpen: 0,
     // The fence panel itself, between the framing posts and above the grass.
@@ -40,7 +39,6 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     bg: 'world_workshop_bg',
     grid: { cols: 5, rows: 3 },
     types: ['cog', 'propeller', 'whirligig', 'disco', 'fan', 'windmill'],
-    obstacles: ['cat', 'umbrella', 'umbrella', 'duck'],
     time: ROUND_LENGTH_SECONDS,
     starsToOpen: 12,
     // The pegboard — tools already hang here, so spinners read as hung too.
@@ -52,7 +50,6 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     bg: 'world_kitchen_bg',
     grid: { cols: 4, rows: 4 },
     types: ['whirligig', 'cog', 'windmill', 'fan'],
-    obstacles: ['cat', 'cat', 'umbrella'],
     time: ROUND_LENGTH_SECONDS,
     starsToOpen: 30,
     // Lower shelf + tiled backsplash, clear of the pink side walls and counter.
@@ -64,7 +61,6 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     bg: 'world_funfair_bg',
     grid: { cols: 4, rows: 4 },
     types: ['propeller', 'pinwheel', 'fan', 'windmill'],
-    obstacles: ['umbrella', 'umbrella'],
     time: ROUND_LENGTH_SECONDS,
     starsToOpen: 54,
     movingTargets: true,
@@ -84,7 +80,6 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     // painted ball. It hangs above the wall grid, which is what makes it
     // read as the room's centrepiece rather than another wall target.
     featureSpinner: { type: 'disco', x: 648, y: 106, r: 75 },
-    obstacles: ['umbrella', 'duck'],
     time: ROUND_LENGTH_SECONDS,
     starsToOpen: 80,
     goldenFrequent: true,

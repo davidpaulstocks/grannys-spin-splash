@@ -50,10 +50,15 @@ export interface FireControlDeps {
   readonly activeSpinners: () => readonly Spinner[];
   /**
    * Live power-up pickups, so aim can go to one the pointer is on instead of
-   * the magnet pulling to the nearest spinner. Optional: without it pickups
-   * are only collected by shots passing through them.
+   * the magnet pulling to the nearest spinner — power-ups and visitors alike
+   * (a visitor brings its own `aimRadius`). Optional: without it pickups are
+   * only collected by shots passing through them.
    */
-  readonly pickupPoints?: () => readonly { readonly x: number; readonly y: number }[];
+  readonly pickupPoints?: () => readonly {
+    readonly x: number;
+    readonly y: number;
+    readonly aimRadius?: number;
+  }[];
 }
 
 export class FireControl {
@@ -147,7 +152,9 @@ export class FireControl {
     this._reticle.setVisible(!touch).setPosition(point.x, point.y);
 
     const onPickup = (d.pickupPoints?.() ?? []).some(
-      (p) => distance(point.x, point.y, p.x, p.y) < AIM_PICKUP_RADIUS + AIM_PICKUP_MARGIN,
+      (p) =>
+        distance(point.x, point.y, p.x, p.y) <
+        (p.aimRadius ?? AIM_PICKUP_RADIUS) + AIM_PICKUP_MARGIN,
     );
     const spinners = d.activeSpinners();
     const targets = spinners.map((s) => ({ id: s.id, x: s.x, y: s.y }));

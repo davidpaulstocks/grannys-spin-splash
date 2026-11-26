@@ -1,0 +1,15 @@
+{
+  "_comment": "Each sheet is a 3x2 grid read left to right, top to bottom. The list is the visitor id of each cell in that order. Keep in step with VISITOR_IDS in src/entities/visitor/visitor.types.ts.",
+  "sheets": {
+    "sheet-1-hurdles": ["cat", "seagull", "bloomers", "umbrella", "balloons", "flamingo"],
+    "sheet-2-treats": [
+      "rubber_duck",
+      "watering_can",
+      "cupcake",
+      "piggy_bank",
+      "candyfloss",
+      "trophy"
+    ],
+    "sheet-3-more": ["dust_sheet", "squirrel", "tea_towel", "pigeon", "gnome", "dodgem"]
+  }
+}

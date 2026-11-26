@@ -11,13 +11,12 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH, GRANNY_Y_FROM_BOTTOM, WATER_PARTICLE_MAX_POOL } from '../config';
 import { GUN_DEFS, DEFAULT_GUN_ID } from '../entities/gun/gun.data';
 import { gunAtLevel, gunLevelIn } from '../entities/gun/gunLevels';
-import { Obstacle } from '../entities/obstacle/Obstacle';
 import { PowerUpSpawner } from '../entities/powerup/PowerUpSpawner';
 import { MAX_SPINNER_SPEED } from '../entities/spinner/spinner.data';
 import { DEFAULT_WORLD_ID, WORLD_DEFS } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
 import { gigFor, type GigDef } from '../entities/world/gigs.data';
-import { buildObstacles, buildWall, wallAreaFor } from '../entities/world/wallBuilder';
+import { buildWall, wallAreaFor } from '../entities/world/wallBuilder';
 import { currentGig } from '../systems/Progress';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
@@ -55,11 +54,9 @@ import { GoalCard } from './game/GoalCard';
 import { MusicReactions } from './game/MusicReactions';
 import { PowerUpEffects } from './game/PowerUpEffects';
 import { RewardLoop } from './game/RewardLoop';
+import { VisitorDirector } from './game/VisitorDirector';
 import { WaterCollisions } from './game/WaterCollisions';
 import type { HUDScene } from './HUDScene';
-
-/** How close to the canvas edges a Duck obstacle may wander before bouncing back (prototype: 60px). */
-const DUCK_BOUNCE_MARGIN = 60;
 
 /** The orchestra's answer to a spinner climbing a tier — bigger for each step up. */
 const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
@@ -71,7 +68,6 @@ const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
 
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];
-  private _obstacles: Obstacle[] = [];
   private _granny!: Granny;
   private _gunSprite!: Gun;
   private _input!: InputManager;
@@ -106,6 +102,7 @@ export class GameScene extends Phaser.Scene {
   private _flair!: LevelUpFlair;
   private _collisions!: WaterCollisions;
   private _fire!: FireControl;
+  private _visitors!: VisitorDirector;
 
   // Bonus Golden Spinner — spawns outside the fixed grid, own lifetime, not part of `_spinners`/FrenzyMeter.
   private _golden!: GoldenSpinnerSpawner;
@@ -143,7 +140,6 @@ export class GameScene extends Phaser.Scene {
 
     drawWorldBackground(this, this._world.id);
     this._spinners = buildWall(this, this._world, this._gig);
-    this._obstacles = buildObstacles(this, this._world, this._gig, this._spinners);
     this._golden = new GoldenSpinnerSpawner(
       this,
       this._world.goldenFrequent === true,
@@ -172,17 +168,6 @@ export class GameScene extends Phaser.Scene {
     this._music = new MusicReactions(this, this._world, this._gig);
     this._guide = new FirstRunGuide(this, this._world);
     this._flair = new LevelUpFlair(this, this._world);
-    this._collisions = new WaterCollisions({
-      scene: this,
-      pool: this._waterPool,
-      obstacles: this._obstacles,
-      spinners: this._spinners,
-      activeSpinners: () => this._activeSpinners(),
-      gun: this._gun,
-      frenzy: this._frenzy,
-      powerups: this._powerups,
-    });
-
     this._reward = new RewardLoop({
       scene: this,
       gun: this._gun,
@@ -190,6 +175,26 @@ export class GameScene extends Phaser.Scene {
       spinners: () => this._spinners,
       frenzyActive: () => this._frenzy.active,
       doubleStarsActive: (time) => this._powerups.doubleStarsActive(time),
+    });
+
+    this._visitors = new VisitorDirector({
+      scene: this,
+      world: this._world,
+      gig: this._gig,
+      gun: this._gun,
+      spinners: () => this._spinners,
+      reward: this._reward,
+      frenzyActive: () => this._frenzy.active,
+    });
+    this._collisions = new WaterCollisions({
+      scene: this,
+      pool: this._waterPool,
+      visitors: this._visitors,
+      spinners: this._spinners,
+      activeSpinners: () => this._activeSpinners(),
+      gun: this._gun,
+      frenzy: this._frenzy,
+      powerups: this._powerups,
     });
 
     this._createOverlays();
@@ -256,16 +261,16 @@ export class GameScene extends Phaser.Scene {
     // that used to race with the window-release below. Golden Spinner is
     // deliberately excluded (own array, see class field comment) — a
     // temporary bonus spawn shouldn't distort Frenzy's "% of wall at FULL".
-    this._frenzyMeter.update(this._spinners.map((s) => ({ state: s.currentState })));
+    this._frenzyMeter.update(this._spinners.map((s) => ({ state: s.playingState })));
     this._peakFullSpinners = Math.max(
       this._peakFullSpinners,
-      this._spinners.filter((s) => s.currentState === SpinnerState.FULL).length,
+      this._spinners.filter((s) => s.playingState === SpinnerState.FULL).length,
     );
     // Each spinner's own charge drives its assigned instrument, continuously
     // (CLAUDE.md §9.1.1) — same list, same frame, same exclusion of the
     // Golden Spinner as the Frenzy meter above.
     audioOrchestra.updateMix(
-      this._spinners.map((s) => ({ charge: s.currentSpeed / MAX_SPINNER_SPEED })),
+      this._spinners.map((s) => ({ charge: s.playingSpeed / MAX_SPINNER_SPEED })),
     );
     // Second, independent audio axis: how far through the round we are, which
     // drives the crescendo (AudioOrchestra.setRoundProgress). Charge decides
@@ -275,14 +280,7 @@ export class GameScene extends Phaser.Scene {
     const claim = this._golden.update(time, delta);
     if (claim) this._onGoldenClaimed(claim);
 
-    for (const obstacle of this._obstacles) {
-      obstacle.update(
-        delta / 1000,
-        this._spinners,
-        DUCK_BOUNCE_MARGIN,
-        GAME_WIDTH - DUCK_BOUNCE_MARGIN,
-      );
-    }
+    this._visitors.update(time, delta, this._started, this._timeRemainingMs);
     this._powerups.update(
       time,
       delta,
@@ -321,7 +319,7 @@ export class GameScene extends Phaser.Scene {
       gun: this._gun,
       powerups: this._powerups,
       activeSpinners: () => this._activeSpinners(),
-      pickupPoints: () => this._powerupSpawner.points,
+      pickupPoints: () => [...this._powerupSpawner.points, ...this._visitors.aimPoints],
     });
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
     createPauseButton(this, this._input, () => this._pauseGame());
@@ -330,7 +328,6 @@ export class GameScene extends Phaser.Scene {
   /** Resets every field a fresh round needs — covers first boot and a ResultsScene "Play Again" restart alike. */
   private _resetRoundState(): void {
     this._spinners = [];
-    this._obstacles = [];
 
     this._started = false;
     this._roundOver = false;
@@ -447,8 +444,8 @@ export class GameScene extends Phaser.Scene {
         x: s.x,
         y: s.y,
         r: s.def.r,
-        currentSpeed: s.currentSpeed,
-        currentState: s.currentState,
+        currentSpeed: s.playingSpeed,
+        currentState: s.playingState,
       })),
       coins: this._reward.displayedCoins(this.time.now),
       starTargets: this._reward.targets,
