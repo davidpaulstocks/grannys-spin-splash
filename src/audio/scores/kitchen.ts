@@ -13,6 +13,7 @@
  */
 
 import type { Score } from '../orchestra/score.types';
+import { CLUB_ROOM } from './rooms';
 import { held, line, struck } from './shared';
 
 /** Triplet swing: the off-beat eighth lands two-thirds of the way through the beat. */
@@ -161,4 +162,28 @@ export const KITCHEN_SCORE: Score = {
     line('clap', 0, 0.5, ['. x . x']),
     line('piano', 48, 0.45, ['t+s . t+s . t+s . t+s .']),
   ],
+
+  // A small club, and a combo's own voices for the fanfare, the closing chord and the chimes.
+  room: CLUB_ROOM,
+  palette: {
+    instruments: {
+      roll: 'brush_swirl',
+      swell: 'ride',
+      crash: 'ride',
+      shimmer: 'ride_bell',
+      ting: 'triangle',
+      boom: 'kick_soft',
+      thump: 'kick_soft',
+      bass: 'jazz_bass',
+      sustain: 'trombone_sus',
+      pad: 'tenor_sus',
+      lead: 'tenor_stac',
+      pluck: 'piano',
+      chime: 'vibes',
+      tap: 'marimba',
+      knock: 'marimba',
+    },
+    // Octave down so each role sits inside the recorded range of the instrument chosen for it.
+    shifts: { pad: -12, lead: -12, pluck: -12, chime: -12, tap: -12 },
+  },
 };

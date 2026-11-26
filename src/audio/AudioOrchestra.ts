@@ -22,7 +22,8 @@
 
 import { audioBus } from './AudioBus';
 import { Conductor, seatChannel, sprayChannel } from './orchestra/Conductor';
-import { OrchestraGraph } from './orchestra/OrchestraGraph';
+import { OrchestraGraph, resolveRoom } from './orchestra/OrchestraGraph';
+import { resolvePalette } from './orchestra/palette';
 import { sampleBank } from './orchestra/SampleBank';
 import {
   playAccent,
@@ -31,6 +32,7 @@ import {
   playFanfare,
   type Accent,
 } from './orchestra/setPieces';
+import type { Score } from './orchestra/score.types';
 import { resolveScore } from './scores';
 
 /** How far ahead of the audio clock notes are scheduled, and how often that is topped up. */
@@ -150,6 +152,8 @@ export class AudioOrchestra {
     if (worldId || !this._conductor) {
       this._conductor = new Conductor(resolveScore(worldId ?? ''), sampleBank, band);
       graph.resetChannels();
+      // A venue change is a room change: the hall, the club, the bandstand.
+      graph.setRoom(resolveRoom(this._conductor.score));
       for (let seat = 0; seat < this._conductor.seatCount; seat++) {
         const pan = pans[seat] ?? 0;
         const drive = this._conductor.seatDrive(seat);
@@ -324,8 +328,14 @@ export class AudioOrchestra {
     if (!this._running || !ctx || !graph || !conductor) return;
     const at = ctx.currentTime + SPRAY_MIN_LEAD_SECONDS;
     conductor.stinger(ctx, graph, 'claves', this._step, at, { gain: final ? 0.5 : 0.34 });
-    if (final)
-      conductor.stinger(ctx, graph, 'timpani', this._step, at, { tone: 0, floor: 36, gain: 0.4 });
+    if (final) {
+      const palette = resolvePalette(conductor.score);
+      conductor.stinger(ctx, graph, palette.instruments.boom, this._step, at, {
+        tone: 0,
+        floor: 36 + palette.shift('boom'),
+        gain: 0.4,
+      });
+    }
   }
 
   onFrenzyEnd(): void {
@@ -349,6 +359,14 @@ export class AudioOrchestra {
     if (!this._running || !ctx || !conductor) return 0;
     const beats = (ctx.currentTime - this._origin) / (conductor.stepSeconds * STEPS_PER_BEAT);
     return beats - Math.floor(beats);
+  }
+
+  /**
+   * The score of the band most recently seated — the gig just played, once
+   * the results screen is up. Garden's before any round has started.
+   */
+  activeScore(): Score {
+    return this._conductor?.score ?? resolveScore('');
   }
 
   /** The musician seated at a spinner: "Flute", "Harp". */

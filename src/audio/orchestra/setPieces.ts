@@ -2,11 +2,32 @@
  * The orchestra's three set pieces — moments scored outside the written
  * parts because they answer the game rather than the bar line: the lean-in
  * before Splash Frenzy, the fanfare when it lands, and the closing chord at
- * the final whistle.
+ * the final whistle. They are written in terms of palette roles
+ * (`orchestra/palette.ts`), so each band plays them on its own instruments.
  */
 
 import type { Conductor } from './Conductor';
 import type { OrchestraGraph } from './OrchestraGraph';
+import { resolvePalette } from './palette';
+import type { PaletteRole } from './score.types';
+
+type StingerOptions = Parameters<Conductor['stinger']>[5];
+
+/**
+ * A player for one set piece: plays `role` through the score's palette,
+ * moving a pitched role's floor by the palette's octave shift and putting the
+ * lead through the amp when the band's lead is a guitar.
+ */
+function palettePlayer(conductor: Conductor, ctx: BaseAudioContext, graph: OrchestraGraph) {
+  const palette = resolvePalette(conductor.score);
+  return (role: PaletteRole, step: number, at: number, options: StingerOptions): void => {
+    conductor.stinger(ctx, graph, palette.instruments[role], step, at, {
+      ...options,
+      ...(options.floor === undefined ? {} : { floor: options.floor + palette.shift(role) }),
+      ...(role === 'lead' && palette.leadDrive > 0 ? { drive: palette.leadDrive } : {}),
+    });
+  };
+}
 
 /** Timpani sit around their two recorded drums; this floor keeps retuning small. */
 const TIMPANI_FLOOR = 36;
@@ -24,8 +45,9 @@ export function playAnticipation(
   step: number,
   at: number,
 ): void {
-  conductor.stinger(ctx, graph, 'timpani_roll', step, at, { gain: 0.4 });
-  conductor.stinger(ctx, graph, 'cymbal_swell', step, at, { gain: 0.3 });
+  const play = palettePlayer(conductor, ctx, graph);
+  play('roll', step, at, { gain: 0.4 });
+  play('swell', step, at, { gain: 0.3 });
 }
 
 /** SPLASH FRENZY lands: crash, bell tree, timpani, a held horn and a trumpet fanfare climbing the chord. */
@@ -36,17 +58,18 @@ export function playFanfare(
   step: number,
   at: number,
 ): void {
-  conductor.stinger(ctx, graph, 'cymbal_crash', step, at, { gain: 0.5 });
-  conductor.stinger(ctx, graph, 'bell_tree', step, at, { gain: 0.4 });
-  conductor.stinger(ctx, graph, 'timpani', step, at, { tone: 0, floor: TIMPANI_FLOOR, gain: 0.7 });
-  conductor.stinger(ctx, graph, 'horn_sus', step, at, {
+  const play = palettePlayer(conductor, ctx, graph);
+  play('crash', step, at, { gain: 0.5 });
+  play('shimmer', step, at, { gain: 0.4 });
+  play('boom', step, at, { tone: 0, floor: TIMPANI_FLOOR, gain: 0.7 });
+  play('sustain', step, at, {
     tone: 0,
     floor: 48,
     gain: 0.4,
     holdSeconds: 1.2,
   });
   RISING_TONES.forEach((tone, i) => {
-    conductor.stinger(ctx, graph, 'trumpet_stac', step, at + i * conductor.stepSeconds, {
+    play('lead', step, at + i * conductor.stepSeconds, {
       tone,
       floor: 60,
       gain: 0.5,
@@ -62,27 +85,23 @@ export function playClosingChord(
   step: number,
   at: number,
 ): void {
+  const play = palettePlayer(conductor, ctx, graph);
   const home = { tonic: true } as const;
-  conductor.stinger(ctx, graph, 'timpani', step, at, {
-    ...home,
-    tone: 0,
-    floor: TIMPANI_FLOOR,
-    gain: 0.6,
-  });
-  conductor.stinger(ctx, graph, 'bass_drum', step, at, { gain: 0.6 });
-  conductor.stinger(ctx, graph, 'cymbal_crash', step, at, { gain: 0.3 });
-  conductor.stinger(ctx, graph, 'bass_pizz', step, at, { ...home, tone: 0, floor: 31, gain: 0.6 });
-  conductor.stinger(ctx, graph, 'harp', step, at, { ...home, tone: 0, floor: 43, gain: 0.45 });
-  conductor.stinger(ctx, graph, 'glock', step, at, { ...home, tone: 4, floor: 79, gain: 0.3 });
+  play('boom', step, at, { ...home, tone: 0, floor: TIMPANI_FLOOR, gain: 0.6 });
+  play('thump', step, at, { gain: 0.6 });
+  play('crash', step, at, { gain: 0.3 });
+  play('bass', step, at, { ...home, tone: 0, floor: 31, gain: 0.6 });
+  play('pluck', step, at, { ...home, tone: 0, floor: 43, gain: 0.45 });
+  play('chime', step, at, { ...home, tone: 4, floor: 79, gain: 0.3 });
   RISING_TONES.forEach((tone, i) => {
-    conductor.stinger(ctx, graph, 'violin_sus', step, at, {
+    play('pad', step, at, {
       ...home,
       tone,
       floor: 60,
       gain: 0.28,
       holdSeconds: CLOSING_HOLD_SECONDS,
     });
-    conductor.stinger(ctx, graph, 'harp', step, at + HARP_ROLL_SECONDS * (i + 1), {
+    play('pluck', step, at + HARP_ROLL_SECONDS * (i + 1), {
       ...home,
       tone,
       floor: 67,
@@ -120,54 +139,55 @@ export function playAccent(
   level = 1,
 ): void {
   const sixteenth = conductor.stepSeconds;
+  const play = palettePlayer(conductor, ctx, graph);
   const run = (
-    instrument: 'harp' | 'glock' | 'marimba' | 'xylo',
+    role: 'pluck' | 'chime' | 'knock' | 'tap',
     tones: readonly number[],
     floor: number,
     gain: number,
     spacing = sixteenth,
   ): void => {
     tones.forEach((tone, i) => {
-      conductor.stinger(ctx, graph, instrument, step, at + i * spacing, { tone, floor, gain });
+      play(role, step, at + i * spacing, { tone, floor, gain });
     });
   };
 
   switch (accent) {
     case 'wake':
-      run('harp', [0], 67, 0.3);
+      run('pluck', [0], 67, 0.3);
       break;
     case 'spin':
-      run('harp', [0, 2], 67, 0.32);
+      run('pluck', [0, 2], 67, 0.32);
       break;
     case 'full':
-      run('glock', [0, 2, 4], 72, 0.3);
-      conductor.stinger(ctx, graph, 'triangle', step, at, { gain: 0.3 });
+      run('chime', [0, 2, 4], 72, 0.3);
+      play('ting', step, at, { gain: 0.3 });
       break;
     case 'combo':
       run(
-        'xylo',
+        'tap',
         [COMBO_TONES[Math.min(level, COMBO_TONES.length) - 1] ?? 0],
         72 + (level >= 5 ? 12 : 0),
         0.34,
       );
       break;
     case 'powerup':
-      run('harp', [0, 1, 2, 4], 60, 0.4, sixteenth / 2);
-      run('harp', [0, 1, 2, 4], 72, 0.36, sixteenth / 2);
+      run('pluck', [0, 1, 2, 4], 60, 0.4, sixteenth / 2);
+      run('pluck', [0, 1, 2, 4], 72, 0.36, sixteenth / 2);
       break;
     case 'golden':
-      conductor.stinger(ctx, graph, 'bell_tree', step, at, { gain: 0.4 });
-      run('glock', [2, 4], 79, 0.3);
+      play('shimmer', step, at, { gain: 0.4 });
+      run('chime', [2, 4], 79, 0.3);
       break;
     case 'goldenMissed':
-      run('marimba', [2, 0], 55, 0.3);
+      run('knock', [2, 0], 55, 0.3);
       break;
     case 'refill':
-      run('harp', [0, 1, 2, 4], 67, 0.34, sixteenth / 2);
+      run('pluck', [0, 1, 2, 4], 67, 0.34, sixteenth / 2);
       break;
     case 'cheer':
-      conductor.stinger(ctx, graph, 'triangle', step, at, { gain: 0.34 });
-      run('glock', [4], 72, 0.24);
+      play('ting', step, at, { gain: 0.34 });
+      run('chime', [4], 72, 0.24);
       break;
   }
 }

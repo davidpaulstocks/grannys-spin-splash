@@ -183,15 +183,18 @@ export class Conductor {
     state: ConductorState,
     onNote?: NoteListener,
   ): void {
-    const bed = graph.channel('bed', 0, 1);
-    for (const line of this._bed) this._playLine(ctx, bed, line, step, time, 1);
+    for (const line of this._bed) {
+      this._playLine(ctx, lineChannel(graph, 'bed', line.line), line, step, time, 1);
+    }
     if (state.finale) {
-      const finale = graph.channel('finale', 0, 1);
-      for (const line of this._finale) this._playLine(ctx, finale, line, step, time, 1);
+      for (const line of this._finale) {
+        this._playLine(ctx, lineChannel(graph, 'finale', line.line), line, step, time, 1);
+      }
     }
     if (state.frenzy) {
-      const frenzy = graph.channel('frenzy', 0, 1);
-      for (const line of this._frenzy) this._playLine(ctx, frenzy, line, step, time, 1);
+      for (const line of this._frenzy) {
+        this._playLine(ctx, lineChannel(graph, 'frenzy', line.line), line, step, time, 1);
+      }
     }
 
     this._seats.forEach((seat, index) => {
@@ -282,14 +285,25 @@ export class Conductor {
     instrument: InstrumentId,
     step: number,
     time: number,
-    options: { tone?: number; floor?: number; gain: number; holdSeconds?: number; tonic?: boolean },
+    options: {
+      tone?: number;
+      floor?: number;
+      gain: number;
+      holdSeconds?: number;
+      tonic?: boolean;
+      /** 0–1: play through the guitar amp (a rock band's lead guitar fanfare). */
+      drive?: number;
+    },
   ): void {
     const harmony = options.tonic
       ? chord(this.score.tonic + (this.score.mode === 'minor' ? 'm' : ''))
       : this.chordAt(step);
     const midi =
       options.tone === undefined ? 0 : stackedTone(harmony, options.tone, options.floor ?? 60);
-    this._bank.play(ctx, graph.channel('stinger', 0, 1), instrument, midi, time, {
+    const dest = options.drive
+      ? graph.channel(STINGER_AMP_CHANNEL, 0, 1, options.drive)
+      : graph.channel(STINGER_CHANNEL, 0, 1);
+    this._bank.play(ctx, dest, instrument, midi, time, {
       gain: options.gain,
       ...(options.holdSeconds === undefined ? {} : { holdSeconds: options.holdSeconds }),
     });
@@ -354,6 +368,16 @@ function voiceOf(part: Part): InstrumentId {
 /** Where squirt notes are pitched: the part's own register, unless a struck part asks to answer elsewhere (a bass, an octave up). */
 function voiceFloor(part: Part): number {
   return part.sustain ? part.floor : (part.sprayFloor ?? part.floor);
+}
+
+const STINGER_CHANNEL = 'stinger';
+const STINGER_AMP_CHANNEL = 'stinger:amp';
+
+/** The channel a bed, finale or frenzy line plays on: the shared one, or an amp channel for a driven guitar line (one per drive setting). */
+function lineChannel(graph: OrchestraGraph, base: string, line: Line): AudioNode {
+  return line.drive
+    ? graph.channel(`${base}:amp${line.drive}`, 0, 1, line.drive)
+    : graph.channel(base, 0, 1);
 }
 
 export function seatChannel(seat: number): string {

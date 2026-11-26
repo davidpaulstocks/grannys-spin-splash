@@ -9,9 +9,21 @@ import type { InstrumentIconId } from '../../audio/orchestra/icons';
 
 export const INSTRUMENT_ART_READY: readonly InstrumentIconId[] = [
   'acoustic_guitar',
+  'bassoon',
   'cello',
+  'clarinet',
   'double_bass',
   'electric_guitar',
+  'electric_piano',
+  'euphonium',
+  'flute',
+  'french_horn',
   'harp',
+  'organ',
+  'piano',
+  'saxophone',
+  'trombone',
+  'trumpet',
+  'tuba',
   'violin',
 ];

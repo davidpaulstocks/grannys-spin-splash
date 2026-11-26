@@ -8,7 +8,12 @@
  *
  * Built against BaseAudioContext so the identical graph can be rendered
  * offline for level checks (tools and tests) as well as played live.
+ *
+ * Each band plays in its own room (`Room`, set per round with `setRoom`): the
+ * hall below is Garden's, and the default.
  */
+
+import type { Room, Score } from './score.types';
 
 /** Hall reverb: generated, so it costs no download. Real instruments need far less of it than the old oscillators did. */
 const REVERB_SECONDS = 2.2;
@@ -20,6 +25,18 @@ const REVERB_SEND_MAX = 0.3;
 /** Round arc: the top end arrives gradually, so the last ten seconds sound brighter, not just louder. */
 const TONE_MIN_HZ = 3600;
 const TONE_MAX_HZ = 16000;
+
+/** The concert hall: Garden's room, and every score's default. */
+export const HALL_ROOM: Room = {
+  reverbSendMin: REVERB_SEND_MIN,
+  reverbSendMax: REVERB_SEND_MAX,
+  toneMinHz: TONE_MIN_HZ,
+};
+
+/** The room a score plays in: its own, or the hall. */
+export function resolveRoom(score: Score): Room {
+  return score.room ?? HALL_ROOM;
+}
 const ARC_SMOOTHING_SECONDS = 0.2;
 
 /** Safety net for the Frenzy tutti. Gentle ratio: a brick wall here pumps on every bass-drum hit. */
@@ -50,9 +67,11 @@ export class OrchestraGraph {
   /** What notes connect to: the fader itself, or the amp in front of it for a driven channel. */
   private readonly _inputs = new Map<string, AudioNode>();
   private readonly _faderTargets = new Map<string, number>();
+  private _room: Room = HALL_ROOM;
 
-  constructor(ctx: BaseAudioContext, destination: AudioNode) {
+  constructor(ctx: BaseAudioContext, destination: AudioNode, room: Room = HALL_ROOM) {
     this._ctx = ctx;
+    this._room = room;
 
     const trim = ctx.createGain();
     trim.gain.value = OUTPUT_TRIM;
@@ -68,7 +87,7 @@ export class OrchestraGraph {
 
     this._tone = ctx.createBiquadFilter();
     this._tone.type = 'lowpass';
-    this._tone.frequency.value = TONE_MIN_HZ;
+    this._tone.frequency.value = room.toneMinHz;
     this._tone.Q.value = 0.0001;
     this._tone.connect(limiter);
 
@@ -78,7 +97,7 @@ export class OrchestraGraph {
     damping.type = 'lowpass';
     damping.frequency.value = REVERB_TONE_HZ;
     this._reverbSend = ctx.createGain();
-    this._reverbSend.gain.value = REVERB_SEND_MIN;
+    this._reverbSend.gain.value = room.reverbSendMin;
     this._reverbSend.connect(damping);
     damping.connect(hall);
     hall.connect(limiter);
@@ -149,17 +168,31 @@ export class OrchestraGraph {
     fader.gain.setTargetAtTime(level, this._ctx.currentTime, seconds / 3);
   }
 
+  /**
+   * Moves the band into a new room — call at the start of a round, when the
+   * venue may have changed. The tone and reverb snap to the room's opening
+   * values; `setArc` then opens them across the round as before.
+   */
+  setRoom(room: Room): void {
+    this._room = room;
+    const now = this._ctx.currentTime;
+    this._tone.frequency.cancelScheduledValues(now);
+    this._tone.frequency.value = room.toneMinHz;
+    this._reverbSend.gain.cancelScheduledValues(now);
+    this._reverbSend.gain.value = room.reverbSendMin;
+  }
+
   /** `progress` 0–1 through the round: opens the tone control and deepens the hall. */
   setArc(progress: number): void {
     const eased = progress * progress;
     const now = this._ctx.currentTime;
     this._tone.frequency.setTargetAtTime(
-      TONE_MIN_HZ + (TONE_MAX_HZ - TONE_MIN_HZ) * eased,
+      this._room.toneMinHz + (TONE_MAX_HZ - this._room.toneMinHz) * eased,
       now,
       ARC_SMOOTHING_SECONDS,
     );
     this._reverbSend.gain.setTargetAtTime(
-      REVERB_SEND_MIN + (REVERB_SEND_MAX - REVERB_SEND_MIN) * eased,
+      this._room.reverbSendMin + (this._room.reverbSendMax - this._room.reverbSendMin) * eased,
       now,
       ARC_SMOOTHING_SECONDS,
     );

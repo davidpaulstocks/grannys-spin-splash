@@ -35,15 +35,23 @@ export function held(
   return { id, name, instrument, floor, level, bars, sustain: true, ...extras };
 }
 
-/** A bare line, for beds, companions and ornaments. Unpitched lines pass a floor of 0. */
+/** A bare line, for beds, companions and ornaments. Unpitched lines pass a floor of 0; a guitar line in the finale or frenzy passes a `drive`. */
 export function line(
   instrument: InstrumentId,
   floor: number,
   level: number,
   bars: Bars,
   sustain = false,
+  drive = 0,
 ): Line {
-  return sustain ? { instrument, floor, level, bars, sustain } : { instrument, floor, level, bars };
+  return {
+    instrument,
+    floor,
+    level,
+    bars,
+    ...(sustain ? { sustain } : {}),
+    ...(drive > 0 ? { drive } : {}),
+  };
 }
 
 /** Driving spiccato strings, a timpani pulse and tambourine: the last ten seconds lean forward. */

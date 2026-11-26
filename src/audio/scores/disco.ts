@@ -10,6 +10,7 @@
  */
 
 import type { Score } from '../orchestra/score.types';
+import { BALLROOM_ROOM } from './rooms';
 import { held, line, struck } from './shared';
 
 export const DISCO_SCORE: Score = {
@@ -203,4 +204,23 @@ export const DISCO_SCORE: Score = {
     line('glock', 74, 0.3, ["a b c d a b c d a' b' c' d a' b' c' d"]),
     line('conga', 0, 0.4, ['x x? x x x? x x x? x x? x x x? x x x?']),
   ],
+
+  // A big glossy room; the dance band's own voices for the fanfare, the closing chord and the star chimes.
+  room: BALLROOM_ROOM,
+  palette: {
+    instruments: {
+      roll: 'tom_hi',
+      swell: 'hat_open',
+      crash: 'crash',
+      ting: 'hat_closed',
+      boom: 'tom_lo',
+      thump: 'kick',
+      bass: 'ebass',
+      sustain: 'cello_sus',
+      pluck: 'epiano',
+      tap: 'epiano',
+      knock: 'clav',
+    },
+    shifts: { pluck: -12, tap: -24 },
+  },
 };

@@ -1,10 +1,23 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { Conductor } from '../../src/audio/orchestra/Conductor';
-import type { OrchestraGraph } from '../../src/audio/orchestra/OrchestraGraph';
+import {
+  HALL_ROOM,
+  resolveRoom,
+  type OrchestraGraph,
+} from '../../src/audio/orchestra/OrchestraGraph';
+import {
+  ORCHESTRAL_PALETTE,
+  PITCHED_ROLES,
+  resolvePalette,
+  ROLE_RANGES,
+  UNPITCHED_ROLES,
+} from '../../src/audio/orchestra/palette';
 import { STEPS_PER_BAR } from '../../src/audio/orchestra/pattern';
 import type { SampleBank } from '../../src/audio/orchestra/SampleBank';
-import { BARS_PER_FORM } from '../../src/audio/orchestra/score.types';
+import { BARS_PER_FORM, type PaletteRole } from '../../src/audio/orchestra/score.types';
 import { isInScale, pitchClass } from '../../src/audio/orchestra/theory';
 import { resolveScore, SCORES } from '../../src/audio/scores';
 
@@ -75,5 +88,131 @@ describe.each(SCORES.map((score) => [score.id, score] as const))('score: %s', (i
     const ids = score.seats.map((seat) => seat.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(score.seats.every((seat) => seat.name.length > 0)).toBe(true);
+  });
+});
+
+/** What each recorded instrument is and how far it reaches, read from the shipped sprite indexes. */
+interface RecordedInstrument {
+  readonly pitched: boolean;
+  readonly low: number;
+  readonly high: number;
+}
+
+function readBank(path: string): Map<string, RecordedInstrument> {
+  const index = JSON.parse(readFileSync(path, 'utf8')) as {
+    instruments: Record<string, { pitched: boolean; samples: readonly { midi: number | null }[] }>;
+  };
+  return new Map(
+    Object.entries(index.instruments).map(([id, instrument]) => {
+      const notes = instrument.samples.flatMap((s) => (s.midi === null ? [] : [s.midi]));
+      return [
+        id,
+        { pitched: instrument.pitched, low: Math.min(...notes), high: Math.max(...notes) },
+      ] as const;
+    }),
+  );
+}
+
+const ORCHESTRA = readBank('public/audio/orchestra.json');
+const KITCHEN = readBank('public/audio/bands/kitchen.json');
+const KIT = readBank('public/audio/bands/kit.json');
+
+/** Every bank loads at boot whatever the venue (SampleBank, BAND_SPRITES), so any venue's set pieces may use any recorded instrument. */
+const ALL_BANKS = [ORCHESTRA, KITCHEN, KIT];
+
+/** How far beyond its recorded notes an instrument may be retuned before it stops sounding like itself. */
+const MAX_RETUNE_SEMITONES = 12;
+
+function recorded(_venue: string, instrument: string): RecordedInstrument | undefined {
+  for (const bank of ALL_BANKS) {
+    const found = bank.get(instrument);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+describe('rooms and palettes', () => {
+  it('gives Garden the hall and the orchestra', () => {
+    const garden = resolveScore('garden');
+    expect(resolveRoom(garden)).toEqual(HALL_ROOM);
+    expect(resolvePalette(garden).instruments).toEqual(ORCHESTRAL_PALETTE);
+    expect(resolvePalette(garden).leadDrive).toBe(0);
+    for (const role of Object.keys(ORCHESTRAL_PALETTE) as PaletteRole[]) {
+      expect(resolvePalette(garden).shift(role)).toBe(0);
+    }
+  });
+
+  it('puts each band in a different room from the hall, as specified', () => {
+    const hall = HALL_ROOM;
+    const send = (id: string): number =>
+      resolveRoom(resolveScore(id)).reverbSendMin / hall.reverbSendMin;
+    expect(send('kitchen')).toBeCloseTo(0.5);
+    expect(send('workshop')).toBeCloseTo(0.25);
+    expect(send('funfair')).toBeCloseTo(2 / 3);
+    expect(send('disco')).toBeGreaterThan(1);
+    expect(resolveRoom(resolveScore('workshop')).toneMinHz).toBeGreaterThanOrEqual(7000 - 1);
+    expect(resolveRoom(resolveScore('disco')).toneMinHz).toBeGreaterThanOrEqual(6000 - 1);
+    for (const score of SCORES) {
+      const room = resolveRoom(score);
+      expect(room.reverbSendMax).toBeGreaterThanOrEqual(room.reverbSendMin);
+      expect(room.toneMinHz).toBeGreaterThan(0);
+    }
+  });
+
+  describe.each(SCORES.map((score) => [score.id, score] as const))('palette: %s', (id, score) => {
+    const palette = resolvePalette(score);
+    const roles = Object.keys(ORCHESTRAL_PALETTE) as PaletteRole[];
+
+    it('names an instrument the venue can load for every role', () => {
+      for (const role of roles) {
+        expect(
+          recorded(id, palette.instruments[role]),
+          `${role}: ${palette.instruments[role]}`,
+        ).toBeDefined();
+      }
+    });
+
+    it('puts unpitched roles on unpitched instruments and pitched roles on pitched ones', () => {
+      for (const role of UNPITCHED_ROLES) {
+        expect(recorded(id, palette.instruments[role])?.pitched, role).toBe(false);
+      }
+      for (const role of PITCHED_ROLES) {
+        expect(recorded(id, palette.instruments[role])?.pitched, role).toBe(true);
+      }
+    });
+
+    it('keeps every pitched role within retuning distance of what the instrument recorded', () => {
+      const pitchedRoles: PaletteRole[] = [...PITCHED_ROLES];
+      if (recorded(id, palette.instruments.boom)?.pitched) pitchedRoles.push('boom');
+      for (const role of pitchedRoles) {
+        const range = ROLE_RANGES[role];
+        const instrument = recorded(id, palette.instruments[role]);
+        if (!range || !instrument) throw new Error(`no range for ${role}`);
+        const shift = palette.shift(role);
+        expect(Math.abs(shift % 12), `${role} shift stays in key`).toBe(0);
+        expect(range.low + shift, `${role} low`).toBeGreaterThanOrEqual(
+          instrument.low - MAX_RETUNE_SEMITONES,
+        );
+        expect(range.high + shift, `${role} high`).toBeLessThanOrEqual(
+          instrument.high + MAX_RETUNE_SEMITONES,
+        );
+      }
+    });
+  });
+
+  it('seats the Workshop as a rock band: drums, bass, rhythm guitar, lead guitar first', () => {
+    const workshop = resolveScore('workshop');
+    expect(workshop.lineup.slice(0, 4)).toEqual(['drums', 'bass', 'rhythm', 'lead']);
+    expect(workshop.bpm).toBeLessThanOrEqual(140);
+    expect(workshop.seats).toHaveLength(15);
+    expect(new Set(workshop.lineup)).toEqual(new Set(workshop.seats.map((seat) => seat.id)));
+    const drums = workshop.seats.find((seat) => seat.id === 'drums');
+    const loudest = Math.max(...workshop.seats.map((seat) => seat.level));
+    expect(drums?.level).toBe(loudest);
+  });
+
+  it('plays the Workshop guitars through the amp in the frenzy too', () => {
+    const driven = resolveScore('workshop').frenzy.filter((l) => (l.drive ?? 0) > 0);
+    expect(driven.length).toBeGreaterThanOrEqual(2);
   });
 });

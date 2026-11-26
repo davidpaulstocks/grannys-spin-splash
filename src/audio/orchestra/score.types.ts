@@ -102,6 +102,12 @@ export interface Line {
   /** Notes are held for their written length (bowed/blown) rather than left to ring (plucked/struck). */
   readonly sustain?: boolean;
   readonly bars: Bars;
+  /**
+   * 0–1: how hard this line is driven through a guitar amp. Omit for a clean
+   * sound. On a seat's `with` and `ornament` lines it is ignored (the seat's
+   * own `drive` applies); on bed, finale and frenzy lines it is honoured.
+   */
+  readonly drive?: number;
 }
 
 export interface Part extends Line {
@@ -125,11 +131,60 @@ export interface Part extends Line {
   readonly spray?: InstrumentId;
   /** Struck parts only: where squirt notes are pitched, if not at `floor`. Lets a bass answer an octave up. */
   readonly sprayFloor?: number;
-  /** 0–1: how hard this musician is driven through a guitar amp. Omit for a clean sound. */
-  readonly drive?: number;
 }
 
 export const BARS_PER_FORM = 8;
+
+/**
+ * The room a band plays in: how much of the generated hall reverb it sends
+ * to, and how dark the tone control starts. Both open across the round
+ * (`OrchestraGraph.setArc`), so each pair is a start and an end.
+ */
+export interface Room {
+  /** Reverb send at the start of the round, 0–1. */
+  readonly reverbSendMin: number;
+  /** Reverb send at the end of the round, 0–1. */
+  readonly reverbSendMax: number;
+  /** Low-pass cutoff at the start of the round, Hz. Higher is brighter from the first second. */
+  readonly toneMinHz: number;
+}
+
+/**
+ * Roles the set pieces (lean-in, fanfare, closing chord, feedback accents,
+ * results chimes) fill with instruments. Role-based so each band can voice
+ * the same gestures on its own instruments (`orchestra/palette.ts`).
+ */
+export type PaletteRole =
+  | 'roll'
+  | 'swell'
+  | 'crash'
+  | 'shimmer'
+  | 'ting'
+  | 'boom'
+  | 'thump'
+  | 'bass'
+  | 'sustain'
+  | 'pad'
+  | 'lead'
+  | 'pluck'
+  | 'chime'
+  | 'tap'
+  | 'knock';
+
+/** The instruments a band's set pieces use, one per role. */
+export type Palette = Readonly<Record<PaletteRole, InstrumentId>>;
+
+/** A band's palette overrides: any role left out keeps the orchestral default. */
+export interface PaletteOverrides {
+  readonly instruments: Partial<Palette>;
+  /**
+   * Octave shifts, in semitones (multiples of 12), applied to a pitched role
+   * so its notes land inside the chosen instrument's recorded range.
+   */
+  readonly shifts?: Partial<Record<PaletteRole, number>>;
+  /** 0–1: the `lead` role is played through the guitar amp at this drive. */
+  readonly leadDrive?: number;
+}
 
 export interface Score {
   readonly id: string;
@@ -156,4 +211,8 @@ export interface Score {
   readonly finale: readonly Line[];
   /** Joins for the Splash Frenzy window. */
   readonly frenzy: readonly Line[];
+  /** The room the band plays in. Omit for the concert hall (Garden's). */
+  readonly room?: Room;
+  /** Who plays the set pieces and chimes. Omit for the orchestra's. */
+  readonly palette?: PaletteOverrides;
 }

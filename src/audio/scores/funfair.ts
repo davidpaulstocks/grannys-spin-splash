@@ -8,6 +8,7 @@
  */
 
 import type { Bars, Score } from '../orchestra/score.types';
+import { BANDSTAND_ROOM } from './rooms';
 import { held, line, struck, tuttiFrenzy } from './shared';
 
 const CAROUSEL_TUNE: Bars = [
@@ -128,4 +129,20 @@ export const FUNFAIR_SCORE: Score = {
     line('tambourine', 0, 0.3, ['x x? x x? x x? x x?']),
   ],
   frenzy: tuttiFrenzy(60, 72, 36),
+
+  // An open bandstand; the brass band's own voices for the fanfare, the closing chord and the chimes.
+  room: BANDSTAND_ROOM,
+  palette: {
+    instruments: {
+      roll: 'snare_roll',
+      shimmer: 'tambourine',
+      ting: 'tambourine',
+      boom: 'tuba_stac',
+      bass: 'tuba_stac',
+      sustain: 'trombone_sus',
+      pad: 'horn_sus',
+      pluck: 'marimba',
+    },
+    shifts: { pad: -12 },
+  },
 };
