@@ -5,8 +5,10 @@ orchestra, Kitchen jazz combo, Workshop garage rock, Funfair brass band,
 Disco funk/disco band). All three sample sources approved by David on
 2026-11-25 and each repository's own LICENSE file checked (CC0-1.0). David
 listened to Garden and the Kitchen on 2026-11-25 and called the music "really
-delightful". He has **not yet heard** the three new bands, nor the change that
-makes each instrument answer a squirt in its own voice (`9707eee`).
+delightful". On 2026-11-26, after the change that makes each instrument answer
+a squirt in its own voice (`9707eee`), he confirmed the instruments are now
+"distinct enough". He has given no notes yet on the Workshop, Funfair and Disco
+bands themselves.
 
 The engine separates the mechanic (each spinner is a musician with a written
 part) from the style (which recordings, which score). A new band is a new

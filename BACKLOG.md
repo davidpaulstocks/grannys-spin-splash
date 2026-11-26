@@ -38,7 +38,8 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 - [ ] **New-musician solo** at the gig intro (only name labels exist)
 - [ ] **"Ten more seconds" rewarded option** (slice 3)
 - [ ] **Band album** (slice 3; the Band page listing every musician met)
-- [ ] **David's listen** to the Workshop, Funfair and Disco bands and to the own-voice squirt answer, wake-up call and spotlight (`9707eee`, `f04ef3c`); notes may mean retuning a band
+- [x] **David's listen to the own-voice squirt answer, wake-up call and spotlight (`9707eee`)** — 2026-11-26: "distinct enough"
+- [ ] **David's notes on the Workshop, Funfair and Disco bands (`f04ef3c`)** — none given yet; notes may mean retuning a band
 - [ ] **Per-band fanfare and accents** — the set pieces and feedback accents (`setPieces.ts`) are still orchestral in every venue (Funfair's frenzy is still the shared `tuttiFrenzy`)
 - [ ] **A real playtest of the difficulty curve with children** — the harness bot has near-perfect aim and no power-ups
 - [ ] **Touch-layout check of the new screens** (Home, Tour, Shop, Results, goal card)
@@ -88,7 +89,7 @@ Commits `8b36957` … `113bf62`. Tracked against `docs/UPLIFT_PLAN.md` (phases A
 
 - ⚠️ **Files over CLAUDE.md §7.3 rule 1's 300-line cap** (`wc -l` at `113bf62`): `src/entities/spinner/spinnerRenderers.ts` 520, `src/scenes/GameScene.ts` 472 (down from 1,068 after the split), `src/scenes/ResultsScene.ts` 382, `src/audio/AudioOrchestra.ts` 367, `src/scenes/ShopScene.ts` 363. Also `tools/build-orchestra-samples.ts` 711 (tooling). Close to the cap: `src/ui/LoadoutStage.ts` 298.
 - ⚠️ **Venues beyond Garden are only lightly tuned** — the harness has read the first and last gig of each, not the middle gigs, and no child has played them.
-- ⚠️ **The Workshop, Funfair and Disco bands, and the own-voice squirt answer, are measured but not heard.** David has listened to Garden and the Kitchen only. The Frenzy fanfare, closing chord and accents are still orchestral in every venue.
+- ⚠️ **The Workshop, Funfair and Disco bands are measured, with no notes from David yet.** He confirmed on 2026-11-26 that instruments are now distinct enough when squirted. The Frenzy fanfare, closing chord and accents are still orchestral in every venue.
 - ⚠️ The audit's minor findings list (2026-09-12) of §7.3-style nitpicks (magic numbers off the 8px grid, a few raw hex literals, missing JSDoc on some public methods) is still not acted on.
 - ⚠️ **Real human playtest still outstanding** for Frenzy reachability and gig difficulty: the bot has perfect-ish aim and uses no power-ups. The harness (`window.__bot`) measures; a real seven-year-old confirms.
 
