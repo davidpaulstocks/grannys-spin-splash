@@ -1,7 +1,7 @@
 # Granny's Spin Splash — Poki Edition
 
-**Status (2026-11-25):** Playable build, green on lint/test/build/budget. Mid-way through the **"Granny's Grand Tour" transformation**: the orchestra was rebuilt on real instruments and the round became a ladder of gigs with star ratings and one coin currency. Slices 1–2 are built (gig ladder and stars; Home, Tour map, Shop — `e6ab381`); slice 3 is part built (one rolling mission and the daily gift); slice 4 is built bar the listening (all five venues have their own band: Garden chamber orchestra, Kitchen jazz combo, Workshop garage rock, Funfair brass band, Disco funk band; David has not yet heard the last three, and the set pieces and accents are still orchestral). The UI pass (sharp text, new button and panel) and goal clarity (a band to wake, a band meter, a goal card) are done; `GameScene` is split into `src/scenes/game/`. Jam mode and the new-musician solo are still to come. Not yet submitted to Poki — see `BACKLOG.md` for live status and submission blockers.
-**Current plan of record:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md) (the orchestra, juice and assessment phases), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md) (round structure, scoring, economy and navigation — **authoritative over §4 and §11 where they conflict**) and [`docs/BANDS.md`](docs/BANDS.md) (one musical style per venue). This file's other sections are the original spec; where it disagrees with the code, the code and those three docs win.
+**Status (2026-11-26):** Playable build. The **"Granny's Grand Tour" transformation** is largely built: the orchestra on real instruments, a ladder of eight gigs per venue, one coin currency, and a band for each of the five venues (Garden chamber orchestra, Kitchen jazz combo, Workshop garage rock, Funfair brass band, Disco funk band, each in its own room with its own fanfare and chimes). Built after David's play-test of 2026-11-26 (commits `b3aa058` to `4b4cd4e`): **magnetic aim** and faster water; a **venue strip on Home**; a **painted instrument** on every spinner (36 pictures); the **reward loop** (every spinning instrument throws coins, a groove multiplier you can lose, stars from the coin total, a three-beat results screen, a "saving for" strip on Home); a **note fountain** that draws each note the band plays; and **gun upgrade levels**. The wake/sleep framing is gone: the goal is to **keep the band playing**. **Being built (2026-11-26):** visitors, random surprise blockers, sitters and treats that replace the fixed cat, umbrella and duck obstacles. **Not built:** Jam mode, the new-musician solo, more painted guns. **Not confirmed by David:** none of the 2026-11-26 batch (aim feel, urgency, reward loop, results screen, note fountain, per-band set pieces) has been played or heard by him since it was built; it is measured or bot-tested only. Balance is tuned for Garden only. Not yet submitted to Poki — see `BACKLOG.md` for live status and submission blockers.
+**Current plan of record:** [`docs/UPLIFT_PLAN.md`](docs/UPLIFT_PLAN.md) (the orchestra, juice and assessment phases), [`docs/ENGAGEMENT_DESIGN.md`](docs/ENGAGEMENT_DESIGN.md) (round structure, economy and navigation — **authoritative over §4 and §11 where they conflict**, except for scoring, stars, earning and prices), [`docs/REWARD_LOOP.md`](docs/REWARD_LOOP.md) (**authoritative for scoring, stars, coin earning, the groove, gun coin boosts and upgrade levels, and prices; it supersedes `ENGAGEMENT_DESIGN.md` §3's star rule and §4's earning table and prices**) and [`docs/BANDS.md`](docs/BANDS.md) (one musical style per venue). This file's other sections are the original spec; where it disagrees with the code, the code and those four docs win.
 **Target platform:** [Poki](https://poki.com) (100M+ MAUs, hand-curated)
 **Tech:** TypeScript + Vite + Phaser 3 (bundled, not CDN)
 **Mode:** Single-player only
@@ -51,16 +51,17 @@ The prototype is now retired as a source of code. **This document is the build s
 
 ### What v1 includes
 - **3 grannies** (custom Nano Banana sprites): Classic Granny, The Squirt Sister, Punk Granny
-- **6 guns** (custom sprites, 8 rotation angles each): Drip Pistol, The Squirter, Garden Hose, Splash Jr, Soaker 3000, Inferno
+- **6 guns** (custom sprites, 8 rotation angles each): Drip Pistol, The Squirter, Garden Hose, Splash Jr, Soaker 3000, Inferno. Each multiplies coins (x1, x1, x1.5, x2, x3, x5) and can be upgraded to level 5 with coins
 - **5 worlds** (called *venues* since the 2026-11-25 redesign), opened by total stars earned as a rating (never spent): Garden (free), Workshop (12★), Kitchen (30★), Funfair (54★, moving targets), Disco (80★, frequent Golden Spinner). Each venue is a ladder of eight gigs — see §4 and `docs/ENGAGEMENT_DESIGN.md`
 - 8 spinner types (procedurally drawn)
 - 5 power-ups
-- 3 obstacles (cat, umbrella, duck) — spawn per-world per the roster in `entities/world/world.data.ts`
+- 3 obstacles (cat, umbrella, duck) — spawn per-world per the roster in `entities/world/world.data.ts`. Being replaced by **visitors** (random surprise blockers, sitters and treats): being built, 2026-11-26
 - Golden Spinner — a timed bonus spawn (own lifetime, outside the grid), more frequent in Disco
 - ASMR spinner orchestra on real instruments (§9)
-- Coin bank (the "vault") for buying grannies and guns; stars are the gig rating
-- Splash Frenzy + mini-frenzies at 60% and 80%
-- 30-second runs
+- Coin bank (the "vault") for buying and upgrading guns and buying grannies; stars are the gig rating, set by the gig's coin total
+- Splash Frenzy when the whole band is at full speed at once (the 60% and 80% mini-frenzies were removed 2026-11-26; the 80% mark now only cues the music's lean-in)
+- The groove: a x1 to x5 multiplier on every coin, lost when an instrument falls out of full speed
+- 20 to 30 second gigs
 
 ### What v1 explicitly does not include
 - ❌ Two-player mode
@@ -114,7 +115,7 @@ Source: https://sdk.poki.com/new-requirements.html
 | # | Rule | Notes |
 |---|---|---|
 | 1 | **16:9 aspect ratio**, scales to 640×360 / 836×470 / 1031×580 | Game logical size: 1280×720 |
-| 2 | **Under 8 MB initial download** | `npm run budget` checks `dist/`. About 5.22 MB after the five bands (art is WebP; the orchestra sprite is about 955 KB, Kitchen 363 KB, kit 200 KB), 2.78 MB under the cap; see `BACKLOG.md` and `docs/BANDS.md` §Size |
+| 2 | **Under 8 MB initial download** | `npm run budget` checks `dist/`. About 5.8 MB at `dc38f8c` (about 2.19 MB under the cap; measured then, not re-measured since): art is WebP, the orchestra sprite is about 955 KB, Kitchen 363 KB, kit 200 KB, and the 36 painted instruments are about 0.6 MB; see `BACKLOG.md` and `docs/BANDS.md` §Size |
 | 3 | **No external requests** — no Google Fonts, no CDNs, no jsDelivr | Bundle Phaser locally; bundle Fredoka WOFF2 locally |
 | 4 | **Incognito support** — localStorage wrapped in try/catch | Single `SaveManager` class enforces this |
 | 5 | **Desktop + mobile + tablet support** | Touch + mouse + keyboard |
@@ -150,19 +151,19 @@ All SDK calls go through `src/poki.ts`. No exceptions. Mute audio + disable inpu
 
 ## 4. The Game in One Page
 
-> **Redesigned 2026-11-25.** The round structure, scoring and economy below were reworked in the "Granny's Grand Tour" transformation: each venue is a **ladder of eight gigs** (band sizes grow from a trio to the full wall, authored in `src/entities/world/gigs.data.ts`); **stars are the rating** (1–3 per gig, never spent) and **open venues**; **coins are the single currency** (the save's `vault`), earned in every gig and spent on grannies and guns; the old score rank ladder is gone. **`docs/ENGAGEMENT_DESIGN.md` is authoritative where it conflicts with this section.** Built so far: the gig ladder, star rating, results screen and coin economy (slice 1); Home, Tour map and Shop (slice 2 — the first screen is Home, or gig 1 on a first-ever launch); Granny's request and the daily gift (slice 3, part).
+> **Redesigned 2026-11-25.** The round structure, scoring and economy below were reworked in the "Granny's Grand Tour" transformation: each venue is a **ladder of eight gigs** (band sizes grow from a trio to the full wall, authored in `src/entities/world/gigs.data.ts`); **stars are the rating** (1–3 per gig, never spent) and **open venues**; **coins are the single currency** (the save's `vault`), earned in every gig and spent on grannies and guns; the old score rank ladder is gone. **`docs/ENGAGEMENT_DESIGN.md` is authoritative where it conflicts with this section.** Built so far: the gig ladder, star rating, results screen and coin economy (slice 1); Home, Tour map and Shop (slice 2 — the first screen is Home, or gig 1 on a first-ever launch); Granny's request and the daily gift (slice 3, part). **Scoring, stars, coin earning, the groove, guns and prices were reworked again on 2026-11-26 and are now governed by `docs/REWARD_LOOP.md`; the paragraphs below describe the current rules and point there for the numbers.**
 
-> **The purpose the game now communicates (2026-11-25):** *wake up the whole band, and keep them all awake at once.* Every spinner is a sleeping musician; **"awake" means a spinner at full speed** (FULL), and the gig is won by having them awake at the same moment. Three things say so on screen: a stopped spinner shows drifting "z z z" and an awake one about to drop out nods side to side; the HUD is a **band meter** (`src/ui/BandMeter.ts` — one light per musician, filling as they wake, with the three stars standing above the lights that earn them, so "5 of 8 awake" is counted, not read as a percentage); and a **YOUR GOAL card** (`src/scenes/game/GoalCard.ts`) sits beside Granny before the first squirt of every gig and leaves on the first input. Wording is the same everywhere: asleep, awake, full band.
+> **The purpose the game communicates (rewritten 2026-11-26):** *keep the band playing — get as many instruments going at once as you can, and keep them going.* David on 2026-11-26: "I don't think waking the band is the right term… It's getting everything playing, create as much music as possible." Every spinner is a musician carrying a painted instrument; a spinning one plays and pays coins, a stopped one is quiet, and a spinner at full speed pays most. The words are **playing**, **quiet** and **full band**; the "asleep / awake" words and the drifting "z z z" are gone. Three things say it on screen: the HUD **score bar** (`src/ui/ScoreBar.ts`: the gig's coin total as the largest text on screen, a bar under it with a star at each of the three coin targets) with the **groove badge** (`src/ui/GrooveBadge.ts`: the x1 to x5 multiplier and a ring filling toward the next level), which replaced the band meter (`BandMeter.ts`, deleted); coins flying from each paying instrument to the counter (`CoinFountain.ts`); and a **YOUR GOAL card** (`src/scenes/game/GoalCard.ts`) beside Granny before the first squirt of every gig, headed "Keep the band playing!" with the coin total each star takes, which leaves on the first input. An instrument about to drop out of full speed rocks side to side inside a pulsing Heat Orange ring, so the player can see which one needs them next.
 
 A tiny old granny wields a custom water gun. The wall in front of her is covered in spinning targets — pinwheels, cogs, fans. Squirt them to make them spin faster. Get them all spinning at maximum simultaneously and trigger **SPLASH FRENZY!** — a 5-second bonus burst worth bonus stars.
 
-**Round structure:** a *gig* — 20 to 30 seconds depending on its place on the ladder (20 s for gigs 1–2, 25 s for 3–4, 30 s for 5–8; `SECONDS_BY_GIG`). The clock is everything. The goal is to get the whole band playing at once: the HUD bar's 60% / 80% / 100% marks are one, two and three stars, and three stars (FULL BAND) triggers Splash Frenzy. One star passes the gig; the rest of the round is the encore.
+**Round structure:** a *gig* — 20 to 30 seconds depending on its place on the ladder (20 s for gigs 1–2, 25 s for 3–4, 30 s for 5–8; `SECONDS_BY_GIG`). The clock is everything. Every 500 ms each spinning instrument pays coins by its speed (slow 1, medium 2, full 4), multiplied by the groove; stars are locked in as the gig's coin total passes three targets (`starTargets` in `gigs.data.ts`, set from the band size, the gig's length and the venue, and shown on the goal card before the gig). One star passes the gig; three takes a good run with the groove built up. The whole band at full speed at once triggers Splash Frenzy, which adds a groove level and doubles coins for its window. The 60% / 80% / 100% star rule and the hit-streak combo of 2026-11-25 are gone (`docs/REWARD_LOOP.md`).
 
-**Audio system:** every spinner is a musician with a written part; waking spinners brings musicians in, and squirting plays the instrument. By Frenzy, you're conducting a full orchestra. This is the headline feature — see §9.
+**Audio system:** every spinner is a musician with a written part; spinning spinners bring musicians in, and squirting plays the instrument. By Frenzy, you're conducting a full band. This is the headline feature — see §9. Each note the band plays is also drawn (the note fountain, `src/scenes/game/NoteFountain.ts`): strings throw ribbons, brass bursts, drums rings, more as an instrument spins faster, gold in Frenzy, so what is heard and what is seen match.
 
-**Progression:** coins earned go into a persistent bank (the "vault"). Spend coins on new grannies (skins) and guns (mechanics): guns cost 0 / 0 / 150 / 400 / 900 / 2,000 and the Punk Granny 600 (`gun.data.ts`, `granny.data.ts`). Venues are not bought: they open at 0 / 12 / 30 / 54 / 80 total stars (`starsToOpen` in `world.data.ts`). Grannies and guns are bought in the Shop (`ShopScene.ts`); Home has one large PLAY, and the results screen's NEXT GIG goes straight into the next gig. Granny's request (one rolling mission at a time, `Missions.ts`) pays coins, and a daily gift (`DailyGift.ts`) rewards coming back.
+**Progression:** coins earned go into a persistent bank (the "vault"). Spend coins on new grannies (skins) and guns (mechanics): guns cost 0 / 0 / 6,000 / 20,000 / 60,000 / 200,000 and the Punk Granny 30,000 (`gun.data.ts`, `granny.data.ts`). Each gun multiplies every coin it earns (`coinBoost`: x1 / x1 / x1.5 / x2 / x3 / x5) and each owned gun can be **upgraded to level 5** in the Shop: a level adds 15% of the gun's base coin boost and 8% fill power, and an upgrade costs the larger of 1,500 and 30% of the gun's price, doubling per level (`gunLevels.ts`, stored per gun in the save's `gunLevels`). Venues are not bought: they open at 0 / 12 / 30 / 54 / 80 total stars (`starsToOpen` in `world.data.ts`). Grannies and guns are bought in the Shop (`ShopScene.ts`, `GunShopping.ts`); Home has one large PLAY, a row of five venue tiles to switch venue, and a "saving for" strip naming the cheapest next purchase, and the results screen's NEXT GIG goes straight into the next gig. A first-time star pays 200 coins (`COINS_PER_NEW_STAR`). Granny's request (one rolling mission at a time, `Missions.ts`, rewards 1,000 to 2,400 coins) pays coins, and a daily gift (`DailyGift.ts`, 800 coins plus 400 per consecutive day, growing for up to a week) rewards coming back. The tables and the reasoning are in `docs/REWARD_LOOP.md`; do not duplicate them here.
 
-**Difficulty curve (v1):** authored per gig. Each venue's band grows over eight gigs (Garden 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12; Workshop 4 → 15; Kitchen and Funfair 4 → 16; Disco 5 → 20, plus the mirror-ball feature spinner on the last gig), spinner wind-down slows as the band grows, and obstacles and moving targets arrive through the ladder. Across venues: Garden (12 spinners, no obstacles) → Workshop (15, cat/umbrella/duck) → Kitchen (16, double cats) → Funfair (16, moving targets) → Disco (20, frequent Golden Spinner). Balance is tuned for Garden only; the other venues are untuned (`BACKLOG.md`).
+**Difficulty curve (v1):** authored per gig. Each venue's band grows over eight gigs (Garden 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12; Workshop 4 → 15; Kitchen and Funfair 4 → 16; Disco 5 → 20, plus the mirror-ball feature spinner on the last gig). Instruments hold full speed for less time and wind down faster than before (2026-11-26: David asked for "a bit more of a rush to go back and re-spin it"), most of all in small bands, and obstacles and moving targets arrive through the ladder. Across venues: Garden (12 spinners, no obstacles) → Workshop (15, cat/umbrella/duck) → Kitchen (16, double cats) → Funfair (16, moving targets) → Disco (20, frequent Golden Spinner). Balance is tuned for Garden only; Workshop was spot-checked under the new scoring and its gig 4 looked too hard, and the other venues are untuned (`BACKLOG.md`).
 
 **Long-tail unlocks (post-launch, not built):** GOLDEN GRANNY at 10,000 coins. GRANNY'S MEGA CANNON at 100,000 coins. (Originally specced in vault stars; prices would need re-checking against the new economy.) These exist to keep retention alive for weeks once added.
 
@@ -307,7 +308,7 @@ The game must be **playable with one finger on a phone**, **one hand on a laptop
 
 | Input | Action |
 |---|---|
-| **Mouse move** | Aim crosshair |
+| **Mouse move** | Aim; the water goes to the instrument nearest the pointer (magnetic aim, below) |
 | **Left click / hold** | Fire (continuous while held) |
 | **A / D** or **← / →** | Move Granny left/right |
 | **Space** | Toggle auto-fire on/off (accessibility) |
@@ -315,6 +316,8 @@ The game must be **playable with one finger on a phone**, **one hand on a laptop
 | **ESC** | Pause |
 
 Click-to-fire (not toggle) — more intuitive than the prototype's toggle. Toggle stays as Space for accessibility.
+
+**Aim assist (2026-11-26).** David: "the actual gameplay of aiming isn't very fun… quite hard work to reach the spinners at the top." The water now always goes to a musician: the **nearest instrument to the aim point, with no distance limit** (`resolveMagneticAim` in `utils/math.ts`; there are no dead gaps), and the current target is kept until another is nearer by 28 px (`AIM_MAGNET_MARGIN`) so the choice does not flicker between two. A ring shows what is targeted. A **mouse or trackpad** gets a **reach boost**: the aim point is the pointer pushed 1.3x away from the wall's bottom-centre (`AIM_REACH_GAIN`, `scaleAboutPivot`), so the top row needs less hand travel; touch stays 1:1 and shows no reticle. A power-up pickup near the aim point takes the aim before the magnet does. Water flies 1.6x faster (`WATER_SPEED_BOOST`) so it keeps up with the hand. None of this has been confirmed by David since it was built.
 
 ### 6.3 Mobile controls
 
@@ -342,9 +345,11 @@ Move buttons at the **edges**, not the centre — leaves the entire middle as th
 
 > **Changed 2026-09-12 (owner request):** the two-finger-tap pause gesture was removed — it paused the game by accident (any second touch) and was the direct cause of a run-soft-locking bug. Touch devices get a visible pause button (`ui/PauseButton.ts`, shown only where `ui/touchControls.ts` says the device has touch controls); desktop keeps ESC.
 
-### 6.4 Auto-aim implementation
+### 6.4 Auto-aim implementation (superseded 2026-11-26)
 
 Generous snap radius — 96px desktop, scaled equivalent on mobile. Visual feedback: crosshair changes to Mint Green and grows slightly when snapped.
+
+> **Superseded 2026-11-26:** the snap radius and the code below are the original spec. The game now uses the magnetic aim described under §6.2 (`resolveMagneticAim` in `src/utils/math.ts`), which has no radius limit. `resolveAim` and `AIM_SNAP_RADIUS` remain in the code.
 
 ```typescript
 const SNAP_RADIUS = 96;
@@ -372,7 +377,7 @@ function resolveAim(rawX: number, rawY: number, spinners: Spinner[]): AimResult 
 
 In-game text limited to: score numbers, "FRENZY!" banner, weapon/granny names. Everything else is visual.
 
-> **Update 2026-11-25:** every gig opens with a **YOUR GOAL card** (`src/scenes/game/GoalCard.ts`): "Wake the whole band!" and what each star takes. On a player's very first run, `TutorialSequence.ts` adds two captions tied to what just happened: "Squirt a sleepy musician to wake it up!" at the start (with the ghost finger), and "Keep the whole band awake at once!" the first time a spinner reaches FULL. They replaced "Squirt the spinners to make them spin faster!" and "Get every spinner to FULL for SPLASH FRENZY!".
+> **Update 2026-11-26:** every gig opens with a **YOUR GOAL card** (`src/scenes/game/GoalCard.ts`): "Keep the band playing!" and the coin total each of the three stars takes. On a player's very first run, `TutorialSequence.ts` adds two captions tied to what just happened: "Squirt an instrument to make it play!" at the start (with the ghost finger), and "Spinning instruments throw coins. Keep them all going!" the first time a spinner reaches FULL. (The 2026-11-25 wording, "Wake the whole band!" and "Squirt a sleepy musician to wake it up!", went with the wake/sleep framing.)
 
 ---
 
@@ -433,6 +438,7 @@ granny-spin-splash/
 │   │   │   └── … (6 launch guns × 8 angles = 48 files)
 │   │   ├── worlds/                    # one illustrated background per world (WORLD_BACKGROUND_BRIEF.md, delivered 2026-09-11)
 │   │   │   └── garden_bg.jpg / workshop_bg.jpg / kitchen_bg.jpg / funfair_bg.jpg / disco_bg.jpg
+│   │   ├── instruments/               # The 36 painted instruments, one square WebP each, worn on the spinners (`INSTRUMENT_ART_BRIEF.md`; cut from David's sheets by `npm run instruments`)
 │   │   ├── ui/                        # splash-screen title lockup (delivered 2026-09-11)
 │   │   │   └── wordmark.png / title_flourish.png
 │   │   └── icons/
@@ -453,32 +459,45 @@ granny-spin-splash/
 │   │
 │   ├── scenes/
 │   │   ├── BootScene.ts               # Loads assets, fires gameLoadingFinished; first-ever launch goes straight to Garden gig 1, otherwise to Home
-│   │   ├── HomeScene.ts               # First screen for returning players: venue, Granny, next-gig card, one PLAY button; Tour and Shop buttons
+│   │   ├── HomeScene.ts               # First screen for returning players: venue strip, Granny, next-gig card, "saving for" strip, one PLAY button; ALL GIGS and SHOP buttons
 │   │   ├── TourScene.ts               # Venue/gig map: stars held, eight gig nodes with best ratings, locked venues say what they need
-│   │   ├── ShopScene.ts               # Grannies and guns bought with coins (was SplashScene); DONE returns to Home, starts no gig
+│   │   ├── ShopScene.ts               # Grannies and guns bought with coins, gun card with level pips and BUY / UPGRADE (was SplashScene); DONE returns to Home, starts no gig
 │   │   ├── GameScene.ts               # Main gameplay — now an orchestrator over the modules in game/
-│   │   ├── HUDScene.ts                # Overlay (timer, water bar, frenzy meter)
+│   │   ├── HUDScene.ts                # Overlay (score bar with groove badge, timer, water bar, Frenzy rings)
 │   │   ├── PauseScene.ts              # Pause overlay (ESC on desktop, visible button on touch)
-│   │   └── ResultsScene.ts            # End of a gig: stars, coins, NEXT GIG / Retry / Menu → Home (replaced GameOverScene)
+│   │   └── ResultsScene.ts            # End of a gig, three beats: coin total and stars, what to save for next, the venue's path; NEXT GIG / Retry / Menu → Home (replaced GameOverScene)
 │   │
 │   │   └── game/                      # What GameScene used to do itself (split out 2026-11-25; each file one concern)
-│   │       ├── GigScore.ts            # Coins, locked-in stars, the once-per-tier rule, the encore (no Phaser dependency)
-│   │       ├── MusicReactions.ts      # Spinner pulses on notes, floating notes, musician names, the gig intro
+│   │       ├── GigScore.ts            # Coins from the pay clock, stars locked in as the total passes each target (no Phaser dependency)
+│   │       ├── RewardLoop.ts          # The in-gig reward loop from the scene's side: pay tick, groove, drop-out warnings, coin fountain
+│   │       ├── CoinFountain.ts        # Pooled coins flying from each paying instrument to the HUD counter
+│   │       ├── NoteFountain.ts        # Draws each note the band plays, in its section's colour and shape
+│   │       ├── NoteEffects.ts         # Short-lived extras of the fountain: the fan on a squirt, drum strikes, hub rings, sparks
+│   │       ├── NotePool.ts            # The fountain's one capped pool of reusable images
+│   │       ├── noteFountainRules.ts   # What each section throws, how many notes get a visual (no Phaser, unit-tested)
+│   │       ├── noteMotion.ts          # Where a fountain visual is, how big and how visible over its life (pure maths)
+│   │       ├── MusicReactions.ts      # Spinner pulses on notes, musician names, the gig intro
 │   │       ├── FrenzyController.ts    # SPLASH FRENZY from the scene's side: start, window, per-hit flourish
 │   │       ├── PowerUpEffects.ts      # Active power-up windows and applying a pickup
-│   │       ├── WaterCollisions.ts     # Particles against obstacles and spinners, combo and hot-streak shake
-│   │       ├── FireControl.ts         # Aim, gun, cannon, pump cycle and jet hiss
+│   │       ├── WaterCollisions.ts     # Particles against obstacles and spinners: power, splash, sound, Frenzy flourish (coins are not paid here)
+│   │       ├── FireControl.ts         # Magnetic aim and its ring, mouse reach boost, gun, cannon, pump cycle and jet hiss
 │   │       ├── FirstRunGuide.ts       # First-run ghost finger and scripted captions
-│   │       ├── GoalCard.ts            # The YOUR GOAL card shown before each gig
+│   │       ├── GoalCard.ts            # The YOUR GOAL card shown before each gig: the coin target of each star
 │   │       ├── LevelUpFlair.ts        # Chanced extras on level-ups: spoken cheer, easter egg
 │   │       ├── CountdownUrgency.ts    # Final-countdown tick and shake
 │   │       └── bankGig.ts             # Banks a finished gig into the save, builds the results payload
+│   │   └── shop/
+│   │       └── GunShopping.ts         # The Shop's gun transactions: what the gun card shows, BUY / UPGRADE
 │   │
 │   ├── entities/                      # one folder per game entity — its class, data, types, and renderer travel together
 │   │   ├── spinner/
 │   │   │   ├── Spinner.ts             # Procedural Phaser.Graphics state machine
 │   │   │   ├── spinnerRenderers.ts    # Per-style draw routines (module-internal)
-│   │   │   ├── spinner.data.ts        # SPINNER_DEFS, state thresholds, combo/frenzy constants
+│   │   │   ├── InstrumentMount.ts     # A painted instrument on the spinner's hub: the disc turns behind it, it stays upright and bounces on its notes
+│   │   │   ├── instrumentArt.data.ts  # Which instrument pictures have been painted and shipped (only these are loaded)
+│   │   │   ├── mountGeometry.ts       # Pure maths of the mount: size, lean when stopped, bounce on a note
+│   │   │   ├── instrumentBadge.ts     # The drawn badge, kept as the fallback for an instrument with no painting
+│   │   │   ├── spinner.data.ts        # SPINNER_DEFS, state thresholds, Frenzy constants, instrument-mount constants
 │   │   │   └── spinner.types.ts       # SpinnerState enum, SpinnerDef, SpinnerStyle
 │   │   ├── granny/
 │   │   │   ├── Granny.ts              # Sprite-based player character
@@ -486,7 +505,8 @@ granny-spin-splash/
 │   │   │   └── granny.types.ts        # GrannyDef
 │   │   ├── gun/
 │   │   │   ├── Gun.ts                 # Sprite-based, 8-angle rotation
-│   │   │   ├── gun.data.ts            # GUN_DEFS + unlock thresholds
+│   │   │   ├── gun.data.ts            # GUN_DEFS (cost, coinBoost, fill power…) and the upgrade-level constants
+│   │   │   ├── gunLevels.ts           # Pure upgrade maths: the gun at a level, the cost of the next level
 │   │   │   └── gun.types.ts           # GunDef, AnchorJSON shape, GunTier
 │   │   ├── world/
 │   │   │   ├── world.data.ts          # WORLD_DEFS (incl. starsToOpen per venue)
@@ -498,7 +518,7 @@ granny-spin-splash/
 │   │   │   ├── PowerUp.ts             # Floating pickup
 │   │   │   └── powerup.data.ts        # POWERUP_DEFS
 │   │   ├── obstacle/
-│   │   │   ├── Obstacle.ts            # Cat, Umbrella, Duck — position/state, per-kind update + tryBlock()
+│   │   │   ├── Obstacle.ts            # Cat, Umbrella, Duck — position/state, per-kind update + tryBlock() (being replaced by visitors, 2026-11-26)
 │   │   │   ├── obstacleRenderers.ts   # Per-kind draw routines (module-internal)
 │   │   │   └── obstacle.types.ts      # ObstacleKind
 │   │   └── waterParticle/
@@ -513,8 +533,8 @@ granny-spin-splash/
 │   │   ├── ResultsMusic.ts            # Star chimes on the results screen
 │   │   ├── SFX.ts                     # Mechanical / menu one-shots kept outside the music
 │   │   ├── AudioBus.ts                # Master volume, mute, fade
-│   │   ├── orchestra/                 # Engine: Conductor, OrchestraGraph, SampleBank, pattern, theory, setPieces, score.types
-│   │   └── scores/                    # One written score per world + shared.ts + index.ts
+│   │   ├── orchestra/                 # Engine: Conductor, OrchestraGraph (with rooms), SampleBank, pattern, theory, setPieces, palette (who plays the set pieces), icons (instrument → painted picture), families, score.types
+│   │   └── scores/                    # One written score per world + shared.ts + rooms.ts (the room each band plays in) + index.ts resolver
 │   │
 │   ├── types/                         # ONLY genuinely cross-cutting contracts — nothing entity-specific lives here
 │   │   ├── save.ts                    # SaveData v1 schema + migration types
@@ -533,14 +553,25 @@ granny-spin-splash/
 │   │   ├── DailyGift.ts               # Daily gift: coins for coming back, more for consecutive days, pure over the save
 │   │   ├── startRound.ts              # The one gate that starts a round behind the between-runs ad
 │   │   ├── FrenzyMeter.ts             # 60/80/100% thresholds
-│   │   ├── ComboTracker.ts            # Combo timer + multiplier
+│   │   ├── Groove.ts                  # The groove: the x1–x5 multiplier, its ring, and the level lost when an instrument drops out (pure)
+│   │   ├── Rewards.ts                 # "What are you saving for": the cheapest next gun, upgrade or granny, and the next locked venue (pure over the save)
 │   │   └── AdManager.ts               # Wraps poki.ts with game logic
 │   │
 │   ├── ui/
 │   │   ├── Button.ts                  # The button: a face on a lip, three sizes, gold `reward` look
 │   │   ├── IconButton.ts              # Round version of the button carrying a drawn icon (home, retry, back)
 │   │   ├── Panel.ts                   # The shared card, optional ribbon astride its top edge
-│   │   ├── BandMeter.ts               # HUD band meter: one light per musician, stars above (replaced FrenzyProgress.ts)
+│   │   ├── ScoreBar.ts                # HUD score bar: coin total as the largest text, bar with a star at each target (replaced BandMeter.ts)
+│   │   ├── GrooveBadge.ts             # The groove badge: x1–x5 with a filling ring; shakes on a drop-out, gold JACKPOT in Frenzy
+│   │   ├── ResultsScore.ts            # Results beat one: the coin total counting up, stars landing, NEW BEST
+│   │   ├── NextRewardCard.ts          # Results beat two: the next thing to save for, a bar or a BUY button
+│   │   ├── TourPath.ts                # Results beat three: the venue's eight gigs with stars, and the next venue at the end
+│   │   ├── SavingForStrip.ts          # Home's "saving for" strip (the same reward as the results card)
+│   │   ├── RewardParts.ts             # Shared pieces of the above: the picture of the gun or granny, the progress bar
+│   │   ├── joinsLine.ts               # The line under NEXT GIG: who joins the band at the next gig
+│   │   ├── VenueStrip.ts              # The row of five venue tiles along the bottom of Home
+│   │   ├── VenueTile.ts               # One venue tile: backdrop thumbnail, name, stars held or padlock
+│   │   ├── GunCard.ts                 # The Shop's gun card: five level pips, the perk in words, one BUY / UPGRADE button
 │   │   ├── GigCard.ts                 # Home's next-gig card: venue, gig dots, who joins
 │   │   ├── GigMissionBand.ts          # Granny's request as a band along the bottom of the gig card
 │   │   ├── MissionCard.ts             # Granny's request as a card on the results screen
@@ -551,14 +582,14 @@ granny-spin-splash/
 │   │   ├── WaterBar.ts                # Water tank UI
 │   │   ├── TimerDial.ts               # Top-of-screen timer
 │   │   ├── FrenzyMeterUI.ts           # On-wall progress rings per spinner
-│   │   ├── NoteGlyph.ts               # Floating music note off a playing spinner
+│   │   ├── noteShapes.ts              # The note fountain's drawn shapes (five notes, ribbon, ring, starburst, streak, spark), painted once into textures
 │   │   ├── PauseButton.ts             # Visible pause control for touch devices (§6.3)
 │   │   ├── StatPill.ts                # Icon + number readout pill (coins, stars)
 │   │   ├── touchControls.ts           # Does this device get on-screen touch controls? (move buttons, pause button)
 │   │   └── …                          # Plus ScoreCounter, FloatingText, UrgencyOverlay, LoadoutStage, ThumbnailSelector, tutorial and icon helpers — see `ls src/ui`
 │   │
 │   └── utils/
-│       ├── math.ts                    # distance, clamp, lerp, pillRadius, resolveAim
+│       ├── math.ts                    # distance, clamp, lerp, pillRadius, resolveAim, resolveMagneticAim, scaleAboutPivot
 │       ├── tween.ts                   # Durations/easing constants
 │       ├── colour.ts                  # Palette accessors + shade()
 │       ├── typography.ts              # Fredoka type scale
@@ -570,11 +601,12 @@ granny-spin-splash/
 │   ├── build-orchestra-samples.ts     # Builds each band's sprite from approved CC0 repositories (`npm run samples -- <band>`)
 │   ├── bands/                         # <band>.manifest.json — which instruments and notes go in each sprite (orchestra, kitchen, kit)
 │   ├── generate-thumbnail.ts          # Renders Poki thumbnails (run from the browser console — see its header)
+│   ├── slice-instrument-sheet.py      # `npm run instruments`: cuts David's JPG/PNG instrument sheets into transparent icons (sheets listed in instrument-sheets.json)
 │   └── sprite-optimise.sh             # `npm run optimise`: converts PNGs dropped into public/sprites/ to WebP (verifies SSIM, lossless fallback, removes the source PNG)
 │
 └── tests/
-    ├── unit/                          # SaveManager, FrenzyMeter, ComboTracker, UnlockManager, AdManager,
-    │                                  # Progress, gigs, pattern, theory, scores, startRound
+    ├── unit/                          # SaveManager, FrenzyMeter, Groove, GigScore, Rewards, UnlockManager, AdManager,
+    │                                  # Progress, Missions, gigs, gunLevels, magneticAim, noteFountain, instrumentIcons, families, pattern, theory, scores, startRound, reviewLink
     └── integration/
         └── ad-flow.test.ts            # SDK event ordering
 ```
@@ -609,9 +641,9 @@ granny-spin-splash/
 | `TourScene.ts` | Venue/gig map: one venue per page, stars held, eight gig nodes with best rating; open gigs are tappable, locked venues say how many stars they need |
 | `ShopScene.ts` | The loadout carousels: grannies and guns priced in coins, stage previews the loadout; DONE returns to Home and nothing in it starts a gig. Renamed from SplashScene |
 | `GameScene.ts` | Core gameplay loop — orchestrates systems |
-| `HUDScene.ts` | Renders over GameScene — timer dial, water bar, frenzy meter |
+| `HUDScene.ts` | Renders over GameScene — score bar with groove badge, timer dial, water bar, Frenzy rings |
 | `PauseScene.ts` | Overlay on pause — Resume, Settings, Quit. Fires `PokiSDK.gameplayStop()` |
-| `ResultsScene.ts` | End of a gig: stars land one at a time with a chime, coins count up and are banked, NEXT GIG (largest) / Retry / Menu (to Home), "Double your coins" rewarded option. Starts the next round through `startRoundAfterAdGate()` |
+| `ResultsScene.ts` | End of a gig, in three beats: the coin total counting up with the stars landing (and NEW BEST), what to save for next (a bar, or a BUY button when it is affordable), and the venue's eight gigs as a path with the next venue at the end. NEXT GIG (largest, the only green button) / Retry / Menu (to Home), "Double coins" rewarded option, who joins at the next gig. Starts the next round through `startRoundAfterAdGate()` |
 
 #### Entities (one folder per game entity — class + data + types + renderer together)
 
@@ -619,13 +651,17 @@ granny-spin-splash/
 |---|---|---|
 | `spinner/` | `Spinner.ts` | Procedural spinner — state machine, decay, redraw on state change |
 | | `spinnerRenderers.ts` | Per-style draw routines (module-internal, not imported outside this folder) |
-| | `spinner.data.ts` | `SPINNER_DEFS: { type, decay, power, stars, r, blades, style, colors }[]`, state thresholds, combo/Frenzy constants |
+| | `spinner.data.ts` | `SPINNER_DEFS: { type, decay, power, stars, r, blades, style, colors }[]`, state thresholds, Frenzy constants, instrument-mount constants |
+| | `InstrumentMount.ts` | The painted instrument on a spinner's hub: the disc turns behind it, it stays upright, bounces on its notes and leans when stopped |
+| | `instrumentArt.data.ts` | Which instrument pictures have been painted and shipped; only these are loaded and mounted |
+| | `mountGeometry.ts` | Pure maths of the mount (size, lean, bounce), unit-tested |
 | | `spinner.types.ts` | `SpinnerState` enum (`STOPPED`/`SLOW`/`MEDIUM`/`FULL`), `SpinnerDef`, `SpinnerStyle` |
 | `granny/` | `Granny.ts` | Render selected granny sprite, handle movement, swap to firing pose, breath idle |
 | | `granny.data.ts` | `GRANNY_DEFS: { id, name, spriteKey, unlockCost }[]` |
 | | `granny.types.ts` | `GrannyDef` |
 | `gun/` | `Gun.ts` | Render selected gun sprite at correct rotation angle (snap to 8 cardinals), expose nozzle position |
-| | `gun.data.ts` | `GUN_DEFS: { id, name, spriteKey, tier, cost, tank, drain, pump, interval, power, streams, sz, type }[]` |
+| | `gun.data.ts` | `GUN_DEFS: { id, name, spriteKey, tier, cost, coinBoost, tank, drain, pump, interval, power, streams, sz, type }[]`, upgrade-level constants |
+| | `gunLevels.ts` | Pure upgrade maths: the gun at a given level, the cost of the next level |
 | | `gun.types.ts` | `GunDef`, `AnchorJSON` (angle → nozzle XY map), `GunTier` |
 | `world/` | `world.data.ts` | `WORLD_DEFS: { id, name, bg, grid, types, obstacles, time, starsToOpen, … }[]` |
 | | `world.types.ts` | `WorldDef` |
@@ -633,7 +669,7 @@ granny-spin-splash/
 | | `wallBuilder.ts` | Lays out the wall for the gig's band size |
 | `powerup/` | `PowerUp.ts` | Floating pickup, collision, applies effect to GameScene |
 | | `powerup.data.ts` | `POWERUP_DEFS: { id, label, name, duration, effect }[]` |
-| `obstacle/` | `Obstacle.ts` | Cat/Umbrella/Duck — block water, special behaviours |
+| `obstacle/` | `Obstacle.ts` | Cat/Umbrella/Duck — block water, special behaviours (being replaced by visitors, 2026-11-26) |
 | `waterParticle/` | `WaterParticle.ts` | Pooled — physics, collision check, splash on impact |
 | | `WaterCannon.ts` | Fire cadence, stream geometry, tank, pump refill |
 | | `WaterJet.ts` | Joins the shots in flight into one tapering ribbon with a darker rim and bright core |
@@ -644,8 +680,8 @@ granny-spin-splash/
 | File | Responsibility |
 |---|---|
 | `AudioOrchestra.ts` | Real-time clock and the game-facing orchestra API (§9) |
-| `orchestra/` | Engine: `SampleBank`, `Conductor`, `OrchestraGraph`, `pattern`, `theory`, `setPieces`, `score.types` |
-| `scores/` | One written score per world, `shared.ts` builders, `index.ts` resolver |
+| `orchestra/` | Engine: `SampleBank`, `Conductor`, `OrchestraGraph`, `pattern`, `theory`, `setPieces`, `palette`, `icons`, `families`, `score.types` |
+| `scores/` | One written score per world, `shared.ts` builders, `rooms.ts` (each band's room), `index.ts` resolver |
 | `WaterSound.ts` | Spray, splash and droplet noise layer |
 | `ResultsMusic.ts` | Star chimes on the results screen |
 | `SFX.ts` | Mechanical / menu one-shots kept outside the music |
@@ -672,11 +708,12 @@ granny-spin-splash/
 |---|---|
 | `SaveManager.ts` | All localStorage I/O — try/catch wrapped, JSON serialisation |
 | `InputManager.ts` | Unified pointer/keyboard input, emits semantic events |
-| `UnlockManager.ts` | Coin bank (the vault), unlocked sets, validates purchases, deducts coins |
-| `Progress.ts` | Pure tour rules over `SaveData`: stars per gig, total stars, venue opening, `recordGig`, `nextStop` |
+| `UnlockManager.ts` | Coin bank (the vault), unlocked sets, gun levels, validates purchases and upgrades, deducts coins |
+| `Progress.ts` | Pure tour rules over `SaveData`: stars per gig, total stars, venue opening, `recordGig` (best coin total kept), `nextStop` |
 | `startRound.ts` | The one gate that starts a round behind the between-runs commercial break (shared by Home PLAY and the results screen) |
 | `FrenzyMeter.ts` | Watches spinner states, emits events for thresholds (60/80/100) |
-| `ComboTracker.ts` | Combo counter, timer decay, multiplier calculation |
+| `Groove.ts` | The groove multiplier (1–5), its ring, and the level lost when an instrument drops out of full speed |
+| `Rewards.ts` | The cheapest next purchase (gun, upgrade or granny) and the next locked venue, for the results screen, Home and the Shop |
 | `AdManager.ts` | High-level "show ad between runs" — handles audio muting, input disabling |
 
 #### UI components (visual, no game logic)
@@ -685,7 +722,12 @@ granny-spin-splash/
 |---|---|
 | `Button.ts` | Primary/secondary/tertiary button factory — applies palette, radius, hover/press |
 | `Carousel.ts` | Generic ◀ item ▶ selector |
-| `NoteGlyph.ts` | The drawn music note that floats off a spinner when its musician plays |
+| `ScoreBar.ts` | HUD coin total, bar with a star at each of the three targets, groove badge beside it |
+| `GrooveBadge.ts` | The x1–x5 badge with a ring filling toward the next level |
+| `VenueStrip.ts` / `VenueTile.ts` | Home's row of five venue tiles; a locked tile says how many stars it needs |
+| `NextRewardCard.ts` / `SavingForStrip.ts` | "What now?" on the results screen and the same on Home |
+| `GunCard.ts` | The Shop's gun card: level pips, perk in words, one BUY / UPGRADE button |
+| `noteShapes.ts` | The drawn shapes of the note fountain |
 | `PauseButton.ts` | Visible pause control for touch devices |
 | `StatPill.ts` | Small icon-and-number readout pill for coins and stars, so the two always look like a pair |
 | `Toast.ts` | Floating text notification with fade |
@@ -698,7 +740,7 @@ granny-spin-splash/
 
 | File | Responsibility |
 |---|---|
-| `math.ts` | `distance`, `clamp`, `lerp`, `easeOut`, etc. |
+| `math.ts` | `distance`, `clamp`, `lerp`, `easeOut`, `resolveAim`, `resolveMagneticAim`, `scaleAboutPivot`, etc. |
 | `tween.ts` | Pre-built tween configs — `BOUNCE_IN`, `FADE_OUT`, etc. |
 | `colour.ts` | Palette as `{ pink: 0xFF6BA8, ... }` — accessed by name |
 
@@ -727,7 +769,7 @@ granny-spin-splash/
                                   │ reads/writes
             ┌─────────────────────▼──────────────────────┐
             │     UnlockManager  ·  FrenzyMeter  ·       │
-            │     ComboTracker   ·  AdManager            │
+            │     Groove · Rewards · AdManager         │
             │            (game logic, no UI)             │
             └─────────────────────┬──────────────────────┘
                                   │ exposes API
@@ -894,19 +936,19 @@ Every spinner on the wall is a **musician** with a written part in a real piece 
 | **Instruments** | `orchestra/SampleBank.ts` | Loads the orchestra sprite (`public/audio/orchestra.mp3` + `orchestra.json`), then one sprite per band after it (`BAND_SPRITES`, today `['kitchen', 'kit']`, from `public/audio/bands/`; each loads in the background and fails independently, and a score may mix its band's instruments with the orchestra's), decodes each with an `OfflineAudioContext` (allowed before any user gesture), slices per-note buffers, retunes by playback rate using each sample's *measured* pitch. Fire-and-forget from `BootScene`, never blocks play. |
 | **Sprite builder** | `tools/build-orchestra-samples.ts` (`npm run samples`) | Reads `tools/bands/<band>.manifest.json` (`npm run samples` builds every bank, `npm run samples -- kit` one), downloads from the approved CC0 repositories only (`APPROVED_SOURCES` — VSCO-2 CE, VCSL and the Karoryfer repos; any other repository is refused) into `.cache/` (gitignored), trims, normalises, resamples to mono 32 kHz, measures real pitch (YIN), prepends a sync marker so notes land on the grid in every browser, packs one MP3 + JSON index. Needs `ffmpeg` and `lame` on PATH. Orchestra sprite: 37 instruments, 119 notes, about 955 KB; Kitchen sprite: 16 instruments, about 363 KB; `kit` sprite: 13 instruments (kick, snare, rimshot, hats, crash, toms, conga, electric bass, electric piano, clavinet), about 200 KB, from VCSL and the Karoryfer repositories. The orchestra bank writes `public/audio/orchestra.*`, any other bank `public/audio/bands/<bank>.*`. |
 | **Conductor** | `orchestra/Conductor.ts` | Pure scheduling: given a sixteenth-note index, an audio time and each musician's charge, schedules exactly what plays. Knows nothing about clocks or game objects, so tests and offline renders drive it step by step. Also plays spray notes and stingers. |
-| **Signal path** | `orchestra/OrchestraGraph.ts` | One fader and pan per musician, a generated hall reverb, a tone control that opens across the round (the last third sounds brighter, not just louder), and a limiter. Built on `BaseAudioContext` so the same graph renders offline. |
+| **Signal path** | `orchestra/OrchestraGraph.ts` | One fader and pan per musician, a generated hall reverb, a tone control that opens across the round (the last third sounds brighter, not just louder), and a limiter. Each band plays in its own room (`Room`, set per round with `setRoom`): a share of the hall reverb and an opening tone cutoff, so the Kitchen is a small club and the Disco a big ballroom. Built on `BaseAudioContext` so the same graph renders offline. |
 | **Notation** | `orchestra/pattern.ts` | The small language every part is written in (token table below). |
 | **Theory helpers** | `orchestra/theory.ts` | Pure chord, scale and pitch maths — chord parsing, stacked and windowed voicings, slash-chord bass, scale degrees, `isInScale`, playback-rate retuning. Unit-tested (`tests/unit/theory.test.ts`). |
 | **Score types** | `orchestra/score.types.ts` | `Score`, `Part`, `Line`, `InstrumentId`. |
-| **Set pieces** | `orchestra/setPieces.ts` | The lean-in before Frenzy, the Frenzy fanfare, the closing chord, and the orchestra-voiced feedback accents. |
-| **Scores** | `scores/{garden,workshop,kitchen,funfair,disco}.ts`, `scores/index.ts`, `scores/shared.ts` | One score per world, resolved by world id (an unknown id borrows Garden's). `shared.ts` holds the builders (`struck`, `held`, `line`) and the shared `drivingFinale` / `tuttiFrenzy` arrangements. |
+| **Set pieces** | `orchestra/setPieces.ts`, `orchestra/palette.ts` | The lean-in before Frenzy, the Frenzy fanfare, the closing chord and the feedback accents are written once as roles (the crash, the roll, the held chord, the rising call, the chime); each score's `palette` names the instruments that fill those roles, so a rock band's Frenzy lands on a kit and a guitar and the brass band's on snare, tuba and trombone. A score with no palette (Garden) gets the orchestra's. |
+| **Scores** | `scores/{garden,workshop,kitchen,funfair,disco}.ts`, `scores/index.ts`, `scores/shared.ts`, `scores/rooms.ts` | One score per world, resolved by world id (an unknown id borrows Garden's). `shared.ts` holds the builders (`struck`, `held`, `line`) and the shared `drivingFinale` / `tuttiFrenzy` arrangements; `rooms.ts` holds the four rooms other than the Garden's hall. |
 | **Game-facing API** | `AudioOrchestra.ts` | Owns the real-time clock (a 25 ms scheduler with 110 ms lookahead) and the API GameScene calls: `start`, `stop`, `finish`, `updateMix`, `setRoundProgress`, `onSpinnerHit`, `onFrenzyNear`, `onFrenzyStart`, `onFrenzyEnd`, `accent`, `tick`, `pollNotes`, `beatPhase`, `seatName`. |
 | **Water** | `WaterSound.ts` | See §9.5. |
-| **Results chimes** | `ResultsMusic.ts` | A glockenspiel note per star (a cymbal on the third) played straight from the instrument bank after the closing chord. |
+| **Results chimes** | `ResultsMusic.ts` | A chime note per star (a cymbal on the third) played straight from the instrument bank after the closing chord, on the instrument the gig's band names in its palette (the glockenspiel in the orchestra). |
 | **One-shots** | `SFX.ts` | Only the mechanical and menu sounds deliberately kept *outside* the music. |
 | **Master** | `AudioBus.ts` | Shared `AudioContext`, master volume, mute, fade (ads). Unchanged role. |
 
-**A score** (`Score`) is a short real piece: a key (`tonic` + `mode`), `bpm`, an eight-bar chord progression, a `swing` amount, a quiet always-on `bed`, the `seats` (one written `Part` per musician, each with a stable `id`, a display `name`, an optional `light` version, `with` companion lines, an `ornament`, and a short percussive `spray` instrument for squirts), a `lineup`, and the `finale` and `frenzy` lines. Keys and tempos today: Garden G major 96 BPM, Workshop A minor 132 (straight eighths), Kitchen C major 116 (swung, triplet feel), Funfair F major 120 (oom-pah), Disco D minor 118 (four on the floor). A part can carry `drive` (0–1), which runs its seat through a guitar amp (a soft-clip waveshaper and speaker-cabinet filters in `OrchestraGraph`); that is how the clean recorded jazz guitar becomes the Workshop's rock guitars at no download cost.
+**A score** (`Score`) is a short real piece: a key (`tonic` + `mode`), `bpm`, an eight-bar chord progression, a `swing` amount, a quiet always-on `bed`, the `seats` (one written `Part` per musician, each with a stable `id`, a display `name`, an optional `light` version, `with` companion lines, an `ornament`, and a short percussive `spray` instrument for squirts), a `lineup`, the `finale` and `frenzy` lines, and optionally a `room` and a `palette` (below). Keys and tempos today: Garden G major 96 BPM, Workshop A minor 136 (straight eighths, a backbeat), Kitchen C major 116 (swung, triplet feel), Funfair F major 120 (oom-pah), Disco D minor 118 (four on the floor). A part can carry `drive` (0–1), which runs its seat through a guitar amp (a soft-clip waveshaper and speaker-cabinet filters in `OrchestraGraph`); that is how the clean recorded jazz guitar becomes the Workshop's rock guitars at no download cost. **Rooms** (2026-11-26, `scores/rooms.ts`, `OrchestraGraph.ts`), each against the hall's reverb: Garden is the hall itself; Kitchen a small club (half the reverb); Workshop a dry, bright garage (a quarter of the reverb, tone open at 7 kHz from the start); Funfair an open bandstand (two thirds); Disco a big glossy ballroom (1.2 times, tone open at 6 kHz). A score with no `room` plays in the hall.
 
 **Line-up order.** `Score.lineup` lists seat ids in the order musicians join as gigs grow (`docs/ENGAGEMENT_DESIGN.md` §3): a gig with a band of five seats the first five. The first three must already sound like music — a bass, a harmony instrument and a tune. The wall is laid out for the band size and the orchestra seats exactly that band, panned by each spinner's x position.
 
@@ -926,16 +968,16 @@ Suffixes: `'` up an octave, `,` down an octave (repeatable), `!` accent, `?` gho
 
 ### 9.3 The three behaviours
 
-1. **Waking a spinner brings its musician in — tiers, not just volume.** A spinner's charge (speed as a fraction of `MAX_SPINNER_SPEED`) is its fader. Below the MEDIUM threshold the musician plays the thinned outline of the part (`light`, by default only the notes that fall on a beat); from MEDIUM they play the full part (and any `with` companions); from FULL they add the `ornament`. A stopped spinner is silent. Let it wind down and the musician fades back out.
+1. **Spinning a spinner up brings its musician in — tiers, not just volume.** A spinner's charge (speed as a fraction of `MAX_SPINNER_SPEED`) is its fader. Below the MEDIUM threshold the musician plays the thinned outline of the part (`light`, by default only the notes that fall on a beat); from MEDIUM they play the full part (and any `with` companions); from FULL they add the `ornament`. A stopped spinner is silent. Let it wind down and the musician fades back out.
 2. **Squirting plays the instrument, in its own voice.** Water landing on a spinner sounds that seat's instrument on the next sixteenth, stepping through the current chord (root, third, fifth, octave, fifth, third) in the part's own register. A held (bowed or blown) instrument answers in its own sustained voice, held about two and a half sixteenths; a struck one answers with its `spray` instrument if the score names one (a drum kit on its snare) and from `sprayFloor` if given (a bass an octave up). The first splash on a sleeping musician plays a **wake-up call** instead: a struck instrument runs up the chord (root, fifth, octave), a held one sings two notes, short then long. While water keeps landing on a spinner it holds the **spotlight** for 0.6 s: its musician is boosted and plays the whole written part, and the rest of the band ducks. At most one spray note per spinner per eighth and three per step across the wall, so a wide gun never clumps; once a musician is playing their own part the spray notes step back so the part stays the hero. (`Conductor.spray` / `wakeCall`; spotlight and wake-up pacing in `AudioOrchestra.onSpinnerHit`.)
 3. **The round has a shape.**
    - **Finale:** from two-thirds of the round, driving spiccato strings, a timpani pulse and tambourine join regardless of wall state.
-   - **Splash Frenzy:** a timpani roll and cymbal swell lean in when the wall is nearly full (`onFrenzyNear`); on the drop a fanfare lands (crash, bell tree, timpani, held horn, rising trumpet) and the tutti plays for the whole window while every seat plays as if at full charge.
+   - **Splash Frenzy:** a timpani roll and cymbal swell lean in when the wall is nearly full (`onFrenzyNear`); on the drop a fanfare lands (in the Garden: crash, bell tree, timpani, held horn, rising trumpet; every other band plays the same roles on its own instruments, see its `palette`) and the tutti plays for the whole window while every seat plays as if at full charge.
    - **Closing chord:** at the final whistle `finish()` lands a closing chord on the next beat and lets it ring instead of cutting the music dead.
 
 ### 9.4 Orchestra-voiced feedback
 
-Level-ups, combos, pickups, golden spinners, refills and the cheer are played by the orchestra itself via `AudioOrchestra.accent()`: on the next sixteenth and in the current chord, so feedback is part of the score rather than a beep laid over it. The accents are `wake`, `spin`, `full`, `combo` (climbs the chord with combo level), `powerup`, `golden`, `goldenMissed`, `refill` and `cheer`. The final-countdown `tick` is deliberately unquantised so it agrees with the on-screen clock.
+Level-ups, combos, pickups, golden spinners, refills and the cheer are played by the gig's own band (its `palette`, the orchestra's in the Garden) via `AudioOrchestra.accent()`: on the next sixteenth and in the current chord, so feedback is part of the score rather than a beep laid over it. The accents are `wake`, `spin`, `full`, `combo` (climbs the chord with the groove level; the name predates the groove), `powerup`, `golden`, `goldenMissed`, `refill` and `cheer`. The final-countdown `tick` is deliberately unquantised so it agrees with the on-screen clock.
 
 ### 9.5 The water sound layer
 
@@ -947,11 +989,11 @@ If the sprite fails to load, `SampleBank` falls back to a plain synthesised pluc
 
 ### 9.7 Bands per venue
 
-The engine separates the mechanic (each spinner is a musician with a written part) from the style (which recordings, which score). A new band is a new score plus a new set of recordings — no engine change. The per-venue plan (Garden chamber orchestra, Kitchen jazz combo, Workshop garage rock, Funfair fairground band, Disco funk/disco), the sample sources awaiting approval and the size budget live in **`docs/BANDS.md`**; do not duplicate them here. Status today (2026-11-25): all five bands are built. **Garden** (chamber orchestra) is the reference. **Kitchen** is a jazz combo (C major, 116 BPM, swung; walking bass, ride, piano and tenor sax as the opening quartet, then brushes, vibraphone, guitar, muted trumpet and the rest). **Workshop** is a garage rock band (A minor, 132 BPM, 15 seats: drums, bass, rhythm guitar, organ and lead guitar first). **Funfair** is a fairground brass band (F major, 120 BPM, oom-pah, 16 seats, no strings: tuba, clarinets, fairground organ and snare first). **Disco** is a funk/disco band (D minor, 118 BPM, four on the floor, 21 seats: bass guitar, kick, hi-hats and rhythm guitar first, the mirror ball last). Scores are `src/audio/scores/<venue>.ts`. Workshop and Disco share the `kit` rhythm-section sprite. The set pieces (lean-in, fanfare, closing chord) and the feedback accents are **still orchestral in every venue**; Workshop and Disco have their own frenzy and finale lines, but Funfair's frenzy is still the shared `tuttiFrenzy`. All three sample sources were approved 2026-11-25: VCSL and the Karoryfer repositories verified CC0 from their LICENSE files, VSCO-2 CE already in use; FreePats is not yet re-checked at source and not yet used.
+The engine separates the mechanic (each spinner is a musician with a written part) from the style (which recordings, which score). A new band is a new score plus a new set of recordings — no engine change. The per-venue plan (Garden chamber orchestra, Kitchen jazz combo, Workshop garage rock, Funfair fairground band, Disco funk/disco), the sample sources and the size budget live in **`docs/BANDS.md`**; do not duplicate them here. Status today (2026-11-26): all five bands are built, each in its own room and with its own set pieces (see §9.2). **Garden** (chamber orchestra) is the reference. **Kitchen** is a jazz combo (C major, 116 BPM, swung; walking bass, ride, piano and tenor sax as the opening quartet, then brushes, vibraphone, guitar, muted trumpet and the rest). **Workshop** is a garage rock band (A minor, **136 BPM** since 2026-11-26, straight eighths, 15 seats; a backbeat of kick, a hard snare on two and four and eighth-note hats, palm-muted power chords, bass locked to the kick and a pentatonic lead hook; **drums, bass, rhythm guitar and lead guitar** first, then organ, tambourine, claps, cowbell, toms, cymbals, anvil, and the soft piano, sax, horns and clean guitar last). **Funfair** is a fairground brass band (F major, 120 BPM, oom-pah, 16 seats, no strings: tuba, clarinets, fairground organ and snare first). **Disco** is a funk/disco band (D minor, 118 BPM, four on the floor, 21 seats: bass guitar, kick, hi-hats and rhythm guitar first, the mirror ball last). Scores are `src/audio/scores/<venue>.ts`. Workshop and Disco share the `kit` rhythm-section sprite. **The set pieces (lean-in, fanfare, closing chord), the feedback accents and the results chimes are now per band** (a `palette` on each score; Garden keeps the orchestral one). Funfair's frenzy line is still the shared `tuttiFrenzy` arrangement, though its fanfare and chimes use the brass band's palette. All three sample sources were approved 2026-11-25: VCSL and the Karoryfer repositories verified CC0 from their LICENSE files, VSCO-2 CE already in use; FreePats is not yet re-checked at source and not yet used.
 
 ### 9.8 Verification
 
-Unit tests cover the notation, theory helpers and scores (scores stay in key in every tier, add music as musicians wake, seat every spinner in every world). Offline renders check peak, RMS and clipping. **Limit stated plainly: we can measure audio but not hear it.** David listened on 2026-11-25: "the music sounds good, sounds really delightful". His one note was that hitting a spinner did not obviously play that instrument, and that spinners looked unrelated to instruments; the wake-up call, spotlight, louder squirt notes and section badges (commit `149d0ea`) answer that and are awaiting his second listen. His second note was that the instruments were "different tones of the same sound" and not distinct enough; commit `9707eee` answers it (each held instrument answers a squirt in its own sustained voice, the wake-up call and a stronger spotlight) and `f04ef3c` added the three new bands (offline renders put every band within the Garden's loudness range with no clipping; full-band RMS Garden 0.189, Workshop 0.165, Disco 0.176, Funfair 0.158). **On 2026-11-26 David confirmed the instruments are now "distinct enough"; he has given no notes yet on the Workshop, Funfair and Disco bands themselves.**
+Unit tests cover the notation, theory helpers and scores (scores stay in key in every tier, add music as musicians join the mix, seat every spinner in every world). Offline renders check peak, RMS and clipping. **Limit stated plainly: we can measure audio but not hear it.** David listened on 2026-11-25: "the music sounds good, sounds really delightful". His one note was that hitting a spinner did not obviously play that instrument, and that spinners looked unrelated to instruments; the wake-up call, spotlight, louder squirt notes and section badges (commit `149d0ea`) answer that and are awaiting his second listen. His second note was that the instruments were "different tones of the same sound" and not distinct enough; commit `9707eee` answers it (each held instrument answers a squirt in its own sustained voice, the wake-up call and a stronger spotlight) and `f04ef3c` added the three new bands (offline renders put every band within the Garden's loudness range with no clipping; full-band RMS Garden 0.189, Workshop 0.165, Disco 0.176, Funfair 0.158). **On 2026-11-26 David confirmed the instruments are now "distinct enough"; he has given no notes yet on the Workshop, Funfair and Disco bands themselves.** **2026-11-26 audio changes, none yet heard by David:** rooms per band, per-band set pieces and chimes, and the reworked Workshop (136 BPM, new line-up order). Offline renders (commit `b409eaf`): Workshop's opening four 0.142 RMS against the Garden's 0.144, full band 0.166, Frenzy 0.207, no clipping; the other venues unchanged. The balance bot played gig 1 of every venue through Frenzy with no errors. His request behind them: "Could the rock band sound more rocky?"
 
 ### 9.9 History (decisions superseded by the above)
 
@@ -1002,7 +1044,7 @@ Unit tests cover the notation, theory helpers and scores (scores stay in key in 
 
 ## 11. Monetization Design
 
-> **Redesigned 2026-11-25.** The economy changed after this section was written: **coins are the single currency** (the save's `vault`), earned in every gig and spent on guns and grannies; **stars are the rating** (never spent) and open venues; the results screen is the "end screen" for ad purposes. Prices today: guns 0 / 0 / 150 / 400 / 900 / 2,000 coins, Punk Granny 600 (`gun.data.ts`, `granny.data.ts`). Rewarded options are being redesigned (double coins at results; more time once per failed gig; try a locked gun for one gig — each with an equal-or-larger free alternative beside it). **`docs/ENGAGEMENT_DESIGN.md` §4 and §6 are authoritative where they conflict.** The Poki rules in §11.2–11.4 are unchanged. `ADS_ENABLED` is still `false` for testing and must be `true` before submission (`BACKLOG.md`).
+> **Redesigned 2026-11-25.** The economy changed after this section was written: **coins are the single currency** (the save's `vault`), earned in every gig and spent on guns and grannies; **stars are the rating** (never spent) and open venues; the results screen is the "end screen" for ad purposes. Prices today (rescaled 2026-11-26 to the new coin totals): guns 0 / 0 / 6,000 / 20,000 / 60,000 / 200,000 coins, Punk Granny 30,000 (`gun.data.ts`, `granny.data.ts`); each owned gun can also be upgraded to level 5, the first upgrade costing the larger of 1,500 and 30% of the gun's price and doubling per level (`gunLevels.ts`). Earning and prices are set out in `docs/REWARD_LOOP.md`, which is authoritative for them. Rewarded options are being redesigned (double coins at results; more time once per failed gig; try a locked gun for one gig — each with an equal-or-larger free alternative beside it). **`docs/ENGAGEMENT_DESIGN.md` §4 and §6 are authoritative where they conflict.** The Poki rules in §11.2–11.4 are unchanged. `ADS_ENABLED` is still `false` for testing and must be `true` before submission (`BACKLOG.md`).
 
 ### 11.1 Ad placement plan
 
@@ -1272,6 +1314,14 @@ Open scope questions are closed. Recorded here for posterity and for Claude Code
 | **Per-world orchestra themes** | §9.3's single synthesised voice set (`orchestraVoices.ts`, one row above) played the same instruments in every world. Direct user request: "a different orchestra tune for each world... so there's lovely music to unlock in each world." Generalised §9.1.1's mixing model to a theme-agnostic slot system (`foundation` + `spinner0..spinner8` + `dropBass`) and wrote five distinct per-world instrument palettes matching each world's setting — birdsong in Garden, real four-on-the-floor disco in Disco, a metallic/steel-band feel in Workshop, and so on — under `src/audio/themes/`. `AudioOrchestra.start(worldId)` resolves the theme once per round instead of using one hardcoded voice set; `orchestraVoices.ts` deleted, fully superseded. | 2026-09-12 |
 | **Splash-screen selector: thumbnail carousel over inset-arrow pill** | `CompactSelector.ts`'s Granny/Gun pills were first redesigned with inset arrows to fix a z-order bug — a component's own arrow calls happening before its opaque background was added meant arrows could paint under a neighbour's, hiding or misrouting clicks (caught live, twice, by direct user observation of missing arrows). Direct user feedback then asked for something more visual regardless: "let players scroll through a carousel of different thumbnails for guns and grannies... a more visual selector with the beautiful composite visual in centre." Replaced with `ThumbnailSelector.ts` — thumbnail + arrows on one row, name on its own row below, which also incidentally fixed a long-name text-clipping bug the inset-arrow layout had introduced. `CompactSelector.ts` deleted. | 2026-09-12 |
 | **Live score tally during play** | Sprint 2 story 2.5 called for the score hidden during play, revealed only at game over. Direct user feedback reversed this: "I'm also not seeing a point and gold tally add up as I'm playing, I want to see that currency get earned and be excited about how much gold I'm earning." Added `ScoreCounter.ts` to HUDScene — an exponential catch-up counter with a gold-flash pop on each gain — running alongside, not replacing, the existing per-hit floating "+N ★" combat text and the GameOverScene count-up reveal. | 2026-09-12 |
+| **Wake/sleep framing dropped ("keep the band playing")** | David: "I don't think waking the band is the right term… It's getting everything playing, create as much music as possible." The 2026-11-25 words (asleep, awake, the "z z z", the band meter counting musicians awake) were removed everywhere; the goal is now to keep the band playing, with the words playing, quiet and full band. The band meter was replaced by the score bar and groove badge (see the reward loop row). | 2026-11-26 |
+| **Painted instruments on the spinners** | David found the drawn instrument badges "pretty unconvincing". Each spinner now wears a painted instrument on its hub (the disc turns behind it, the instrument stays upright and bounces on its notes). David painted 36 pictures from Nano Banana sheets (`INSTRUMENT_ART_BRIEF.md`), cut by `npm run instruments` into `public/sprites/instruments/` (about 0.6 MB); every seat in every venue has one, and the drawn badge remains only as a fallback. | 2026-11-26 |
+| **Magnetic aim, reach boost and faster water** | David: "the actual gameplay of aiming isn't very fun… it's quite hard work to reach the spinners at the top." The water now goes to the nearest instrument with no distance limit (kept until another is 28 px nearer); a mouse gets a 1.3x reach boost about the wall's bottom-centre, touch stays 1:1; water flies 1.6x faster. Supersedes §6.4's snap radius. Instruments also hold full speed for less time and wind down faster, since the quicker aim makes that affordable. | 2026-11-26 |
+| **The reward loop: coins, groove, score-based stars** | David, after playing: no visible reward, "at the end it says full band, three stars, but you get that every time", and "where is the jeopardy… how do you play it badly?" Every spinning instrument now throws coins to one large counter (1 / 2 / 4 per half second by speed); the groove multiplier (x1 to x5) builds while the band is kept going and drops when an instrument falls out of full speed; stars come from the coin total against three targets shown before the gig, not from the share of the band at full; the hit-streak combo and the 60% / 80% mini-frenzies were removed; the results screen became three beats (score, what to save for, the path) and Home gained a "saving for" strip. Prices, missions, the daily gift and the first-star bonus were rescaled to the new coin totals. Specified in `docs/REWARD_LOOP.md`. Bot-tested on Garden only; not yet played by David. | 2026-11-26 |
+| **Note fountain: music you can see** | David: "more animations with procedurally generated music notes… match the visual feedback with the audible feedback." Each note the band plays now throws a drawn visual from its instrument, in its section's colour and shape (ribbons for strings, bursts for brass, rings for drums), more as the instrument spins faster, a fan on the squirted one and gold in Frenzy. `NoteGlyph.ts` was deleted. | 2026-11-26 |
+| **Gun upgrade levels** | David: "We probably also need lots more guns." Painting more guns costs art time, so each of the six guns can instead be upgraded to level 5 with coins (each level adds 15% of its base coin boost and 8% fill power; the cost is the larger of 1,500 and 30% of the gun's price, doubling per level), giving about thirty purchases with no new art, the first within reach after one gig. More painted guns are still wanted and not built. | 2026-11-26 |
+| **Rooms and per-band set pieces** | David asked "could the rock band sound more rocky?" and approved giving each band its own fanfare, closing chord and chimes. Each band now plays in its own room (Kitchen a small club, Workshop a dry garage, Funfair a bandstand, Disco a ballroom, Garden the hall); the Frenzy lean-in, fanfare, closing chord, accents and results chimes are written as roles that each score's `palette` fills with its own instruments; Workshop was reworked at 136 BPM with a backbeat and power chords. Measured by offline renders, not yet heard by David. | 2026-11-26 |
+| **Visitors (being built)** | Random surprise blockers, sitters and treats that replace the fixed cat, umbrella and duck obstacles. Being built 2026-11-26; not recorded here until it is done. | 2026-11-26 |
 
 **Remaining decisions blocking submission (not blocking dev):**
 1. Studio name — needed by Sprint 7

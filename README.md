@@ -16,11 +16,12 @@ npm run budget         # assert dist/ < 8 MB (Poki cap)
 npm run samples        # rebuild every instrument sprite (needs ffmpeg and lame)
 npm run samples -- kitchen   # rebuild one band's sprite (tools/bands/<band>.manifest.json)
 npm run optimise       # convert PNGs dropped in public/sprites/ to WebP (tools/sprite-optimise.sh)
+npm run instruments    # cut instrument art sheets in _art_inbox/instruments/ into icons (tools/slice-instrument-sheet.py)
 ```
 
 ## Balance harness (dev only)
 
-In a dev build (`npm run dev`), open the browser console and run `await window.__bot.ladder('garden')` to play all eight gigs of a venue with scripted players, far faster than real time, and print stars and coins. It is not included in production builds. See `src/dev/botSim.ts` for the other calls.
+In a dev build (`npm run dev`), open the browser console and run `await window.__bot.ladder('garden')` to play all eight gigs of a venue with scripted players, far faster than real time, and print stars and coins (on the starter gun unless you pass another). It is not included in production builds. See `src/dev/botSim.ts` for the other calls.
 
 ## Review link (dev and review only)
 
@@ -29,5 +30,6 @@ In a dev build (`npm run dev`), open the browser console and run `await window._
 ## Where the plans live
 
 - [`docs/UPLIFT_PLAN.md`](./docs/UPLIFT_PLAN.md) — the orchestra, juice and assessment plan
-- [`docs/ENGAGEMENT_DESIGN.md`](./docs/ENGAGEMENT_DESIGN.md) — gigs, stars, coins and navigation (authoritative over CLAUDE.md §4 and §11)
-- [`docs/BANDS.md`](./docs/BANDS.md) — one musical style per venue and the sample sources awaiting approval
+- [`docs/ENGAGEMENT_DESIGN.md`](./docs/ENGAGEMENT_DESIGN.md) — gigs, coins and navigation (authoritative over CLAUDE.md §4 and §11, except where `REWARD_LOOP.md` supersedes it)
+- [`docs/REWARD_LOOP.md`](./docs/REWARD_LOOP.md) — coins, the groove, stars from the coin total, gun boosts and upgrade levels (authoritative for scoring, stars, earning and prices)
+- [`docs/BANDS.md`](./docs/BANDS.md) — one musical style per venue, its room and its set pieces, and the sample sources

@@ -4,6 +4,15 @@
 needs to be rethought from an engagement perspective… a big transformation I
 need you to oversee and drive"). Built in slices; each slice is playable.
 
+> **Updated 2026-11-26.** After David played the build on 2026-11-26,
+> `docs/REWARD_LOOP.md` replaced the scoring and earning rules in this
+> document. **It supersedes §3's star rule (stars from the share of the band at
+> full speed, and the encore) and §4's earning table and prices.** It also
+> replaced the wake/sleep wording: the goal is now to _keep the band playing_.
+> §5 and §7 below were brought up to date; §1, §2, the gig ladder and §6 still
+> stand as written. Where this file and `REWARD_LOOP.md` disagree, `REWARD_LOOP.md`
+> and the code win.
+
 ---
 
 ## 1. Why the current structure cannot pass Poki
@@ -40,18 +49,26 @@ means more music, literally.
 
 ## 3. The gig (one round)
 
-> **The purpose, as the game now says it (2026-11-25):** _wake up the whole
-> band, and keep them all awake at once._ The musicians are dozing; a splash
-> wakes one and it plays; left alone it nods off again. One is easy — keeping
-> eight awake together is the game. A sleeping spinner shows "z z z", one
-> about to drop off nods, the top of the screen is a band meter with one
-> light per musician and the stars standing above the lights that earn them,
-> and a YOUR GOAL card states it before the first squirt of every gig. This
-> was added after David played and said he was not sure what he was trying to
-> accomplish. "Awake" means a spinner at full speed.
+> **The purpose, as the game now says it (rewritten 2026-11-26):** _keep the
+> band playing — get as many instruments going at once as you can, and keep
+> them going._ David: "I don't think waking the band is the right term… It's
+> getting everything playing, create as much music as possible." Every spinner
+> is a musician with a painted instrument; a spinning one plays and throws
+> coins, a stopped one is quiet. The words are playing, quiet and full band;
+> the 2026-11-25 asleep/awake wording, the "z z z" and the band meter are gone.
+> The top of the screen is a score bar (the coin total, with a star at each of
+> three coin targets) and a groove badge, and a YOUR GOAL card states the goal
+> and the targets before the first squirt of every gig. An instrument about to
+> drop out of full speed rocks and shows an orange ring.
 
 - **Goal, in one sentence a seven-year-old can act on:** get the whole band
   playing at once.
+- **Superseded 2026-11-26 (`docs/REWARD_LOOP.md`):** stars now lock in as the
+  gig's coin total passes three targets shown on the goal card, not at 60% /
+  80% / 100% of the band at full speed, and the encore payout is replaced by
+  the pay clock (every spinning instrument pays every half second). Full band
+  still triggers Splash Frenzy. The two bullets below are the 2026-11-25 rule,
+  kept as history.
 - **Stars are the meter that is already on screen.** The bar's existing marks
   become star marks:
   - ★ — 60% of the band at full speed at once
@@ -87,24 +104,29 @@ must already sound like music (a bass, a harmony instrument, a tune).
 
 ## 4. Currency and rewards
 
+> **Superseded 2026-11-26 where it conflicts with `docs/REWARD_LOOP.md`.** The
+> two currencies below still hold (coins are spent, stars are the rating and
+> open venues). The earning and price tables have been brought up to date.
+
 Poki allows no purchases and no second currency, so there is exactly one.
 
 - **Coins** — earned in every gig, spent in the shop. (Today's "stars in the
   vault" are renamed: stars now mean the rating, coins mean money.)
 - **Stars** — the rating. Never spent. Total stars open venues.
 
-| Earned                                                  | Amount                          |
-| ------------------------------------------------------- | ------------------------------- |
-| Coins scored during the gig (level-ups, combos, encore) | about 30–120, rising with venue |
-| First time earning each star on a gig                   | +15 per star                    |
-| Daily gift (slice 3)                                    | 25, rising with streak          |
-| Mission complete (slice 3)                              | 30–60                           |
+| Earned                                 | Amount                                                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Coins thrown by spinning instruments   | Every 500 ms each instrument pays 1, 2 or 4 by speed, times the groove (x1 to x5) and the gun's boost |
+| First time earning each star on a gig  | +200 per star                                                                                         |
+| Daily gift                             | 800, plus 400 per consecutive day, growing for up to a week                                           |
+| Mission complete (one rolling mission) | 1,000 to 2,400                                                                                        |
 
-| Spent on                                     | Price                           |
-| -------------------------------------------- | ------------------------------- |
-| Guns                                         | 0 · 0 · 150 · 400 · 900 · 2,000 |
-| Grannies                                     | 0 · 0 · 600                     |
-| Later: band cosmetics, alternative musicians | —                               |
+| Spent on                                     | Price                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| Guns                                         | 0 · 0 · 6,000 · 20,000 · 60,000 · 200,000                          |
+| Gun upgrade levels (2 to 5)                  | the larger of 1,500 and 30% of the gun's price, doubling per level |
+| Grannies                                     | 0 · 0 · 30,000                                                     |
+| Later: band cosmetics, alternative musicians | —                                                                  |
 
 | Venue    | Opens at |
 | -------- | -------- |
@@ -126,20 +148,28 @@ Existing saves are migrated: vault becomes coins, unlocked items are kept.
 Four screens on the main path, each with one obvious button.
 
 1. **Home** — the current venue's art, Granny, and one big button:
-   **PLAY · Gig n**. Coins and total stars along the top. Three small round
-   icons: Tour, Shop, Band. A first-ever launch skips Home and drops straight
-   into Garden gig 1.
+   **PLAY · Gig n**. Coins and total stars along the top. Along the bottom, a
+   row of the five venues as tiles (tap to switch; a locked one says how many
+   stars it needs). A "saving for" strip names the cheapest next gun, upgrade
+   or granny with a bar of coins toward it (tap for the Shop). ALL GIGS (the
+   tour map) and SHOP are labelled buttons. A first-ever launch skips Home and
+   drops straight into Garden gig 1.
 2. **Gig intro** — two seconds, skippable: venue, gig number, and
    "NEW MUSICIAN: Clarinet" with the clarinet playing a bar.
 3. **Gig** — the round.
-4. **Results** — stars land one at a time with an orchestral hit each, coins
-   count up, then **NEXT GIG** (largest), Retry (small), Home (icon).
-   "Double coins" sits beside Next as the rewarded option, never larger.
+4. **Results** — three beats, top to bottom. The coin total counts up large as
+   the stars land one at a time ("NEW BEST" when it is one, and how far the
+   next star is); then "what now": the next thing in the Shop with a bar, or a
+   BUY button when it can be afforded; then the venue's eight gigs as a path
+   with the next venue at the end and the stars it needs. Below, **NEXT GIG**
+   (largest, the only green button) with who joins at the next gig, Retry
+   (small) and Home (icon). "Double coins" sits beside Next as the rewarded
+   option, never larger.
 
 Off the main path:
 
 - **Tour** — the venues with their eight gigs and star ratings; tap to replay.
-- **Shop** — grannies and guns (today's carousels, moved off the first screen).
+- **Shop** — grannies and guns (today's carousels, moved off the first screen); the gun card shows five level pips, what the gun does in words and one BUY / UPGRADE button.
 - **Band** (slice 3) — every musician met so far; tap to hear them.
 
 UI restraint still applies: no screen has more than one primary action.
@@ -161,12 +191,14 @@ UI restraint still applies: no screen has more than one primary action.
 
 ## 7. Build slices
 
-| Slice                    | Contents                                                                                                                                       | Status (2026-11-25)                                                                                                                                                           |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. The gig**           | Level data, sized wall layout, line-up seating, star rating on the bar, per-gig difficulty, coin rebalance, results screen with stars and Next | **Built.** All five venues run their eight gigs. Garden tuned gig by gig; the other four checked at first and last gig only                                                   |
-| **2. The tour**          | Home, gig intro, Tour map, Shop, save fields, first launch straight to gig 1                                                                   | **Built.** The gig intro names new musicians on their spinners; it does not yet play them a solo                                                                              |
-| **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                   | **Part built:** one rolling mission and the daily gift. Not built: Jam mode, the album, "ten more seconds"                                                                    |
-| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                               | **All five bands built** (garage rock, brass band and funk band added). The Frenzy fanfare and feedback accents are still orchestral. Awaiting David's listen, see `BANDS.md` |
+| Slice                    | Contents                                                                                                                                               | Status (2026-11-26)                                                                                                                                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. The gig**           | Level data, sized wall layout, line-up seating, star rating, per-gig difficulty, coin rebalance, results screen with stars and Next                    | **Built.** All five venues run their eight gigs. Stars now come from the coin total (`REWARD_LOOP.md`); the results screen is the three-beat one. Garden tuned gig by gig; Workshop spot-checked (its gig 4 looked too hard); Kitchen, Funfair and Disco untuned under the new scoring |
+| **2. The tour**          | Home, gig intro, Tour map, Shop, save fields, first launch straight to gig 1                                                                           | **Built.** Home has a venue strip and a "saving for" strip; the Shop has gun upgrade levels. The gig intro names new musicians on their spinners; it does not yet play them a solo                                                                                                     |
+| **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                           | **Part built:** one rolling mission and the daily gift. Not built: Jam mode, the album, "ten more seconds"                                                                                                                                                                             |
+| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                                       | **All five bands built**, each in its own room with its own Frenzy fanfare, closing chord, accents and results chimes (2026-11-26); Workshop reworked at 136 BPM. None of the 2026-11-26 audio has been heard by David, see `BANDS.md`                                                 |
+| **5. The reward loop**   | Coins from every spinning instrument, the groove, stars from the coin total, the results screen, gun coin boosts and upgrade levels (`REWARD_LOOP.md`) | **Built 2026-11-26** (`dc38f8c`, `4b4cd4e`); bot-tested on Garden only, not played by David since                                                                                                                                                                                      |
+| **6. Visitors**          | Random surprise blockers, sitters and treats replacing the fixed obstacles                                                                             | **Being built, 2026-11-26**                                                                                                                                                                                                                                                            |
 
 Each slice ends with lint, tests, build, budget, a live playthrough, a commit
 and a push.
@@ -174,7 +206,7 @@ and a push.
 ### What the balance harness says
 
 Starter gun, a bot that plays like a child and one that plays sharply
-(`window.__bot.ladder('garden')` in a dev build):
+(`window.__bot.ladder('garden')` in a dev build). _The table is the 2026-11-25 reading, under the old star rule and slower wind-down; it is kept as history._ After the 2026-11-26 reward loop the Garden bots on the starter gun read (commit `dc38f8c`): child-speed bot three, two, two and one stars on gigs 1, 3, 5 and 8; sharp bot three, three, three and two stars. Workshop was spot-checked only; the other venues have not been read under the new scoring.
 
 | Garden gig | Band | Child-speed bot | Sharp bot   |
 | ---------- | ---- | --------------- | ----------- |
@@ -201,6 +233,5 @@ These have working defaults and do not block the build:
 
 1. **Names.** "Gig", "venue", "Grand Concert", "coins". Easy to change.
 2. **The sound** — Garden and the Kitchen heard and liked by David on 2026-11-25. Not yet heard: the Workshop, Funfair and Disco bands, and the change that makes each instrument answer a squirt in its own voice.
-3. **Per-band set pieces** — the Frenzy fanfare, closing chord and feedback accents are still orchestral in every venue; see `BANDS.md`.
-4. **Spinner art.** Procedural spinners now sit on backing discs and read
-   well, but painted sprites would match the rest of the art.
+3. **Per-band set pieces** — done 2026-11-26: the Frenzy lean-in, fanfare, closing chord, accents and results chimes are played by each band's own instruments; see `BANDS.md`. Awaiting David's listen.
+4. **Spinner art.** Done 2026-11-26: every spinner wears a painted instrument (36 pictures); the drawn badge is only a fallback.

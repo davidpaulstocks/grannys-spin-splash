@@ -1,6 +1,6 @@
 # The reward loop — coins, the groove and the jackpot
 
-**Written:** 2026-11-26 · **Status:** being built. Supersedes the star rule in
+**Written:** 2026-11-26 · **Status:** built (`dc38f8c`, gun levels `4b4cd4e`); balanced for the Garden only; not yet confirmed by David's play-test. Supersedes the star rule in
 `ENGAGEMENT_DESIGN.md` §3 and the earning table in §4 where they conflict.
 
 ## Why
@@ -71,8 +71,12 @@ at full speed.
   ×5). The shop and the results screen say so in those words: "Coins ×1.5".
   Star targets rise from venue to venue to match, so a better gun is how
   earlier gigs get their third star.
-- **Next (not built):** upgrade levels per gun, so there is always a
-  purchase within reach without painting more guns; more guns after that.
+- **Upgrade levels.** Every owned gun goes up to level 5 in the shop: each
+  level adds 15% of the gun's base coin boost and 8% fill power, and costs
+  `max(1,500, 30% of the gun's price)`, doubling per level
+  (`src/entities/gun/gunLevels.ts`). There is always a purchase within reach
+  without painting more guns; the first is affordable after one gig. More
+  painted guns can follow.
 
 ## Balance targets
 
