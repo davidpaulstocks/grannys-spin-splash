@@ -1,5 +1,5 @@
 {
-  "_comment": "Each sheet holds guns; the slicer works out the grid itself (rows by vertical position, each row left to right, top row first) and expects as many pictures as there are ids. 'ids' is the gun id of each picture in that order; an id of '_' means a picture that is on the sheet but not used. 'flip' lists guns painted nozzle-left, mirrored before saving; 'nozzle' optionally overrides a gun's nozzle point ({id: [x, y]} in the 384x256 picture). NOTE: the owner's files are named the other way round from the order they were first described: sheet-1-guns.jpg holds the bubble / slime / rainbow / shark / dragon / galaxy guns. sheet-3-guns.jpg (2026-11-27) is the six starter guns repainted in the same style; it came out with seven pictures (rows of 3, 2, 2): the fourth, a spare pink blaster, is not used. Keep in step with GUN_LADDER in src/entities/gun/gun.data.ts. Every gun gets 0.webp, anchor.json and hero.webp (three times the size) from its sheet. 'holes' optionally lists seed points ({id: [[x, y], ...]} in the 384x256 picture) where enclosed white is made see-through, e.g. the middle of the coiled hose.",
+  "_comment": "Each sheet holds guns; the slicer works out the grid itself (rows by vertical position, each row left to right, top row first) and expects as many pictures as there are ids. 'ids' is the gun id of each picture in that order; an id of '_' means a picture that is on the sheet but not used. 'flip' lists guns painted nozzle-left, mirrored before saving; 'nozzle' optionally overrides a gun's nozzle point ({id: [x, y]} in the 384x256 picture). NOTE: the owner's files are named the other way round from the order they were first described: sheet-1-guns.jpg holds the bubble / slime / rainbow / shark / dragon / galaxy guns. sheet-3-guns.jpg (2026-11-27) is the six starter guns repainted in the same style; it came out with seven pictures (rows of 3, 2, 2): the fourth, a spare pink blaster, is not used. Keep in step with GUN_LADDER in src/entities/gun/gun.data.ts. Every gun gets 0.webp, anchor.json and hero.webp (three times the size) from its sheet. 'holes' optionally lists seed points ({id: [[x, y], ...]} in the 384x256 picture) where enclosed white is made see-through, e.g. the middle of the coiled hose. sheet-4-guns.jpg (2026-11-27) is the six mythic guns, rows of 2, 2, 2. 'dilate' (odd number, optional) is how far apart pieces still count as one gun; sheet-4 uses 1 because its pony's tail nearly touches the phoenix's wing.",
   "sheets": {
     "sheet-1-guns": {
       "ids": [
@@ -211,6 +211,66 @@
           ]
         ]
       }
+    },
+    "sheet-4-guns": {
+      "ids": [
+        "volcano_blaster",
+        "kraken_cannon",
+        "unicorn_sparkler",
+        "star_pony",
+        "robo_rex",
+        "phoenix_fury"
+      ],
+      "flip": [],
+      "nozzle": {
+        "kraken_cannon": [
+          357,
+          110
+        ],
+        "robo_rex": [
+          354,
+          98
+        ]
+      },
+      "holes": {
+        "volcano_blaster": [
+          [
+            157,
+            162
+          ]
+        ],
+        "kraken_cannon": [
+          [
+            141,
+            159
+          ]
+        ],
+        "unicorn_sparkler": [
+          [
+            171,
+            153
+          ]
+        ],
+        "star_pony": [
+          [
+            157,
+            157
+          ]
+        ],
+        "robo_rex": [
+          [
+            192,
+            160
+          ]
+        ],
+        "phoenix_fury": [
+          [
+            191,
+            155
+          ]
+        ]
+      },
+      "dilate": 1
     }
   }
 }

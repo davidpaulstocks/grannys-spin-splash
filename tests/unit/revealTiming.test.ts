@@ -20,7 +20,7 @@ const SCREEN_HEIGHT = 720;
 
 describe('revealTimeline', () => {
   it('runs the film, then the blast, then the numbers, in order', () => {
-    for (const rarity of ['common', 'rare', 'epic', 'legendary'] as const) {
+    for (const rarity of ['common', 'rare', 'epic', 'legendary', 'mythic'] as const) {
       const t = revealTimeline(rarity);
       expect(t.film.fireAt).toBeGreaterThan(t.film.panEnd);
       expect(t.film.pullAt).toBeGreaterThan(t.film.fireAt);

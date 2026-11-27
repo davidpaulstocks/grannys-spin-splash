@@ -14,6 +14,8 @@ import Phaser from 'phaser';
 import { PUMP_REFILL_MS, SOAKER_EXTRA_WOBBLE } from '../../config';
 import { audioOrchestra } from '../../audio/AudioOrchestra';
 import * as SFX from '../../audio/SFX';
+import type { GrannyTalents } from '../granny/granny.types';
+import { NO_TALENTS } from '../granny/talents';
 import type { GunDef } from '../gun/gun.types';
 import type { Spinner } from '../spinner/Spinner';
 import { BARREL_SPACING_PX, FIRE_DENSITY_SCALE } from './fireDensity';
@@ -66,6 +68,7 @@ export type PumpEvent = 'started' | 'completed' | null;
 
 export class WaterCannon {
   private _tank: number;
+  private readonly _capacity: number;
   private _isPumping = false;
   private _pumpEndAt = 0;
   private _nextFireAt = 0;
@@ -77,12 +80,19 @@ export class WaterCannon {
     private readonly _scene: Phaser.Scene,
     private readonly _gun: GunDef,
     private readonly _pool: Phaser.GameObjects.Group,
+    talents: GrannyTalents = NO_TALENTS,
   ) {
-    this._tank = _gun.tank;
+    this._capacity = _gun.tank * talents.tankSize;
+    this._tank = this._capacity;
   }
 
   get tank(): number {
     return this._tank;
+  }
+
+  /** The size of a full tank: the gun's, times the granny's talent. */
+  get capacity(): number {
+    return this._capacity;
   }
 
   get isPumping(): boolean {
@@ -92,7 +102,7 @@ export class WaterCannon {
   /** Fills the tank and cancels any pump in progress — the rewarded-ad instant refill (CLAUDE.md story 6.3). */
   refillInstantly(): void {
     this._isPumping = false;
-    this._tank = this._gun.tank;
+    this._tank = this._capacity;
   }
 
   /** Fires this frame's shot if the player is holding fire and there's water to spend. */
@@ -155,7 +165,7 @@ export class WaterCannon {
     }
     if (this._isPumping && time >= this._pumpEndAt) {
       this._isPumping = false;
-      this._tank = this._gun.tank;
+      this._tank = this._capacity;
       audioOrchestra.accent('refill');
       return 'completed';
     }

@@ -21,7 +21,9 @@ import { currentGig } from '../systems/Progress';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { DEFAULT_GRANNY_ID } from '../entities/granny/granny.data';
 import { Granny } from '../entities/granny/Granny';
+import type { GrannyTalents } from '../entities/granny/granny.types';
 import { playRoundIntro, type RoundIntro } from '../entities/granny/roundIntro';
+import { NO_TALENTS, talentsFor } from '../entities/granny/talents';
 import { Gun } from '../entities/gun/Gun';
 import { Spinner } from '../entities/spinner/Spinner';
 import { GoldenSpinnerSpawner, type GoldenClaim } from '../entities/spinner/GoldenSpinnerSpawner';
@@ -72,6 +74,8 @@ export class GameScene extends Phaser.Scene {
   private _frenzyMeter = new FrenzyMeter();
   private _world!: WorldDef;
   private _grannyId!: string;
+  /** What the chosen granny's talent changes (see entities/granny/talents.ts). */
+  private _talents: GrannyTalents = NO_TALENTS;
   private _gun!: GunDef;
   private _hud!: HUDScene;
 
@@ -91,6 +95,7 @@ export class GameScene extends Phaser.Scene {
     this,
     () => this._spinners,
     () => this._reward.jackpotStarted(),
+    () => this._talents,
   );
   // Built per round in create(), once the world, gig and wall exist.
   /** Coins, stars, the groove and the coin fountain (see game/RewardLoop.ts); src/dev/botSim.ts reads it by name. */
@@ -130,6 +135,7 @@ export class GameScene extends Phaser.Scene {
     const worldId = data.worldId ?? DEFAULT_WORLD_ID;
     this._world = WORLD_DEFS.find((w) => w.id === worldId) ?? WORLD_DEFS[0];
     this._grannyId = data.grannyId ?? DEFAULT_GRANNY_ID;
+    this._talents = talentsFor(this._grannyId);
     const gunId = data.gunId ?? DEFAULT_GUN_ID;
     const level = data.gunLevel ?? gunLevelIn(saveManager.load().gunLevels, gunId);
     this._gun = gunAtLevel(GUN_DEFS.find((g) => g.id === gunId) ?? GUN_DEFS[0], level);
@@ -141,7 +147,7 @@ export class GameScene extends Phaser.Scene {
     this._resetRoundState(); // in case this is a "Play Again" restart of the same scene instance chain
 
     drawWorldBackground(this, this._world.id);
-    this._spinners = buildWall(this, this._world, this._gig);
+    this._spinners = buildWall(this, this._world, this._gig, this._talents);
     this._golden = new GoldenSpinnerSpawner(
       this,
       this._world.goldenFrequent === true,
@@ -165,7 +171,7 @@ export class GameScene extends Phaser.Scene {
       maxSize: WATER_PARTICLE_MAX_POOL,
       runChildUpdate: true,
     });
-    this._cannon = new WaterCannon(this, this._gun, this._waterPool);
+    this._cannon = new WaterCannon(this, this._gun, this._waterPool, this._talents);
     this._jet = new WaterJet(this, this._waterPool);
     this._music = new MusicReactions(this, this._world, this._gig);
     this._guide = new FirstRunGuide(this, this._world);
@@ -187,6 +193,7 @@ export class GameScene extends Phaser.Scene {
       spinners: () => this._spinners,
       reward: this._reward,
       frenzyActive: () => this._frenzy.active,
+      talents: this._talents,
     });
     this._collisions = new WaterCollisions({
       scene: this,
@@ -437,6 +444,7 @@ export class GameScene extends Phaser.Scene {
       spinners: () => this._spinners,
       reward: this._reward,
       coinBoost: this._gun.coinBoost,
+      bonusScale: this._talents.bigFinish,
       refreshHud: () => this._refreshHud(),
       quietWater: () => this._quietWater(),
       bank: () => this._bankAndLeave(),

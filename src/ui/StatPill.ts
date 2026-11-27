@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
+import { formatCount } from '../utils/formatCount';
 import { textStyle } from '../utils/typography';
 import { drawCoinIcon, drawStarIcon } from './icons';
 
@@ -19,6 +20,11 @@ const ICON_RADIUS = 15;
 const ICON_OUTLINE_PX = 3;
 const ICON_INSET = 28;
 const TEXT_INSET = 52;
+
+/** A number is printed compactly; a ready-made string ("17 / 24") as it is. */
+function display(value: number | string): string {
+  return typeof value === 'number' ? formatCount(value) : value;
+}
 
 export interface StatPill {
   readonly container: Phaser.GameObjects.Container;
@@ -54,11 +60,11 @@ export function createStatPill(
     .text(
       -width / 2 + TEXT_INSET,
       0,
-      String(value),
+      display(value),
       textStyle('bodyL', COLOUR_HEX.ink, COLOUR_HEX.cloud),
     )
     .setOrigin(0, 0.5);
 
   const container = scene.add.container(x, y, [bg, icon, text]);
-  return { container, setValue: (next) => text.setText(String(next)) };
+  return { container, setValue: (next) => text.setText(display(next)) };
 }

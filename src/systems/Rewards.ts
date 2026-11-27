@@ -1,18 +1,18 @@
 /**
  * What the player is saving for — docs/REWARD_LOOP.md. Pure functions over
- * `SaveData`: the next gun or granny not yet owned in price order (with the
+ * `SaveData`: the next gun not yet owned in price order (with the
  * plain-words line that says what it does), whether an upgrade is affordable,
  * and the next venue still locked. The results
  * screen, Home and the Shop all read the same answer.
  */
 
-import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import type { GunDef } from '../entities/gun/gun.types';
 import { gunAtLevel, gunLevelIn, upgradeCost } from '../entities/gun/gunLevels';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
 import type { SaveData } from '../types/save';
+import { formatCount } from '../utils/formatCount';
 import { nextLockedVenue } from './Progress';
 
 export type RewardKind = 'gun' | 'granny' | 'upgrade';
@@ -37,14 +37,10 @@ export interface NextReward {
 const TWO_JETS = 2;
 const STARTER_PERK = 'Starter gun';
 const MAX_DECIMALS = 2;
-const GRANNY_PERK = 'New look';
 /** A particle at least this size reads as a wider jet. */
 const WIDE_JET_SIZE = 10;
 
-/** "1,120" — thousands separated, so a big total reads at a glance. */
-export function formatCount(value: number): string {
-  return Math.round(value).toLocaleString('en-US');
-}
+export { formatCount };
 
 /** A number to at most two decimals, trailing zeros dropped: 1.95, 1.3, 2. */
 function trimmed(value: number): string {
@@ -94,15 +90,6 @@ export function nextReward(save: SaveData): NextReward | null {
         name: g.name,
         cost: g.cost,
         perk: gunHeadline(g),
-      }),
-    ),
-    ...GRANNY_DEFS.filter((g) => !save.unlockedGrannies.includes(g.id)).map(
-      (g): Candidate => ({
-        kind: 'granny',
-        id: g.id,
-        name: g.name,
-        cost: g.unlockCost,
-        perk: GRANNY_PERK,
       }),
     ),
   ];

@@ -71,6 +71,8 @@ export interface BigFinishDeps {
   readonly reward: RewardLoop;
   /** The gun's coin boost, a factor in every bow. */
   readonly coinBoost: number;
+  /** The granny's Big Finish talent: a multiplier on every bow bonus (1 = none). */
+  readonly bonusScale?: number;
   /** Redraws the HUD, so the counter and the star bar follow the bow coins. */
   readonly refreshHud: () => void;
   /** Stops the water: nothing may keep flying while the band bows. */
@@ -100,6 +102,7 @@ export class BigFinish {
       band.map((s) => ({ x: s.x, state: s.playingState })),
       d.reward.groove.level,
       d.coinBoost,
+      d.bonusScale,
     );
 
     // On the stage at finish priority: nothing from the gig is left under it, and the verdict replaces it at once.

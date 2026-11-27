@@ -38,7 +38,7 @@ export interface TagRow {
   readonly power: Phaser.GameObjects.Text;
 }
 
-const powerLabel = (n: number): string => `POWER ${Math.round(n).toLocaleString('en-US')}`;
+const powerLabel = (n: number): string => `POWER ${formatCount(n)}`;
 
 /** The rarity pill and the POWER number side by side, centred as a pair; both hidden until shown. */
 export function buildTagRow(ctx: RevealCtx, gun: GunDef, powerMax: number): TagRow {

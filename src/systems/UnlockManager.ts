@@ -6,6 +6,7 @@
  */
 
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
+import { isGrannyJoined } from './GrannyJoining';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import { clampGunLevel, gunLevelIn, upgradeCost } from '../entities/gun/gunLevels';
 import { WORLD_DEFS } from '../entities/world/world.data';
@@ -20,8 +21,11 @@ export class UnlockManager {
     return this._save.load().vault;
   }
 
+  /** A granny is available once she is owned or the player's stars have reached her milestone (never bought: see GrannyJoining.ts). */
   isGrannyUnlocked(id: string): boolean {
-    return this._save.load().unlockedGrannies.includes(id);
+    const save = this._save.load();
+    const def = GRANNY_DEFS.find((g) => g.id === id);
+    return def !== undefined && isGrannyJoined(save, def);
   }
 
   isGunUnlocked(id: string): boolean {
@@ -53,18 +57,11 @@ export class UnlockManager {
     this._save.save({ ...save, vault: save.vault + amount });
   }
 
-  /** Spends vault stars to unlock a granny. Returns false if already unlocked or vault is short. */
-  unlockGranny(id: string): boolean {
-    const def = GRANNY_DEFS.find((g) => g.id === id);
-    if (!def) return false;
-    return this._unlock(id, def.unlockCost, 'unlockedGrannies');
-  }
-
-  /** Spends vault stars to unlock a gun. Returns false if already unlocked or vault is short. */
+  /** Spends coins to unlock a gun. Returns false if already unlocked or vault is short. */
   unlockGun(id: string): boolean {
     const def = GUN_DEFS.find((g) => g.id === id);
     if (!def) return false;
-    return this._unlock(id, def.cost, 'unlockedGuns');
+    return this._unlock(id, def.cost);
   }
 
   /** A gun's upgrade level, 1 to 5; guns with no record (and old saves) are level 1. */
@@ -86,15 +83,14 @@ export class UnlockManager {
   }
 
   /**
-   * Buys what the results card offers: a gun or granny is unlocked and
-   * equipped, an upgrade raises the gun's level. False if it could not be bought.
+   * Buys what the results card offers: a gun is unlocked and equipped, an
+   * upgrade raises the gun's level. False if it could not be bought. (Grannies
+   * are never bought: they join at star milestones.)
    */
   buy(reward: { readonly kind: 'gun' | 'granny' | 'upgrade'; readonly id: string }): boolean {
     if (reward.kind === 'upgrade') return this.upgradeGun(reward.id);
-    const isGun = reward.kind === 'gun';
-    if (!(isGun ? this.unlockGun(reward.id) : this.unlockGranny(reward.id))) return false;
-    if (isGun) this.selectGun(reward.id);
-    else this.selectGranny(reward.id);
+    if (reward.kind !== 'gun' || !this.unlockGun(reward.id)) return false;
+    this.selectGun(reward.id);
     return true;
   }
 
@@ -137,11 +133,15 @@ export class UnlockManager {
     this._save.save({ ...save, selectedWorldId: id });
   }
 
-  private _unlock(id: string, cost: number, field: 'unlockedGrannies' | 'unlockedGuns'): boolean {
+  private _unlock(id: string, cost: number): boolean {
     const save = this._save.load();
-    if (save[field].includes(id)) return false;
+    if (save.unlockedGuns.includes(id)) return false;
     if (save.vault < cost) return false;
-    this._save.save({ ...save, vault: save.vault - cost, [field]: [...save[field], id] });
+    this._save.save({
+      ...save,
+      vault: save.vault - cost,
+      unlockedGuns: [...save.unlockedGuns, id],
+    });
     return true;
   }
 }

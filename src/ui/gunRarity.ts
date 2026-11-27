@@ -1,7 +1,7 @@
 /**
  * How a gun's rarity and POWER number are shown: the rarity colours (palette
  * only: common Soft Slate, rare Water Blue, epic Granny Pink, legendary Sunny
- * Gold), the tag text, the POWER number at a level, and the small drawn pieces
+ * Gold, mythic Heat Orange), the tag text, the POWER number at a level, and the small drawn pieces
  * the Shop, the rack and the reward cards share (a thin frame, a pill).
  */
 
@@ -11,6 +11,7 @@ import { GUN_LADDER_DEFS, MIN_GUN_LEVEL } from '../entities/gun/gun.data';
 import type { GunRarity } from '../entities/gun/gun.types';
 import { powerRatingAt } from '../entities/gun/gunLevels';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { formatCount } from '../utils/formatCount';
 import { pillRadius } from '../utils/math';
 import { textStyle } from '../utils/typography';
 
@@ -19,12 +20,14 @@ const RARITY_COLOUR: Readonly<Record<GunRarity, number>> = {
   rare: COLOUR.waterBlue,
   epic: COLOUR.grannyPink,
   legendary: COLOUR.sunnyGold,
+  mythic: COLOUR.heatOrange,
 };
 const RARITY_HEX: Readonly<Record<GunRarity, string>> = {
   common: COLOUR_HEX.softSlate,
   rare: COLOUR_HEX.waterBlue,
   epic: COLOUR_HEX.grannyPink,
   legendary: COLOUR_HEX.sunnyGold,
+  mythic: COLOUR_HEX.heatOrange,
 };
 const FRAME_PX = 3;
 const FRAME_RADIUS = 14;
@@ -50,7 +53,7 @@ export function rarityLabel(rarity: GunRarity): string {
 /** "POWER 550" for gun `id` at `level`; empty for an unknown gun. */
 export function powerText(id: string, level = MIN_GUN_LEVEL): string {
   const def = GUN_LADDER_DEFS.find((g) => g.id === id);
-  return def ? `POWER ${powerRatingAt(def, level).toLocaleString('en-US')}` : '';
+  return def ? `POWER ${formatCount(powerRatingAt(def, level))}` : '';
 }
 
 /** A thin rounded frame in the gun's rarity colour, centred on (x, y). */

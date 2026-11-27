@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { GRANNY_DEFS } from '../../src/entities/granny/granny.data';
 import { GUN_DEFS } from '../../src/entities/gun/gun.data';
 import { WORLD_DEFS } from '../../src/entities/world/world.data';
 import { recordGig, venueBests, venueJustOpened } from '../../src/systems/Progress';
@@ -30,17 +29,13 @@ describe('the goal is always the next thing not owned', () => {
     expect(reward?.canAfford).toBe(true);
   });
 
-  it('goes up the price ladder across guns and grannies as they are bought', () => {
+  it('goes up the price ladder across guns as they are bought', () => {
     const base = fresh();
     const afterHose = { ...base, unlockedGuns: [...base.unlockedGuns, 'hose'] };
     const ladder = [
       ...GUN_DEFS.filter((g) => !afterHose.unlockedGuns.includes(g.id)).map((g) => ({
         id: g.id,
         cost: g.cost,
-      })),
-      ...GRANNY_DEFS.filter((g) => !base.unlockedGrannies.includes(g.id)).map((g) => ({
-        id: g.id,
-        cost: g.unlockCost,
       })),
     ].sort((a, b) => a.cost - b.cost);
     expect(nextReward(afterHose)?.id).toBe(ladder[0]?.id);
@@ -58,7 +53,6 @@ describe('the goal is always the next thing not owned', () => {
       nextReward({
         ...fresh(),
         unlockedGuns: GUN_DEFS.map((g) => g.id),
-        unlockedGrannies: GRANNY_DEFS.map((g) => g.id),
       }),
     ).toBeNull();
   });
@@ -112,21 +106,19 @@ describe('next reward', () => {
     save = fresh();
   });
 
-  it('is the cheapest thing not owned, across guns and grannies', () => {
+  it('is the cheapest thing not owned, across guns', () => {
     const reward = nextReward({ ...save, vault: 120 });
     const unowned = [
       ...GUN_DEFS.filter((g) => !save.unlockedGuns.includes(g.id)).map((g) => g.cost),
-      ...GRANNY_DEFS.filter((g) => !save.unlockedGrannies.includes(g.id)).map((g) => g.unlockCost),
     ];
     expect(reward?.cost).toBe(Math.min(...unowned));
     expect(reward?.canAfford).toBe(reward ? 120 >= reward.cost : false);
     expect(reward?.progress).toBeCloseTo(Math.min(1, 120 / (reward?.cost ?? 1)));
   });
 
-  it('moves on to the granny when every gun is owned', () => {
-    const reward = nextReward({ ...save, unlockedGuns: GUN_DEFS.map((g) => g.id) });
-    expect(reward?.kind).toBe('granny');
-    expect(reward?.perk).toBe('New look');
+  it('never offers a granny: grannies join at star milestones, not for coins', () => {
+    expect(nextReward({ ...save, unlockedGuns: GUN_DEFS.map((g) => g.id) })).toBeNull();
+    expect(nextReward({ ...save, vault: 10_000_000 })?.kind).toBe('gun');
   });
 
   it('says it can be afforded and caps progress at 1', () => {
@@ -158,6 +150,22 @@ describe('formatCount', () => {
   it('separates thousands', () => {
     expect(formatCount(1120)).toBe('1,120');
     expect(formatCount(2000)).toBe('2,000');
+  });
+
+  it('prints big numbers compactly from 100,000', () => {
+    expect(formatCount(99999)).toBe('99,999');
+    expect(formatCount(100000)).toBe('100K');
+    expect(formatCount(125000)).toBe('125K');
+    expect(formatCount(999499)).toBe('999K');
+    expect(formatCount(999500)).toBe('1M');
+    expect(formatCount(2000000)).toBe('2M');
+    expect(formatCount(2500000)).toBe('2.5M');
+    expect(formatCount(7_630_000)).toBe('7.6M');
+    expect(formatCount(99_940_000)).toBe('99.9M');
+    expect(formatCount(99_960_000)).toBe('100M');
+    expect(formatCount(125_000_000)).toBe('125M');
+    expect(formatCount(1_230_000_000)).toBe('1.2B');
+    expect(formatCount(0)).toBe('0');
   });
 });
 

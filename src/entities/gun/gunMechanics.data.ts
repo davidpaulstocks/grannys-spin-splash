@@ -1,5 +1,5 @@
 /**
- * How each of the eighteen guns shoots and what its shots look like. The
+ * How each of the guns shoots and what its shots look like. The
  * ladder (cost, boost, rarity) is in gun.data.ts; this is the other half.
  *
  * The numbers climb with the ladder, so a better gun never has less of
@@ -13,6 +13,7 @@
 
 import { COLOUR, shade } from '../../utils/colour';
 import type { GunMechanics } from './gun.types';
+import { MYTHIC_MECHANICS } from './gunMechanics.mythic.data';
 
 const ICE = shade(COLOUR.waterBlue, 1.55);
 const DEEP_BLUE = shade(COLOUR.waterBlue, 0.7);
@@ -21,7 +22,7 @@ const LASER_PINK = shade(COLOUR.grannyPink, 1.1);
 const FLAME_RED = shade(COLOUR.heatOrange, 0.9);
 const TRIDENT_SPACING = 22;
 
-export const GUN_MECHANICS: Readonly<Record<string, GunMechanics>> = {
+const BASE_MECHANICS: Readonly<Record<string, GunMechanics>> = {
   pistol: {
     tier: 1,
     tank: 150,
@@ -260,4 +261,10 @@ export const GUN_MECHANICS: Readonly<Record<string, GunMechanics>> = {
     particleColour: shade(COLOUR.waterBlue, 1.1),
     accentColour: COLOUR.sunnyGold,
   },
+};
+
+/** Every gun's mechanics: the first eighteen above, the six mythic guns in gunMechanics.mythic.data.ts. */
+export const GUN_MECHANICS: Readonly<Record<string, GunMechanics>> = {
+  ...BASE_MECHANICS,
+  ...MYTHIC_MECHANICS,
 };

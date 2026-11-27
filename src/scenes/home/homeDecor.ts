@@ -1,13 +1,15 @@
 /**
- * Home's two pieces of set dressing: the wordmark across the top and Granny
- * bobbing on the left. Split out of HomeScene, which is about the buttons.
+ * Home's set dressing: the wordmark across the top, Granny bobbing on the
+ * left and the one-line tag under her naming her talent. Split out of HomeScene, which is about the buttons.
  */
 
 import type Phaser from 'phaser';
 
 import { SPRITE_KEYS } from '../../assets/keys';
 import { GAME_WIDTH } from '../../config';
-import { COLOUR_HEX } from '../../utils/colour';
+import { GRANNY_LADDER_DEFS } from '../../entities/granny/granny.data';
+import { COLOUR, COLOUR_HEX } from '../../utils/colour';
+import { pillRadius } from '../../utils/math';
 import { EASE } from '../../utils/tween';
 import { textStyle } from '../../utils/typography';
 
@@ -19,6 +21,13 @@ const GRANNY_Y = 350;
 const GRANNY_HEIGHT = 400;
 const GRANNY_BOB_PX = 10;
 const GRANNY_BOB_MS = 900;
+
+/** The talent tag: a Cloud pill under Granny's feet, between "ALL GIGS" on the left and the gig card on the right. */
+const TAG_Y = 560;
+const TAG_MAX_WIDTH = 400;
+const TAG_HEIGHT = 30;
+const TAG_PADDING = 24;
+const TAG_OUTLINE_PX = 3;
 
 /** The wordmark, or the title in plain type when the picture is missing. */
 export function buildTitle(scene: Phaser.Scene): void {
@@ -51,4 +60,39 @@ export function buildGranny(scene: Phaser.Scene, grannyId: string): void {
     yoyo: true,
     repeat: -1,
   });
+}
+
+/** "Steady hands: Instruments hold full speed 20% longer", in a small pill under the chosen granny. */
+export function buildTalentTag(scene: Phaser.Scene, grannyId: string): void {
+  const talent = GRANNY_LADDER_DEFS.find((g) => g.id === grannyId)?.talent;
+  if (!talent) return;
+  const label = scene.add
+    .text(
+      GRANNY_X,
+      TAG_Y,
+      `${talent.name}: ${talent.line}`,
+      textStyle('bodyM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+    )
+    .setOrigin(0.5);
+  const maxText = TAG_MAX_WIDTH - TAG_PADDING;
+  if (label.width > maxText) label.setScale(maxText / label.width);
+  const width = label.width * label.scaleX + TAG_PADDING;
+  const bg = scene.add.graphics();
+  bg.fillStyle(COLOUR.cloud, 0.96);
+  bg.fillRoundedRect(
+    GRANNY_X - width / 2,
+    TAG_Y - TAG_HEIGHT / 2,
+    width,
+    TAG_HEIGHT,
+    pillRadius(width, TAG_HEIGHT),
+  );
+  bg.lineStyle(TAG_OUTLINE_PX, COLOUR.ink, 1);
+  bg.strokeRoundedRect(
+    GRANNY_X - width / 2,
+    TAG_Y - TAG_HEIGHT / 2,
+    width,
+    TAG_HEIGHT,
+    pillRadius(width, TAG_HEIGHT),
+  );
+  scene.children.bringToTop(label);
 }

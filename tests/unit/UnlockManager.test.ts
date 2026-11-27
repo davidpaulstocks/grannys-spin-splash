@@ -19,7 +19,7 @@ describe('UnlockManager', () => {
     expect(unlocks.getVault()).toBe(0);
     expect(unlocks.isGrannyUnlocked('classic')).toBe(true); // free
     expect(unlocks.isGrannyUnlocked('squirt')).toBe(true); // also free
-    expect(unlocks.isGrannyUnlocked('punk')).toBe(false); // 30,000 coins
+    expect(unlocks.isGrannyUnlocked('punk')).toBe(false); // joins at 20 stars
     expect(unlocks.isGunUnlocked('pistol')).toBe(true); // free
     expect(unlocks.isGunUnlocked('squirter')).toBe(true); // also free
     expect(unlocks.isGunUnlocked('hose')).toBe(false); // 6,000 coins
@@ -40,16 +40,17 @@ describe('UnlockManager', () => {
     expect(unlocks.getVault()).toBe(0);
   });
 
-  it('unlockGranny() fails when the vault is short, succeeds once it is enough', () => {
-    unlocks.addStars(29999);
-    expect(unlocks.unlockGranny('punk')).toBe(false);
+  it('never sells a granny for coins: she joins when the stars reach her milestone', () => {
+    unlocks.addStars(10_000_000);
     expect(unlocks.isGrannyUnlocked('punk')).toBe(false);
-    expect(unlocks.getVault()).toBe(29999); // nothing deducted on failure
-
-    unlocks.addStars(1);
-    expect(unlocks.unlockGranny('punk')).toBe(true);
+    save.save({ ...save.load(), gigStars: { garden: [3, 3, 3, 3, 3, 3, 2, 0] } }); // 20 stars
     expect(unlocks.isGrannyUnlocked('punk')).toBe(true);
-    expect(unlocks.getVault()).toBe(0); // full cost deducted
+    expect(unlocks.getVault()).toBe(10_000_000); // nothing deducted
+  });
+
+  it('keeps a granny an old save already owns, whatever the stars', () => {
+    save.save({ ...save.load(), unlockedGrannies: ['classic', 'squirt', 'punk'] });
+    expect(unlocks.isGrannyUnlocked('punk')).toBe(true);
   });
 
   it('unlockGun() fails on an already-unlocked gun (no double-spend)', () => {
@@ -58,9 +59,9 @@ describe('UnlockManager', () => {
     expect(unlocks.getVault()).toBe(1000); // untouched
   });
 
-  it('unlockGranny()/unlockGun() fail silently for an unknown id', () => {
+  it('unlockGun() fails silently for an unknown id, and an unknown granny is never available', () => {
     unlocks.addStars(10000);
-    expect(unlocks.unlockGranny('nonexistent')).toBe(false);
+    expect(unlocks.isGrannyUnlocked('nonexistent')).toBe(false);
     expect(unlocks.unlockGun('nonexistent')).toBe(false);
   });
 
@@ -91,8 +92,7 @@ describe('UnlockManager', () => {
     unlocks.selectGranny('punk'); // locked — ignored
     expect(unlocks.getSelectedGrannyId()).toBe('classic');
 
-    unlocks.addStars(30000);
-    unlocks.unlockGranny('punk');
+    save.save({ ...save.load(), gigStars: { garden: [3, 3, 3, 3, 3, 3, 2, 0] } });
     unlocks.selectGranny('punk');
     expect(unlocks.getSelectedGrannyId()).toBe('punk');
   });

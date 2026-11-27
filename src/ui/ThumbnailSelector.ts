@@ -24,6 +24,7 @@ import Phaser from 'phaser';
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import type { CarouselItem } from './Carousel';
 import { drawCoinIcon, drawLockIcon } from './icons';
+import { formatCount } from '../utils/formatCount';
 import { pillRadius } from '../utils/math';
 import { textStyle } from '../utils/typography';
 
@@ -39,6 +40,13 @@ const ARROW_INSET = 4;
 const ARROW_OFFSET_X = CARD_WIDTH / 2 - ARROW_BUTTON_SIZE / 2 - ARROW_INSET;
 const LOCK_ICON_SIZE = 22;
 const COIN_ICON_RADIUS = 11;
+const COIN_X = -16;
+const COST_X = 6;
+const COST_Y = 34;
+/** A locked item's own words sit above the coin row, inside the dimmed thumbnail. */
+const LOCKED_TEXT_Y = 20;
+/** A locked item's own words ("Joins at 40 stars") must fit the thumbnail's width. */
+const LOCKED_TEXT_MAX_WIDTH = THUMB_SIZE - 12;
 
 export class ThumbnailSelector extends Phaser.GameObjects.Container {
   private _items: readonly CarouselItem[];
@@ -51,6 +59,7 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
   private readonly _label: Phaser.GameObjects.Text;
   private readonly _lockOverlay: Phaser.GameObjects.Container;
   private readonly _costText: Phaser.GameObjects.Text;
+  private readonly _coinIcon: Phaser.GameObjects.Graphics;
 
   constructor(
     scene: Phaser.Scene,
@@ -78,12 +87,13 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
 
     const lockGfx = scene.add.graphics();
     drawLockIcon(lockGfx, LOCK_ICON_SIZE, COLOUR.cloud);
-    const coinGfx = scene.add.graphics().setPosition(-16, 34);
+    const coinGfx = scene.add.graphics().setPosition(COIN_X, COST_Y);
+    this._coinIcon = coinGfx;
     drawCoinIcon(coinGfx, COIN_ICON_RADIUS + 2, COLOUR.ink, COLOUR.ink);
     drawCoinIcon(coinGfx, COIN_ICON_RADIUS, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
     lockGfx.setPosition(0, -8);
     this._costText = scene.add
-      .text(6, 34, '', textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink))
+      .text(COST_X, COST_Y, '', textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink))
       .setOrigin(0, 0.5);
     const lockDim = scene.add.rectangle(0, THUMB_Y, THUMB_SIZE, THUMB_SIZE, COLOUR.ink, 0.55);
     this._lockOverlay = scene.add.container(0, 0, [lockDim, lockGfx, coinGfx, this._costText]);
@@ -210,6 +220,23 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
       this._label.setScale(maxLabelWidth / this._label.width);
     }
     this._lockOverlay.setVisible(!item.unlocked);
-    this._costText.setText(`${item.cost}`);
+    if (item.lockedText) {
+      this._coinIcon.setVisible(false);
+      this._costText
+        .setText(item.lockedText)
+        .setOrigin(0.5, 0.5)
+        .setPosition(0, LOCKED_TEXT_Y)
+        .setScale(1);
+      if (this._costText.width > LOCKED_TEXT_MAX_WIDTH) {
+        this._costText.setScale(LOCKED_TEXT_MAX_WIDTH / this._costText.width);
+      }
+    } else {
+      this._coinIcon.setVisible(true);
+      this._costText
+        .setText(formatCount(item.cost))
+        .setOrigin(0, 0.5)
+        .setPosition(COST_X, COST_Y)
+        .setScale(1);
+    }
   }
 }

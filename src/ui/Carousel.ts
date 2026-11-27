@@ -12,6 +12,7 @@ import Phaser from 'phaser';
 
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { drawCoinIcon, drawLockIcon } from './icons';
+import { formatCount } from '../utils/formatCount';
 import { pillRadius } from '../utils/math';
 import { textStyle } from '../utils/typography';
 
@@ -24,6 +25,8 @@ export interface CarouselItem {
   readonly swatchColour: number;
   /** A loaded texture key to render instead of the flat colour swatch, once real art exists for this item. */
   readonly swatchTextureKey?: string;
+  /** What a locked item says in place of its coin price ("Joins at 40 stars" for a granny). */
+  readonly lockedText?: string;
   /** Draw the picture as a dark shape (a prize still out of reach: teased, not shown). */
   readonly silhouette?: boolean;
 }
@@ -207,6 +210,6 @@ export class Carousel extends Phaser.GameObjects.Container {
     }
     this._label.setText(item.label);
     this._lockOverlay.setVisible(!item.unlocked);
-    this._costText.setText(`${item.cost}`);
+    this._costText.setText(formatCount(item.cost));
   }
 }

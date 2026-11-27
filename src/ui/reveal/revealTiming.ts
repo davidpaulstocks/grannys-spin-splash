@@ -21,6 +21,7 @@ export const RARITY_RINGS: Readonly<Record<GunRarity, number>> = {
   rare: 1,
   epic: 1,
   legendary: 2,
+  mythic: 3,
 };
 
 /** After the gun has shrunk to its place: how long the blasting runs before the numbers. */

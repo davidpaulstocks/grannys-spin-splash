@@ -24,6 +24,7 @@ import Phaser from 'phaser';
 
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { drawLockIcon, drawStarIcon } from './icons';
+import { formatCount } from '../utils/formatCount';
 import { pillRadius } from '../utils/math';
 import { textStyle } from '../utils/typography';
 import type { CarouselItem } from './Carousel';
@@ -293,6 +294,6 @@ export class LoadoutStage extends Phaser.GameObjects.Container {
     }
     this._label.setText(item.label);
     this._lockOverlay.setVisible(!item.unlocked);
-    this._costText.setText(`${item.cost}`);
+    this._costText.setText(formatCount(item.cost));
   }
 }

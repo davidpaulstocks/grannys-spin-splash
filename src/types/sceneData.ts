@@ -40,6 +40,8 @@ export interface GigResultData {
   readonly newStars: number;
   /** Coins paid for the new stars, on top of `score`. */
   readonly starCoins: number;
+  /** Ids of grannies who joined the band because this gig took the stars past their milestone. */
+  readonly joinedGrannies?: readonly string[];
 }
 
 /** HomeScene → TourScene: which venue's page to open on. Omitted = the one the player is working through. */

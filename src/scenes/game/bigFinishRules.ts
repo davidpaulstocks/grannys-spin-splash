@@ -68,16 +68,17 @@ export function isFullBand(states: readonly SpinnerState[]): boolean {
 
 /**
  * Coins one instrument's bow pays: its normal per-tick pay for its state,
- * times `BOW_BONUS_TICKS`, the groove and the gun's coin boost, doubled for
- * a full-band finish. Whole coins; a quiet instrument pays nothing.
+ * times `BOW_BONUS_TICKS`, the groove and the gun's coin boost (and the granny's
+ * `bonusScale`), doubled for a full-band finish. Whole coins; a quiet instrument pays nothing.
  */
 export function bowBonus(
   state: SpinnerState,
   grooveLevel: number,
   coinBoost: number,
   fullBand: boolean,
+  bonusScale = 1,
 ): number {
-  const base = payFor(state) * BOW_BONUS_TICKS * grooveLevel * coinBoost;
+  const base = payFor(state) * BOW_BONUS_TICKS * grooveLevel * coinBoost * bonusScale;
   return Math.round(base * (fullBand ? FULL_BAND_BONUS_FACTOR : 1));
 }
 
@@ -86,6 +87,7 @@ export function planBows(
   band: readonly BandMember[],
   grooveLevel: number,
   coinBoost: number,
+  bonusScale = 1,
 ): FinishPlan {
   const fullBand = isFullBand(band.map((m) => m.state));
   const gap = cascadeGapMs(band.length);
@@ -95,7 +97,7 @@ export function planBows(
     return {
       index,
       spinning: payFor(state) > 0,
-      bonus: bowBonus(state, grooveLevel, coinBoost, fullBand),
+      bonus: bowBonus(state, grooveLevel, coinBoost, fullBand, bonusScale),
       delayMs: Math.round(place * gap),
       chimeLevel: Math.min(CHIME_LEVELS, 1 + Math.floor((place * CHIME_LEVELS) / band.length)),
     };

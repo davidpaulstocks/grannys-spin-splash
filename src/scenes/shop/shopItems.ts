@@ -5,6 +5,7 @@ import { GRANNY_DEFS } from '../../entities/granny/granny.data';
 import { GUN_DEFS } from '../../entities/gun/gun.data';
 import { WORLD_DEFS } from '../../entities/world/world.data';
 import { worldBackgroundKey } from '../../entities/world/worldBackgrounds';
+import { joinLine } from '../../systems/GrannyJoining';
 import { frontier } from '../../systems/Progress';
 import { saveManager } from '../../systems/SaveManager';
 import type { UnlockManager } from '../../systems/UnlockManager';
@@ -27,7 +28,8 @@ export function grannyItems(unlocks: UnlockManager): CarouselItem[] {
     id: g.id,
     label: g.name,
     unlocked: unlocks.isGrannyUnlocked(g.id),
-    cost: g.unlockCost,
+    cost: 0,
+    lockedText: joinLine(g),
     swatchColour: COLOUR.grannyPink,
     swatchTextureKey: SPRITE_KEYS.grannyPose(g.id, 'front'),
   }));

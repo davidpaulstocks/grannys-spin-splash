@@ -20,10 +20,12 @@ import Phaser from 'phaser';
 
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { playStarChime } from '../audio/ResultsMusic';
+import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { spawnConfetti } from '../entities/waterParticle/splashVFX';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
 import { adManager } from '../systems/AdManager';
+import { joinedMessage } from '../systems/GrannyJoining';
 import { applyGigToMission } from '../systems/Missions';
 import {
   currentGig,
@@ -66,6 +68,8 @@ import {
 
 const FADE_IN_MS = 300;
 const PATH_DELAY_MS = 150;
+/** Two grannies joining at once are announced this far apart, so each toast is read. */
+const GRANNY_TOAST_GAP_MS = 2600;
 const START_ALPHA = 0;
 const CONFETTI_COLOURS = [COLOUR.grannyPink, COLOUR.sunnyGold, COLOUR.waterBlue, COLOUR.mintGreen];
 
@@ -172,6 +176,7 @@ export class ResultsScene extends Phaser.Scene {
           `Request done! +${mission.mission.reward}`,
         );
       }
+      this._announceGrannies(data.joinedGrannies ?? []);
       if (this._card) {
         const reward = nextReward(saveManager.load());
         this._card.show(reward, reward ? Math.min(1, vaultBefore / Math.max(1, reward.cost)) : 0);
@@ -179,6 +184,18 @@ export class ResultsScene extends Phaser.Scene {
       this._fadeIn(slot, 0);
       this._worldCard?.celebrate();
       this._fadeIn(path.container, PATH_DELAY_MS);
+    });
+  }
+
+  /** A granny who has just joined the band is announced with a toast, one after another, with what she is good at. */
+  private _announceGrannies(ids: readonly string[]): void {
+    ids.forEach((id, i) => {
+      const granny = GRANNY_DEFS.find((g) => g.id === id);
+      if (!granny) return;
+      this.time.delayedCall(i * GRANNY_TOAST_GAP_MS, () => {
+        showToast(this, CENTRE_X, PATH_CENTRE_Y, joinedMessage(granny));
+        playStarChime(2);
+      });
     });
   }
 

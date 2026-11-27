@@ -1,5 +1,5 @@
 /**
- * The gun ladder: eighteen guns in the order a child climbs them (cost, coin boost, rarity, power
+ * The gun ladder: twenty-four guns in the order a child climbs them (cost, coin boost, rarity, power
  * rating), the upgrade-level constants, and which pictures are painted. How each gun shoots and
  * what its shots look like is in gunMechanics.data.ts.
  *
@@ -15,6 +15,7 @@
  */
 
 import type { GunDef, GunLadderEntry } from './gun.types';
+import { GUN_LADDER_BASE } from './gunLadderBase.data';
 import { GUN_MECHANICS } from './gunMechanics.data';
 
 /** Upgrade levels (see `gunLevels.ts`): every owned gun runs from level 1 to this. */
@@ -35,170 +36,59 @@ export const GUN_UPGRADE_ROUNDING = 100;
 export const GUN_SHOW_SCALE_MAX = 1.5;
 export const GUN_HAND_SCALE_MAX = 1.25;
 
-/** The whole ladder, cheapest first: order, id, name, rarity, cost in coins, coin boost, power rating. */
+/** Guns beyond MEGA CANNON, weakest first: each is priced and boosted by the rule below. */
+const MYTHIC_GUNS: readonly { readonly id: string; readonly name: string }[] = [
+  { id: 'volcano_blaster', name: 'Volcano Blaster' },
+  { id: 'unicorn_sparkler', name: 'Unicorn Sparkler' },
+  { id: 'kraken_cannon', name: 'Kraken Cannon' },
+  { id: 'star_pony', name: 'Star Pony' },
+  { id: 'robo_rex', name: 'Robo-Rex' },
+  { id: 'phoenix_fury', name: 'Phoenix Fury' },
+];
+/**
+ * Price and power rise together past MEGA CANNON: each new gun costs this many times the last and
+ * pays this many times the coins, so a new gun keeps arriving at the same pace however long the
+ * ladder gets. The displayed POWER grows by `LADDER_RATING_STEP`.
+ */
+export const LADDER_PRICE_STEP = 1.25;
+export const LADDER_BOOST_STEP = 1.25;
+export const LADDER_RATING_STEP = 1.3;
+/** Prices and ratings are rounded to this many significant digits (tidy figures); boosts to one decimal. */
+const LADDER_SIGNIFICANT_DIGITS = 2;
+const LADDER_BOOST_DECIMALS = 1;
+
+/** `value` rounded to `digits` significant digits: 3,906,250 -> 3,900,000. */
+function roundSignificant(value: number, digits: number): number {
+  const magnitude = 10 ** (Math.floor(Math.log10(value)) - digits + 1);
+  return Math.round(value / magnitude) * magnitude;
+}
+
+/** The mythic guns, each a step above the last (the chain runs on unrounded values so rounding never drifts). */
+function extendLadder(base: readonly GunLadderEntry[]): GunLadderEntry[] {
+  const top = base[base.length - 1] as GunLadderEntry;
+  let cost = top.cost;
+  let boost = top.coinBoost;
+  let rating = top.powerRating;
+  return MYTHIC_GUNS.map((gun, i) => {
+    cost *= LADDER_PRICE_STEP;
+    boost *= LADDER_BOOST_STEP;
+    rating *= LADDER_RATING_STEP;
+    return {
+      order: top.order + i + 1,
+      id: gun.id,
+      name: gun.name,
+      rarity: 'mythic',
+      cost: roundSignificant(cost, LADDER_SIGNIFICANT_DIGITS),
+      coinBoost: Number(boost.toFixed(LADDER_BOOST_DECIMALS)),
+      powerRating: roundSignificant(rating, LADDER_SIGNIFICANT_DIGITS),
+    };
+  });
+}
+
+/** The whole ladder, cheapest first: the hand-set eighteen, then the mythic guns by the rule above. */
 export const GUN_LADDER: readonly GunLadderEntry[] = [
-  {
-    order: 1,
-    id: 'pistol',
-    name: 'Drip Pistol',
-    rarity: 'common',
-    cost: 0,
-    coinBoost: 1,
-    powerRating: 100,
-  },
-  {
-    order: 2,
-    id: 'squirter',
-    name: 'The Squirter',
-    rarity: 'common',
-    cost: 0,
-    coinBoost: 1,
-    powerRating: 120,
-  },
-  {
-    order: 3,
-    id: 'hose',
-    name: 'Garden Hose',
-    rarity: 'common',
-    cost: 6000,
-    coinBoost: 1.5,
-    powerRating: 200,
-  },
-  {
-    order: 4,
-    id: 'bubble_blitz',
-    name: 'Bubble Blitz',
-    rarity: 'common',
-    cost: 12000,
-    coinBoost: 1.75,
-    powerRating: 280,
-  },
-  {
-    order: 5,
-    id: 'splashjr',
-    name: 'Splash Jr',
-    rarity: 'rare',
-    cost: 20000,
-    coinBoost: 2,
-    powerRating: 400,
-  },
-  {
-    order: 6,
-    id: 'hydro_blaster',
-    name: 'Hydro Blaster',
-    rarity: 'rare',
-    cost: 35000,
-    coinBoost: 2.4,
-    powerRating: 550,
-  },
-  {
-    order: 7,
-    id: 'slime_slinger',
-    name: 'Slime Slinger',
-    rarity: 'rare',
-    cost: 55000,
-    coinBoost: 2.8,
-    powerRating: 700,
-  },
-  {
-    order: 8,
-    id: 'soaker3000',
-    name: 'Soaker 3000',
-    rarity: 'rare',
-    cost: 80000,
-    coinBoost: 3.2,
-    powerRating: 900,
-  },
-  {
-    order: 9,
-    id: 'shark_soaker',
-    name: 'Shark Soaker',
-    rarity: 'epic',
-    cost: 120000,
-    coinBoost: 3.7,
-    powerRating: 1200,
-  },
-  {
-    order: 10,
-    id: 'blizzard_blaster',
-    name: 'Blizzard Blaster',
-    rarity: 'epic',
-    cost: 170000,
-    coinBoost: 4.2,
-    powerRating: 1500,
-  },
-  {
-    order: 11,
-    id: 'thunder_soaker',
-    name: 'Thunder Soaker',
-    rarity: 'epic',
-    cost: 240000,
-    coinBoost: 4.8,
-    powerRating: 1900,
-  },
-  {
-    order: 12,
-    id: 'inferno',
-    name: 'Inferno',
-    rarity: 'epic',
-    cost: 330000,
-    coinBoost: 5.5,
-    powerRating: 2400,
-  },
-  {
-    order: 13,
-    id: 'rainbow_rocket',
-    name: 'Rainbow Rocket',
-    rarity: 'epic',
-    cost: 450000,
-    coinBoost: 6.2,
-    powerRating: 3000,
-  },
-  {
-    order: 14,
-    id: 'turbo_tornado',
-    name: 'Turbo Tornado',
-    rarity: 'legendary',
-    cost: 600000,
-    coinBoost: 7,
-    powerRating: 3800,
-  },
-  {
-    order: 15,
-    id: 'dragon_drencher',
-    name: 'Dragon Drencher',
-    rarity: 'legendary',
-    cost: 800000,
-    coinBoost: 8,
-    powerRating: 4800,
-  },
-  {
-    order: 16,
-    id: 'neptunes_trident',
-    name: "Neptune's Trident",
-    rarity: 'legendary',
-    cost: 1050000,
-    coinBoost: 9,
-    powerRating: 6000,
-  },
-  {
-    order: 17,
-    id: 'galaxy_blaster',
-    name: 'Galaxy Blaster',
-    rarity: 'legendary',
-    cost: 1400000,
-    coinBoost: 10,
-    powerRating: 7500,
-  },
-  {
-    order: 18,
-    id: 'mega_cannon',
-    name: 'MEGA CANNON',
-    rarity: 'legendary',
-    cost: 2000000,
-    coinBoost: 12,
-    powerRating: 9999,
-  },
+  ...GUN_LADDER_BASE,
+  ...extendLadder(GUN_LADDER_BASE),
 ];
 
 /**
@@ -226,6 +116,12 @@ export const GUN_ART_READY: readonly string[] = [
   'neptunes_trident',
   'galaxy_blaster',
   'mega_cannon',
+  'volcano_blaster',
+  'unicorn_sparkler',
+  'kraken_cannon',
+  'star_pony',
+  'robo_rex',
+  'phoenix_fury',
 ];
 
 /** Fully built gun for one ladder entry: ladder facts + mechanics + the size it is shown at. */
@@ -241,7 +137,7 @@ function buildGun(entry: GunLadderEntry): GunDef {
   };
 }
 
-/** All eighteen, painted or not: for the ladder tests and for planning. The game uses GUN_DEFS. */
+/** All of them, painted or not: for the ladder tests and for planning. The game uses GUN_DEFS. */
 export const GUN_LADDER_DEFS: readonly GunDef[] = GUN_LADDER.map(buildGun);
 
 /** The guns that exist in the game today: the ladder, minus any whose picture is not yet painted. */

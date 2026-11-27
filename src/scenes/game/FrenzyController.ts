@@ -9,6 +9,8 @@ import type Phaser from 'phaser';
 
 import { audioOrchestra } from '../../audio/AudioOrchestra';
 import { FRENZY_DURATION_MS, RENDER_SCALE } from '../../config';
+import { NO_TALENTS } from '../../entities/granny/talents';
+import type { GrannyTalents } from '../../entities/granny/granny.types';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { spawnConfetti, spawnSparks } from '../../entities/waterParticle/splashVFX';
 import { playFrenzyImpact } from '../../ui/Banner';
@@ -69,6 +71,8 @@ export class FrenzyController {
     private readonly _spinners: () => readonly Spinner[],
     /** Called the moment Frenzy fires — GameScene binds this to the groove's jackpot. */
     private readonly _onStart: () => void,
+    /** The granny's talents, read when Frenzy starts (its length). */
+    private readonly _talents: () => GrannyTalents = () => NO_TALENTS,
   ) {}
 
   /** Whether the Frenzy window is open right now. */
@@ -91,7 +95,7 @@ export class FrenzyController {
     const spinners = this._spinners();
     this._active = true;
     this._reached = true;
-    this._endAt = this._scene.time.now + FRENZY_DURATION_MS;
+    this._endAt = this._scene.time.now + FRENZY_DURATION_MS * this._talents().frenzyLength;
     for (const spinner of spinners) {
       spinner.maxOut();
       spinner.locked = true;

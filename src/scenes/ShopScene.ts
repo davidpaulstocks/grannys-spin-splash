@@ -22,6 +22,7 @@ import { grannyItems, gunItems, worldItems } from './shop/shopItems';
 import { buildShopTitle } from './shop/shopTitle';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
+import { joinLine, starsUntilJoin } from '../systems/GrannyJoining';
 import { frontier } from '../systems/Progress';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
@@ -29,6 +30,7 @@ import { createButton } from '../ui/Button';
 import { createGunRack, type GunRack, type GunRackItem } from '../ui/GunRack';
 import { powerText } from '../ui/gunRarity';
 import { LoadoutStage } from '../ui/LoadoutStage';
+import { createGrannyTalentCard, type GrannyTalentCard } from '../ui/GrannyTalentCard';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { ThumbnailSelector } from '../ui/ThumbnailSelector';
 import { showToast } from '../ui/Toast';
@@ -51,6 +53,8 @@ const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
 const VAULT_PILL_X = 104;
 const VAULT_PILL_Y = 50;
 const RACK_Y = 590;
+/** The granny's talent card hangs under her selector (which ends at 481), left of the gun rack. */
+const TALENT_CARD_Y = 540;
 const BUTTONS_Y = 678;
 const DONE_X = 470;
 const AD_X = 830;
@@ -63,6 +67,7 @@ const AD_TOAST_RISE = 50;
 export class ShopScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
   private _grannySelector!: ThumbnailSelector;
+  private _talentCard!: GrannyTalentCard;
   private _loadoutStage!: LoadoutStage;
   private _gunSelector!: ThumbnailSelector;
   private _vaultPill!: StatPill;
@@ -92,6 +97,8 @@ export class ShopScene extends Phaser.Scene {
       this._unlocks.getSelectedGrannyId(),
       (id) => this._onTapGranny(id),
     );
+    this._talentCard = createGrannyTalentCard(this, GRANNY_CAROUSEL_X, TALENT_CARD_Y);
+    this._showTalent(this._grannySelector.getSelectedId());
     this._loadoutStage = new LoadoutStage(
       this,
       WORLD_CAROUSEL_X,
@@ -155,27 +162,30 @@ export class ShopScene extends Phaser.Scene {
     this._gunShopping.sync(this._gunSelector.getSelectedId());
   }
 
-  /** CLAUDE.md §10: tapping a locked granny spends coins to unlock it if affordable, else says how many more are needed. */
+  /** Fills the talent card for granny `id`: her talent, and while she is locked the stars she joins at. */
+  private _showTalent(id: string): void {
+    const def = GRANNY_DEFS.find((g) => g.id === id);
+    if (def) this._talentCard.show(def, this._unlocks.isGrannyUnlocked(id) ? null : joinLine(def));
+  }
+
+  /** A granny is picked: an owned one is equipped; a locked one only says how many stars she needs (stars are never spent). */
   private _onTapGranny(id: string): void {
     const def = GRANNY_DEFS.find((g) => g.id === id);
     if (!def) return;
+    const save = saveManager.load();
     if (this._unlocks.isGrannyUnlocked(id)) {
       this._unlocks.selectGranny(id);
-    } else if (this._unlocks.unlockGranny(id)) {
-      this._unlocks.selectGranny(id);
-      this._grannySelector.setItems(grannyItems(this._unlocks));
-      this._vaultPill.setValue(this._unlocks.getVault());
-      showToast(this, GAME_WIDTH / 2, SELECT_TOAST_Y, `Unlocked ${def.name}!`);
     } else {
-      const short = def.unlockCost - this._unlocks.getVault();
+      const toGo = starsUntilJoin(save, def);
       showToast(
         this,
         GAME_WIDTH / 2,
         SELECT_TOAST_Y,
-        `${short} more ${short === 1 ? 'coin' : 'coins'} to unlock ${def.name}`,
+        `${toGo} more ${toGo === 1 ? 'star' : 'stars'} and ${def.name} joins`,
       );
     }
-    // Re-derive from the authoritative selection: an unaffordable tap does not change what is equipped.
+    this._showTalent(id);
+    // Re-derive from the authoritative selection: a tap on a locked granny does not change what is equipped.
     this._loadoutStage.setGrannyTexture(
       SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front'),
     );

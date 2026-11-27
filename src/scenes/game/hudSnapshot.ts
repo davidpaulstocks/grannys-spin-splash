@@ -22,7 +22,7 @@ export interface HudSources {
 export function buildHudData(s: HudSources): HudRefreshData {
   return {
     secondsRemaining: s.timeRemainingMs / 1000,
-    waterPct: (s.cannon.tank / s.gun.tank) * PERCENT,
+    waterPct: (s.cannon.tank / s.cannon.capacity) * PERCENT,
     isPumping: s.cannon.isPumping,
     spinners: s.spinners.map((sp) => ({
       x: sp.x,

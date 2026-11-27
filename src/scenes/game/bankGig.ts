@@ -5,6 +5,7 @@
 
 import { starTargets, type GigDef } from '../../entities/world/gigs.data';
 import type { WorldDef } from '../../entities/world/world.types';
+import { joinGrannies } from '../../systems/GrannyJoining';
 import { recordGig } from '../../systems/Progress';
 import { saveManager } from '../../systems/SaveManager';
 import type { GigResultData } from '../../types/sceneData';
@@ -25,7 +26,8 @@ export function bankGig(finished: FinishedGig): GigResultData {
   const { world, gig, score, stars } = finished;
   // Bank the gig: best rating kept, coins added, newly earned stars paid.
   const result = recordGig(saveManager.load(), world.id, gig.index, stars, score);
-  const save = result.save;
+  const joining = joinGrannies(result.save);
+  const save = joining.save;
   const { previousBest, isNewBest } = result;
   // The world-wide best stays alongside the per-gig one (the dev harness and highScore read it).
   const beatsWorldBest = score > (save.bestByWorld[world.id] ?? 0);
@@ -48,5 +50,6 @@ export function bankGig(finished: FinishedGig): GigResultData {
     stars,
     newStars: result.newStars,
     starCoins: result.starCoins,
+    joinedGrannies: joining.joined.map((g) => g.id),
   };
 }

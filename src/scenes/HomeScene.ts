@@ -28,7 +28,7 @@ import { drawTourIcon } from '../ui/icons';
 import { createSavingForStrip } from '../ui/SavingForStrip';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { createVenueStrip, type VenueStrip } from '../ui/VenueStrip';
-import { buildGranny, buildTitle } from './home/homeDecor';
+import { buildGranny, buildTalentTag, buildTitle } from './home/homeDecor';
 import { COLOUR } from '../utils/colour';
 
 /**
@@ -102,6 +102,7 @@ export class HomeScene extends Phaser.Scene {
     this._coinsPill = createStatPill(this, COINS_PILL_X, PILLS_Y, 'coins', save.vault);
     createStatPill(this, STARS_PILL_X, PILLS_Y, 'stars', totalStars(save));
     buildGranny(this, this._unlocks.getSelectedGrannyId());
+    buildTalentTag(this, this._unlocks.getSelectedGrannyId());
     this._setCard();
     createDailyGiftButton(this, {
       x: GIFT_X,

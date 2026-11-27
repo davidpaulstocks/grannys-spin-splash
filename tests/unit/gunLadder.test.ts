@@ -7,6 +7,8 @@ import {
   GUN_DEFS,
   GUN_LADDER,
   GUN_LADDER_DEFS,
+  LADDER_BOOST_STEP,
+  LADDER_PRICE_STEP,
   MAX_GUN_LEVEL,
 } from '../../src/entities/gun/gun.data';
 import { GUN_MECHANICS } from '../../src/entities/gun/gunMechanics.data';
@@ -15,10 +17,10 @@ import { powerRatingAt } from '../../src/entities/gun/gunLevels';
 const pairs = GUN_LADDER_DEFS.slice(1).map((g, i) => [GUN_LADDER_DEFS[i] ?? g, g] as const);
 
 describe('the gun ladder', () => {
-  it('has eighteen guns, in order, with unique ids', () => {
-    expect(GUN_LADDER).toHaveLength(18);
-    expect(GUN_LADDER.map((g) => g.order)).toEqual(Array.from({ length: 18 }, (_, i) => i + 1));
-    expect(new Set(GUN_LADDER.map((g) => g.id)).size).toBe(18);
+  it('has twenty-four guns, in order, with unique ids', () => {
+    expect(GUN_LADDER).toHaveLength(24);
+    expect(GUN_LADDER.map((g) => g.order)).toEqual(Array.from({ length: 24 }, (_, i) => i + 1));
+    expect(new Set(GUN_LADDER.map((g) => g.id)).size).toBe(24);
   });
 
   it('never goes down in cost, coin boost or power rating', () => {
@@ -45,6 +47,34 @@ describe('the gun ladder', () => {
     }
   });
 
+  it('grows the mythic guns past MEGA CANNON by the price, boost and rating rule', () => {
+    const mega = GUN_LADDER.find((g) => g.id === 'mega_cannon');
+    const mythic = GUN_LADDER.filter((g) => g.rarity === 'mythic');
+    expect(mythic.map((g) => g.id)).toEqual([
+      'volcano_blaster',
+      'unicorn_sparkler',
+      'kraken_cannon',
+      'star_pony',
+      'robo_rex',
+      'phoenix_fury',
+    ]);
+    if (!mega) throw new Error('no mega cannon');
+    let price = mega.cost;
+    let boost = mega.coinBoost;
+    let previous = mega;
+    mythic.forEach((g) => {
+      price *= LADDER_PRICE_STEP;
+      boost *= LADDER_BOOST_STEP;
+      expect(g.cost / price, g.id).toBeGreaterThan(0.97);
+      expect(g.cost / price, g.id).toBeLessThan(1.03);
+      expect(g.coinBoost).toBeCloseTo(boost, 0);
+      expect(g.powerRating / previous.powerRating, g.id).toBeGreaterThan(1.25);
+      expect(g.powerRating / previous.powerRating, g.id).toBeLessThan(1.35);
+      previous = g;
+    });
+    expect(GUN_LADDER.find((g) => g.id === 'volcano_blaster')?.cost).toBe(2500000);
+  });
+
   it('keeps the old ids and the prices the owner decided', () => {
     const cost = (id: string): number | undefined => GUN_LADDER.find((g) => g.id === id)?.cost;
     expect(cost('soaker3000')).toBe(80000);
@@ -54,7 +84,7 @@ describe('the gun ladder', () => {
   });
 
   it('gives every gun mechanics, a growing picture size and a rarity in ladder order', () => {
-    const rank = { common: 0, rare: 1, epic: 2, legendary: 3 } as const;
+    const rank = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 } as const;
     for (const [a, b] of pairs) {
       expect(rank[b.rarity]).toBeGreaterThanOrEqual(rank[a.rarity]);
       expect(b.showScale).toBeGreaterThan(a.showScale);

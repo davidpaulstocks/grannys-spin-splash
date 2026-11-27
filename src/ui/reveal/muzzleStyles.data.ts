@@ -50,6 +50,26 @@ export const MUZZLE_STYLES: Readonly<Record<ProjectileStyle, MuzzleStyle>> = {
   trident: { shape: 'drop', speed: 1.15, size: 1.05, count: 1, gravity: 200 },
   laser: { shape: 'star', speed: 1.05, size: 1.1, count: 1, gravity: 0 },
   mega: { shape: 'drop', speed: 1.25, size: 1.35, count: 0.8, gravity: 200 },
+  lava: { shape: 'blob', speed: 0.7, size: 1.4, count: 0.75, gravity: 560 },
+  glitter: {
+    shape: 'star',
+    speed: 1.1,
+    size: 0.65,
+    count: 1.5,
+    gravity: 40,
+    palette: [COLOUR.grannyPink, COLOUR.sunnyGold, COLOUR.mintGreen, COLOUR.waterBlue],
+  },
+  kraken: { shape: 'blob', speed: 0.9, size: 1.15, count: 0.9, gravity: 320 },
+  starpony: {
+    shape: 'band',
+    speed: 1.05,
+    size: 0.9,
+    count: 0.9,
+    gravity: 100,
+    palette: [COLOUR.grannyPink, COLOUR.sunnyGold, COLOUR.mintGreen, COLOUR.waterBlue],
+  },
+  vortex: { shape: 'shard', speed: 1.3, size: 1.1, count: 1, gravity: 0 },
+  phoenix: { shape: 'flame', speed: 1.25, size: 1.3, count: 0.7, gravity: -300 },
 };
 
 /** How many flying bits and speed lines each rarity throws. */
@@ -58,6 +78,7 @@ export const MUZZLE_COUNTS: Readonly<Record<GunRarity, { bits: number; lines: nu
   rare: { bits: 26, lines: 11 },
   epic: { bits: 36, lines: 14 },
   legendary: { bits: 48, lines: 18 },
+  mythic: { bits: 60, lines: 22 },
 };
 
 /** The burst's clock (ms from the shot). Everything is gone by `MUZZLE_END_MS`. */

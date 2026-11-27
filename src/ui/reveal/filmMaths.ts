@@ -71,6 +71,7 @@ export const FILM_TIMING: Readonly<Record<GunRarity, FilmTiming>> = {
   rare: { panMs: 1900, heroHoldMs: 900 },
   epic: { panMs: 2100, heroHoldMs: 950 },
   legendary: { panMs: 2400, heroHoldMs: 1100 },
+  mythic: { panMs: 2700, heroHoldMs: 1200 },
 };
 
 /** When each shot of the film starts, in ms from the moment it starts. */

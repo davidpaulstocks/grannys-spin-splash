@@ -19,6 +19,11 @@ const RIPPLE_AMPLITUDE_PX = 5;
 const RIPPLE_WAVELENGTH_PX = 70;
 const RIPPLE_SPEED = 26;
 
+/** How thin a sparkle's waist is, as a share of its arm; and the star's points and inner radius. */
+const SPARKLE_WAIST = 0.18;
+const STAR_POINTS = 5;
+const STAR_INNER = 0.45;
+
 /** A point on a jet with the direction it runs and its sideways direction. */
 export interface Sample {
   x: number;
@@ -166,4 +171,41 @@ export function lineLength(line: readonly JetPoint[]): number {
   const a = line[0] as JetPoint;
   const b = line[1] as JetPoint;
   return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/** A four-pointed sparkle (long thin arms, no centre disc) at (x, y), `arm` px from centre to tip. */
+export function fillSparkle4(
+  gfx: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  arm: number,
+  colour: number,
+  alpha: number,
+): void {
+  const waist = arm * SPARKLE_WAIST;
+  gfx.fillStyle(colour, alpha);
+  gfx.fillTriangle(x - waist, y, x + waist, y, x, y - arm);
+  gfx.fillTriangle(x - waist, y, x + waist, y, x, y + arm);
+  gfx.fillTriangle(x, y - waist, x, y + waist, x - arm, y);
+  gfx.fillTriangle(x, y - waist, x, y + waist, x + arm, y);
+}
+
+/** A five-pointed star at (x, y), `radius` px to the points, turned by `rot` radians. */
+export function fillStar5(
+  gfx: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  radius: number,
+  rot: number,
+  colour: number,
+  alpha: number,
+): void {
+  const points: { x: number; y: number }[] = [];
+  for (let i = 0; i < STAR_POINTS * 2; i++) {
+    const r = i % 2 === 0 ? radius : radius * STAR_INNER;
+    const a = rot + (i / (STAR_POINTS * 2)) * Math.PI * 2 - Math.PI / 2;
+    points.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r });
+  }
+  gfx.fillStyle(colour, alpha);
+  gfx.fillPoints(points, true);
 }

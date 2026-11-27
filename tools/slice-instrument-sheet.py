@@ -288,7 +288,7 @@ def punch_holes(canvas, seeds, factor=1):
     return canvas
 
 
-def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=False, hero_only=False, holes=None):
+def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=False, hero_only=False, holes=None, dilate=None):
     """Cuts one sheet into its icons. Returns the ids written.
 
     hero: write <id>/hero.webp (full-resolution sheet, HERO_CANVAS) instead of the small picture.
@@ -315,7 +315,7 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=Fa
     rgba = rgb.convert("RGBA")
     rgba.putalpha(alpha)
 
-    label, count, sw, sh = find_blobs(foreground, GUN_GROUP_DILATE if wide else GROUP_DILATE)
+    label, count, sw, sh = find_blobs(foreground, dilate or (GUN_GROUP_DILATE if wide else GROUP_DILATE))
     scale_x, scale_y = w / sw, h / sh
     areas = [0] * (count + 1)
     boxes = [None] * (count + 1)
@@ -409,6 +409,7 @@ def main():
         icons, flip = (entry["ids"], entry.get("flip", [])) if isinstance(entry, dict) else (entry, [])
         nozzles = entry.get("nozzle") if isinstance(entry, dict) else None
         holes = entry.get("holes") if isinstance(entry, dict) else None
+        dilate = entry.get("dilate") if isinstance(entry, dict) else None  # an odd number: how far pieces are grouped
         # Nano Banana often saves a JPG whatever the file is called, so take any of these.
         hero_only_entry = isinstance(entry, dict) and entry.get("hero_only", False)
         if hero_only_entry:
@@ -423,10 +424,10 @@ def main():
         wide = chosen.get("wide", False)
         written = []
         if not hero_only_entry and not args.hero_only:
-            written = slice_sheet(path, icons, args.out, wide, flip, nozzles, holes=holes)
+            written = slice_sheet(path, icons, args.out, wide, flip, nozzles, holes=holes, dilate=dilate)
             print("  wrote " + ", ".join(written))
         if wide:
-            heroes = slice_sheet(path, icons, args.out, wide, flip, nozzles, hero=True, hero_only=hero_only_entry, holes=holes)
+            heroes = slice_sheet(path, icons, args.out, wide, flip, nozzles, hero=True, hero_only=hero_only_entry, holes=holes, dilate=dilate)
             print("  hero pictures: " + ", ".join(heroes))
             written = written or heroes
         done += written

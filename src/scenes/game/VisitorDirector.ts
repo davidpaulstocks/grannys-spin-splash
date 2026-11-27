@@ -13,6 +13,8 @@ import { GAME_WIDTH } from '../../config';
 import { audioOrchestra } from '../../audio/AudioOrchestra';
 import type { Accent } from '../../audio/orchestra/setPieces';
 import * as SFX from '../../audio/SFX';
+import type { GrannyTalents } from '../../entities/granny/granny.types';
+import { NO_TALENTS, shooHits } from '../../entities/granny/talents';
 import type { GunDef } from '../../entities/gun/gun.types';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { SpinnerState } from '../../entities/spinner/spinner.types';
@@ -71,6 +73,8 @@ export interface VisitorDirectorDeps {
   readonly reward: RewardLoop;
   readonly frenzyActive: () => boolean;
   readonly random?: RandomFn;
+  /** The granny's talents: fewer hits to shoo, bigger treat pay. */
+  readonly talents?: GrannyTalents;
 }
 
 export class VisitorDirector {
@@ -142,10 +146,8 @@ export class VisitorDirector {
       const host = this._pickHost();
       if (!host) return null;
       const tiers = Math.max(0, d.gun.tier - 1);
-      const hitsNeeded = Math.max(
-        SITTER_HITS.min,
-        Math.round(SITTER_HITS.base / (1 + SITTER_HITS.speedupPerTier * tiers)),
-      );
+      const standard = Math.round(SITTER_HITS.base / (1 + SITTER_HITS.speedupPerTier * tiers));
+      const hitsNeeded = shooHits(Math.max(SITTER_HITS.min, standard), d.talents);
       return { kind: 'sitter', spec: { def, dir: this._side(), host, hitsNeeded } };
     }
     if (def.kind === 'blocker') {
@@ -158,7 +160,7 @@ export class VisitorDirector {
           dir: cluster.x < GAME_WIDTH / 2 ? 1 : -1,
           park: { x: cluster.x, y: cluster.y, radius: cluster.radius },
           covered: cluster.members.map((m) => m.spinner),
-          hitsNeeded: BLOCKER.baseHits + BLOCKER.hitsPerGigIndex * d.gig.index,
+          hitsNeeded: shooHits(BLOCKER.baseHits + BLOCKER.hitsPerGigIndex * d.gig.index, d.talents),
           fitToCluster: true,
         },
       };
@@ -271,7 +273,10 @@ export class VisitorDirector {
     };
     spawnSparks(d.scene, at.x, at.y, hit === 'shoo' ? COLOUR.mintGreen : COLOUR.sunnyGold);
     if (hit === 'treat') {
-      const amount = pay(VISIT_PAY.treatFraction, M.treatCoinThrows);
+      const amount = pay(
+        VISIT_PAY.treatFraction * (d.talents ?? NO_TALENTS).treatPay,
+        M.treatCoinThrows,
+      );
       d.reward.groove.jackpot();
       this._say(at, `${word} +${amount}`, COLOUR_HEX.sunnyGold);
       audioOrchestra.accent('golden');

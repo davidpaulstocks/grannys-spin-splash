@@ -19,6 +19,7 @@ import { URGENT_COUNTDOWN_SECONDS } from '../config';
 import { coinsToNextStar } from '../scenes/game/bigFinishRules';
 import type { HudRefreshData } from '../types/hud';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { formatCount } from '../utils/formatCount';
 import { pillRadius } from '../utils/math';
 import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
@@ -127,7 +128,7 @@ export class ScoreBar {
     if (toGo === this._lastToGo) return;
     this._lastToGo = toGo;
     this._toGo.setVisible(toGo > 0);
-    if (toGo > 0) this._toGo.setText(`${toGo} to go!`);
+    if (toGo > 0) this._toGo.setText(`${formatCount(toGo)} to go!`);
   }
 
   private _drawFill(): void {

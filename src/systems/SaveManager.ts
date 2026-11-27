@@ -70,7 +70,7 @@ export class SaveManager {
     return {
       version: SAVE_VERSION,
       vault: 0,
-      unlockedGrannies: GRANNY_DEFS.filter((g) => g.unlockCost === 0).map((g) => g.id),
+      unlockedGrannies: GRANNY_DEFS.filter((g) => g.starsToJoin === 0).map((g) => g.id),
       unlockedGuns: GUN_DEFS.filter((g) => g.cost === 0).map((g) => g.id),
       gunLevels: {},
       selectedGrannyId: DEFAULT_GRANNY_ID,

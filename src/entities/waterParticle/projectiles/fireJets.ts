@@ -30,7 +30,7 @@ function flickerScale(time: number, index: number): number {
 }
 
 /** Strokes a flame ribbon in layers (outer to core), each layer flickering a little differently. */
-function flameLayers(f: Parameters<JetRenderer>[0], pts: JetPoint[], scale: number): void {
+export function flameLayers(f: Parameters<JetRenderer>[0], pts: JetPoint[], scale: number): void {
   const layers: readonly (readonly [number, number, number])[] = [
     [shade(f.colour, 0.75), 1, 1],
     [f.colour, 1, 0.72],
@@ -56,7 +56,7 @@ function flameLayers(f: Parameters<JetRenderer>[0], pts: JetPoint[], scale: numb
 }
 
 /** Little teardrop tongues licking off the sides of a flame. */
-function tongues(
+export function tongues(
   f: Parameters<JetRenderer>[0],
   pts: JetPoint[],
   spacing: number,

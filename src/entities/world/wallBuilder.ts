@@ -16,6 +16,8 @@ import Phaser from 'phaser';
 import { WALL_AREA } from '../../config';
 import { iconFor, type InstrumentIconId } from '../../audio/orchestra/icons';
 import { musicianAt, resolveScore } from '../../audio/scores';
+import type { GrannyTalents } from '../granny/granny.types';
+import { NO_TALENTS } from '../granny/talents';
 import { startDeckRoll } from './deckRoll';
 import { fitScaleForBand, layoutBand } from '../../utils/grid';
 import { FAMILY_PALETTE } from '../spinner/instrumentBadge';
@@ -67,7 +69,12 @@ export function wallAreaFor(world: WorldDef): WallArea {
  * difficulty (wind-down, hold) and its drifting targets are applied here
  * too, since they are part of what the wall *is* for that gig.
  */
-export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Spinner[] {
+export function buildWall(
+  scene: Phaser.Scene,
+  world: WorldDef,
+  gig: GigDef,
+  talents: GrannyTalents = NO_TALENTS,
+): Spinner[] {
   const kinds = world.types;
   const area = wallAreaFor(world);
   const gridCount = gig.band - (gig.feature ? 1 : 0);
@@ -131,7 +138,7 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
     );
   }
 
-  for (const spinner of spinners) spinner.holdMs = gig.holdMs;
+  for (const spinner of spinners) spinner.holdMs = gig.holdMs * talents.holdFullSpeed;
   for (const spinner of Phaser.Utils.Array.Shuffle([...spinners]).slice(0, gig.moving)) {
     spinner.setDrift(MOVING_TARGET_DRIFT_RANGE, 0.4 + Math.random() * 0.4);
   }

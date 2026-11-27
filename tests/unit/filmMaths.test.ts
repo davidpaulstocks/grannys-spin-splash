@@ -30,7 +30,7 @@ import {
 
 const SCREEN = { w: 1280, h: 720 };
 const PLACE = { x: 330, y: 207 };
-const RARITIES = ['common', 'rare', 'epic', 'legendary'] as const;
+const RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const;
 /** A 1152x768 hero picture with the nozzle near the right edge, a little above centre. */
 const geometry = () => filmGeometry(1152, 768, { x: 1059, y: 309 }, SCREEN, PLACE, 0.48);
 
@@ -53,6 +53,7 @@ describe('filmCues', () => {
     expect(FILM_TIMING.rare.panMs).toBeGreaterThan(FILM_TIMING.common.panMs);
     expect(FILM_TIMING.epic.panMs).toBeGreaterThan(FILM_TIMING.rare.panMs);
     expect(FILM_TIMING.legendary.panMs).toBeGreaterThan(FILM_TIMING.epic.panMs);
+    expect(FILM_TIMING.mythic.panMs).toBeGreaterThan(FILM_TIMING.legendary.panMs);
   });
 
   it('holds a third of a second at the nozzle before firing', () => {

@@ -5,7 +5,7 @@ export type GunTier = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type GunType = 'water' | 'fire';
 
 /** How rare a gun is: shown as a coloured tag, and the colour of the reveal's rays. */
-export type GunRarity = 'common' | 'rare' | 'epic' | 'legendary';
+export type GunRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 /**
  * What a gun fires, as drawn (the hit logic is the same for all of them). One renderer per style in
@@ -24,7 +24,13 @@ export type ProjectileStyle =
   | 'dragon'
   | 'trident'
   | 'laser'
-  | 'mega';
+  | 'mega'
+  | 'lava'
+  | 'glitter'
+  | 'kraken'
+  | 'starpony'
+  | 'vortex'
+  | 'phoenix';
 
 /**
  * Where the water leaves the gun, in the pixels of the one side-on picture (nozzle pointing right).

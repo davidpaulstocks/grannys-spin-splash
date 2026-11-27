@@ -17,6 +17,7 @@
 import Phaser from 'phaser';
 
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
+import { formatCount } from '../utils/formatCount';
 import { pillRadius } from '../utils/math';
 import { drawCoinIcon } from './icons';
 import { textStyle } from '../utils/typography';
@@ -109,7 +110,7 @@ export class ScoreCounter {
 
     const rounded = Math.round(this._displayed);
     if (rounded !== this._lastRendered) {
-      this._text.setText(String(rounded));
+      this._text.setText(formatCount(rounded));
       this._lastRendered = rounded;
     }
   }

@@ -100,6 +100,64 @@ const EXTRAS: Readonly<Partial<Record<ProjectileStyle, ImpactExtra>>> = {
     tones: ['main', 'accent', 'white'],
     flash: 18,
   },
+  lava: {
+    shape: 'circle',
+    count: 8,
+    distance: 22,
+    size: 9,
+    drift: 42,
+    tones: ['main', 'accent', 'main'],
+    flash: 36,
+    slow: 2.1,
+  },
+  glitter: {
+    shape: 'star',
+    count: 10,
+    distance: 34,
+    size: 6,
+    drift: 8,
+    tones: ['main', 'accent', 'white'],
+    flash: 16,
+  },
+  kraken: {
+    shape: 'circle',
+    count: 6,
+    distance: 18,
+    size: 9,
+    drift: 30,
+    tones: ['main', 'accent'],
+    flash: 40,
+    slow: 2.4,
+  },
+  starpony: {
+    shape: 'star',
+    count: 8,
+    distance: 32,
+    size: 8,
+    drift: 6,
+    tones: ['accent', 'main', 'white'],
+    flash: 14,
+  },
+  vortex: {
+    shape: 'ring',
+    count: 4,
+    distance: 8,
+    size: 12,
+    drift: 0,
+    tones: ['accent', 'main'],
+    flash: 30,
+    slow: 1.8,
+  },
+  phoenix: {
+    shape: 'spark',
+    count: 12,
+    distance: 44,
+    size: 13,
+    drift: -30,
+    tones: ['main', 'accent', 'white'],
+    flash: 38,
+    slow: 1.7,
+  },
   mega: {
     shape: 'ring',
     count: 9,
@@ -124,7 +182,8 @@ const MEGA_RING_GROWTH = 5;
 const SHARK_TOOTH_END_SCALE = 0.3;
 
 function tone(gun: GunDef, which: 'main' | 'accent' | 'white', i: number): number {
-  if (gun.projectile === 'rainbow') return RAINBOW_TONES[i % RAINBOW_TONES.length] as number;
+  if (gun.projectile === 'rainbow' || gun.projectile === 'starpony')
+    return RAINBOW_TONES[i % RAINBOW_TONES.length] as number;
   if (which === 'main') return gun.particleColour;
   if (which === 'accent') return gun.accentColour;
   return COLOUR.cloud;
