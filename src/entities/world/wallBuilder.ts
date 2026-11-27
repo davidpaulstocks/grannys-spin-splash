@@ -16,6 +16,7 @@ import Phaser from 'phaser';
 import { WALL_AREA } from '../../config';
 import { iconFor, type InstrumentIconId } from '../../audio/orchestra/icons';
 import { musicianAt, resolveScore } from '../../audio/scores';
+import { startDeckRoll } from './deckRoll';
 import { fitScaleForBand, layoutBand } from '../../utils/grid';
 import { FAMILY_PALETTE } from '../spinner/instrumentBadge';
 import { MOUNT_RADIUS_SCALE, SPINNER_DEFS } from '../spinner/spinner.data';
@@ -134,5 +135,6 @@ export function buildWall(scene: Phaser.Scene, world: WorldDef, gig: GigDef): Sp
   for (const spinner of Phaser.Utils.Array.Shuffle([...spinners]).slice(0, gig.moving)) {
     spinner.setDrift(MOVING_TARGET_DRIFT_RANGE, 0.4 + Math.random() * 0.4);
   }
+  if (gig.roll) startDeckRoll(scene, spinners);
   return spinners;
 }

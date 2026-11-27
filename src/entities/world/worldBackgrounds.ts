@@ -23,10 +23,9 @@ import { COLOUR, shade } from '../../utils/colour';
  */
 
 /**
- * worldId → texture key + file path, for worlds with delivered
- * illustrated art (WORLD_BACKGROUND_BRIEF.md). Add an entry here as each
- * world's background PNG/JPG lands in public/sprites/worlds/ — everything
- * else (preload, render, fallback) picks it up automatically.
+ * worldId → texture key + file path for every world's illustrated backdrop
+ * (WORLD_BACKGROUND_BRIEF.md), painted or not. Only the worlds named in
+ * WORLD_BG_READY are loaded; the rest are drawn in code below.
  */
 const WORLD_BG_ASSETS: Readonly<Record<string, { key: string; path: string }>> = {
   garden: { key: 'world_garden_bg', path: 'sprites/worlds/garden_bg.webp' },
@@ -34,11 +33,40 @@ const WORLD_BG_ASSETS: Readonly<Record<string, { key: string; path: string }>> =
   kitchen: { key: 'world_kitchen_bg', path: 'sprites/worlds/kitchen_bg.webp' },
   funfair: { key: 'world_funfair_bg', path: 'sprites/worlds/funfair_bg.webp' },
   disco: { key: 'world_disco_bg', path: 'sprites/worlds/disco_bg.webp' },
+  ship: { key: 'world_ship_bg', path: 'sprites/worlds/ship_bg.webp' },
 };
+
+/**
+ * Worlds whose painting has been delivered and shipped. To switch a new
+ * painting on: put `public/sprites/worlds/<id>_bg.webp` in place and add the
+ * world's id here (for the Pirate Ship, 'ship'). Nothing else changes.
+ */
+const WORLD_BG_READY: ReadonlySet<string> = new Set([
+  'garden',
+  'workshop',
+  'kitchen',
+  'funfair',
+  'disco',
+  'ship',
+]);
+
+/** The colour a world's tile on Home shows until its painting arrives. */
+const STAND_IN_TILE_FILL: Readonly<Record<string, number>> = {
+  ship: 0x6fb6d9,
+};
+
+/** The flat colour for a world's venue tile while it has no painting, if the world has its own. */
+export function standInTileFill(worldId: string): number | undefined {
+  return STAND_IN_TILE_FILL[worldId];
+}
+
+function readyAsset(worldId: string): { key: string; path: string } | undefined {
+  return WORLD_BG_READY.has(worldId) ? WORLD_BG_ASSETS[worldId] : undefined;
+}
 
 /** Loads the world's background image if real art exists for it — no-op otherwise (procedural fallback needs no asset). */
 export function preloadWorldBackground(scene: Phaser.Scene, worldId: string): void {
-  const asset = WORLD_BG_ASSETS[worldId];
+  const asset = readyAsset(worldId);
   if (asset && !scene.textures.exists(asset.key)) {
     scene.load.image(asset.key, asset.path);
   }
@@ -46,7 +74,7 @@ export function preloadWorldBackground(scene: Phaser.Scene, worldId: string): vo
 
 /** The loaded texture key for a world's illustrated background, if art has landed for it — for carousel swatches etc. */
 export function worldBackgroundKey(worldId: string): string | undefined {
-  return WORLD_BG_ASSETS[worldId]?.key;
+  return readyAsset(worldId)?.key;
 }
 
 /** Ground plane occupies the bottom slice of the canvas — where Granny stands. */
@@ -174,12 +202,46 @@ function drawDisco(scene: Phaser.Scene): void {
   g.fillRect(0, groundY, GAME_WIDTH, 8);
 }
 
+/** Pirate Ship stand-in: sky and sea behind, a sail-cloth wall, a rail and a wooden deck — until the painting arrives. */
+function drawShip(scene: Phaser.Scene): void {
+  const g = scene.add.graphics().setDepth(-100);
+  const groundY = GAME_HEIGHT * (1 - GROUND_HEIGHT_RATIO);
+  const seaY = GAME_HEIGHT * 0.52;
+
+  g.fillStyle(shade(COLOUR.waterBlue, 1.45), 1);
+  g.fillRect(0, 0, GAME_WIDTH, seaY);
+  g.fillStyle(shade(COLOUR.waterBlue, 1.2), 1);
+  g.fillRect(0, GAME_HEIGHT * 0.2, GAME_WIDTH, seaY - GAME_HEIGHT * 0.2);
+  // The sea, with a few still wave lines.
+  g.fillStyle(shade(COLOUR.waterBlue, 0.8), 1);
+  g.fillRect(0, seaY, GAME_WIDTH, groundY - seaY);
+  g.fillStyle(COLOUR.cloud, 0.2);
+  for (let i = 0; i < 14; i++) {
+    g.fillRoundedRect(40 + i * 92, seaY + 24 + (i % 3) * 22, 48, 5, 2);
+  }
+  // Sail-cloth behind the wall, hung from a yard.
+  g.fillStyle(COLOUR.cloud, 0.55);
+  g.fillRoundedRect(110, 100, GAME_WIDTH - 220, 420, 20);
+  g.fillStyle(shade(COLOUR.heatOrange, 0.5), 1);
+  g.fillRoundedRect(90, 84, GAME_WIDTH - 180, 18, 9);
+  // The rail along the front of the deck.
+  g.fillStyle(shade(COLOUR.heatOrange, 0.42), 1);
+  g.fillRect(0, groundY - 20, GAME_WIDTH, 20);
+  for (let x = 30; x < GAME_WIDTH; x += 120) g.fillRect(x, groundY - 64, 14, 48);
+  // Deck planks.
+  g.fillStyle(shade(COLOUR.heatOrange, 0.6), 1);
+  g.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
+  g.fillStyle(shade(COLOUR.heatOrange, 0.45), 0.5);
+  for (let y = groundY + 36; y < GAME_HEIGHT; y += 36) g.fillRect(0, y, GAME_WIDTH, 3);
+}
+
 const BACKGROUND_DRAWERS: Readonly<Record<string, (scene: Phaser.Scene) => void>> = {
   garden: drawGarden,
   workshop: drawWorkshop,
   kitchen: drawKitchen,
   funfair: drawFunfair,
   disco: drawDisco,
+  ship: drawShip,
 };
 
 /** Draws an already-loaded illustrated background, scaled to cover the canvas with no distortion (may crop slightly). */
@@ -191,7 +253,7 @@ function drawIllustratedBackground(scene: Phaser.Scene, textureKey: string): voi
 
 /** Renders the named world's backdrop — real illustrated art if it's loaded, else the procedural placeholder. */
 export function drawWorldBackground(scene: Phaser.Scene, worldId: string): void {
-  const asset = WORLD_BG_ASSETS[worldId];
+  const asset = readyAsset(worldId);
   if (asset && scene.textures.exists(asset.key)) {
     drawIllustratedBackground(scene, asset.key);
     return;

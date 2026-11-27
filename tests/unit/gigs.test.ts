@@ -68,3 +68,26 @@ describe('band layout', () => {
     expect(positions.map((p) => p.x)).toEqual([150, 450, 750]);
   });
 });
+
+describe('the Pirate Ship', () => {
+  const ship = WORLD_DEFS.find((w) => w.id === 'ship');
+
+  it('opens at 110 stars and grows from five musicians to eighteen', () => {
+    expect(ship?.starsToOpen).toBe(110);
+    if (!ship) throw new Error('no ship');
+    expect(gigFor(ship, 0).band).toBe(5);
+    expect(gigFor(ship, GIGS_PER_VENUE - 1).band).toBe(18);
+  });
+
+  it('rolls the deck from the fourth gig and never before', () => {
+    if (!ship) throw new Error('no ship');
+    const rolling = Array.from({ length: GIGS_PER_VENUE }, (_, i) => gigFor(ship, i).roll);
+    expect(rolling).toEqual([false, false, false, true, true, true, true, true]);
+  });
+
+  it('is the only venue where the deck rolls', () => {
+    for (const world of WORLD_DEFS.filter((w) => w.id !== 'ship')) {
+      expect(gigFor(world, GIGS_PER_VENUE - 1).roll).toBe(false);
+    }
+  });
+});

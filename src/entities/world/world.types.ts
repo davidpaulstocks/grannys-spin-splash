@@ -18,6 +18,8 @@ export interface WorldDef {
   readonly starsToOpen: number;
   /** A few spinners drift side to side instead of holding position (Funfair). */
   readonly movingTargets?: boolean;
+  /** The whole wall sways together like a ship at sea, from the gig set in deckRoll.ts (Pirate Ship). */
+  readonly deckRolls?: boolean;
   /** Bonus Golden Spinner spawns more often (every 12-20s instead of 25-40s) — Disco. */
   readonly goldenFrequent?: boolean;
   /**

@@ -20,6 +20,13 @@ export const VISITOR_IDS = [
   'pigeon',
   'gnome',
   'dodgem',
+  // Sheet 4 — the Pirate Ship
+  'ship_sail',
+  'fishing_net',
+  'parrot',
+  'crab',
+  'treasure_chest',
+  'golden_compass',
 ] as const;
 
 export type VisitorId = (typeof VISITOR_IDS)[number];

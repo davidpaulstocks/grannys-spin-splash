@@ -18,6 +18,7 @@ const WORLD_SWATCH: Readonly<Record<string, number>> = {
   kitchen: COLOUR.sunnyGold,
   funfair: COLOUR.grannyPink,
   disco: COLOUR.waterBlue,
+  ship: COLOUR.waterBlue,
 };
 
 /** One carousel item per granny. */

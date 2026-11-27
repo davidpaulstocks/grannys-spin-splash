@@ -13,6 +13,7 @@
 
 import { GUN_LADDER } from '../gun/gun.data';
 import { FRENZY_THRESHOLDS } from '../spinner/spinner.data';
+import { DECK_ROLL_FROM_GIG } from './deckRoll';
 import { WORLD_DEFS } from './world.data';
 import type { WorldDef } from './world.types';
 
@@ -31,6 +32,8 @@ export interface GigDef {
   readonly holdMs: number;
   /** How many spinners drift side to side. */
   readonly moving: number;
+  /** Whether the deck rolls and the whole wall sways together (Pirate Ship, from its fourth gig). */
+  readonly roll: boolean;
   /** Whether the venue's painted centrepiece (Disco's mirror ball) is in play. */
   readonly feature: boolean;
 }
@@ -42,6 +45,7 @@ const BAND_LADDER: Readonly<Record<string, readonly number[]>> = {
   kitchen: [4, 6, 8, 9, 10, 12, 14, 16],
   funfair: [4, 6, 8, 9, 10, 12, 14, 16],
   disco: [5, 6, 8, 10, 12, 15, 18, 20],
+  ship: [5, 6, 8, 10, 12, 14, 16, 18],
 };
 
 /** Round length by gig: the first gigs are quick wins, the rest run the full thirty seconds. */
@@ -115,6 +119,7 @@ export function gigFor(world: WorldDef, index: number): GigDef {
       HOLD_MS + HOLD_MS_PER_EXTRA_MUSICIAN * Math.max(0, grid - FULL_DECAY_BAND),
     ),
     moving: world.movingTargets ? Math.min(MAX_MOVING, Math.floor(gig / 2)) : 0,
+    roll: world.deckRolls === true && gig >= DECK_ROLL_FROM_GIG,
     feature,
   };
 }
@@ -198,6 +203,16 @@ export const FIRST_PASS_GUNS: Readonly<Record<string, readonly string[]>> = {
     'rainbow_rocket',
     'rainbow_rocket',
   ],
+  ship: [
+    'turbo_tornado',
+    'turbo_tornado',
+    'turbo_tornado',
+    'turbo_tornado',
+    'dragon_drencher',
+    'dragon_drencher',
+    'dragon_drencher',
+    'dragon_drencher',
+  ],
 };
 
 /**
@@ -229,8 +244,12 @@ const STAR_TARGET_FRACTIONS = [0.8, 3.0, 6.0] as const;
  *
  * Venue by venue: Garden and Disco a little under the coin boost (the
  * pistol, and the mirror-ball finale's extra spinner), the rest a little over.
+ * The Pirate Ship (2026-11-27, the sixth) sits further over, at 1.13, with
+ * the first star eased to 0.85: its small bands saturate, so a keen player
+ * three-stars its first two gigs most of the time (and only on a cliff edge:
+ * at 1.2 they stop doing so at all), while its last three stay at two.
  */
-const STAR_TARGET_VENUE_GAIN = [0.95, 1.05, 1.05, 1.05, 0.95] as const;
+const STAR_TARGET_VENUE_GAIN = [0.95, 1.05, 1.05, 1.05, 0.95, 1.13] as const;
 /**
  * By gig on the ladder. A trio is saturated by any gun, so the early gigs
  * ask for close to full boost (1.2 x par x boost); bigger bands are harder
@@ -243,7 +262,7 @@ const STAR_TARGET_GIG_SCALE = [1.2, 1.05, 1.2, 1.2, 1.1, 1.1, 1.05, 1.0] as cons
  * child with a bad run a fifth of a normal one, so its first star sits at
  * 0.7 of the share above; elsewhere it follows the other two.
  */
-const FIRST_STAR_EASE = [0.7, 1, 1, 1, 1] as const;
+const FIRST_STAR_EASE = [0.7, 1, 1, 1, 1, 0.85] as const;
 const STAR_TARGET_ROUND_TO = 10;
 
 /** The coin boost of the gun a first pass holds at this gig (1 if the venue or gun is unknown). */

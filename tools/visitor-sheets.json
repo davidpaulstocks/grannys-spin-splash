@@ -10,6 +10,14 @@
       "candyfloss",
       "trophy"
     ],
-    "sheet-3-more": ["dust_sheet", "squirrel", "tea_towel", "pigeon", "gnome", "dodgem"]
+    "sheet-3-more": ["dust_sheet", "squirrel", "tea_towel", "pigeon", "gnome", "dodgem"],
+    "sheet-4-pirate": [
+      "ship_sail",
+      "fishing_net",
+      "parrot",
+      "crab",
+      "treasure_chest",
+      "golden_compass"
+    ]
   }
 }

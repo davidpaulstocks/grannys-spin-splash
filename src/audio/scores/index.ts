@@ -6,6 +6,7 @@ import { DISCO_SCORE } from './disco';
 import { FUNFAIR_SCORE } from './funfair';
 import { GARDEN_SCORE } from './garden';
 import { KITCHEN_SCORE } from './kitchen';
+import { SHIP_SCORE } from './ship';
 import { WORKSHOP_SCORE } from './workshop';
 
 export const SCORES: readonly Score[] = [
@@ -14,6 +15,7 @@ export const SCORES: readonly Score[] = [
   KITCHEN_SCORE,
   FUNFAIR_SCORE,
   DISCO_SCORE,
+  SHIP_SCORE,
 ];
 
 const BY_ID: ReadonlyMap<string, Score> = new Map(SCORES.map((score) => [score.id, score]));

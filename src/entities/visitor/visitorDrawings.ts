@@ -15,6 +15,14 @@ import {
   drawTrophy,
   drawWateringCan,
 } from './treatDrawings';
+import {
+  drawCrab,
+  drawFishingNet,
+  drawGoldenCompass,
+  drawParrot,
+  drawShipSail,
+  drawTreasureChest,
+} from './pirateDrawings';
 import { BALLOON_KNOT, BALLOON_LAYOUT } from './visitorTuning.data';
 import type { VisitorId } from './visitor.types';
 
@@ -136,8 +144,9 @@ function drawSeagull(g: Gfx, leaving: boolean): void {
 
 /**
  * Redraws visitor `id` into `g` (cleared first) at its natural size, facing
- * right. The six visitors added with the third art sheet borrow the nearest
- * drawing: they ship painted, and this is only what shows if a picture fails to load.
+ * right. The six visitors of the third art sheet borrow the nearest
+ * drawing (they ship painted); the Pirate Ship's six have their own
+ * stand-ins (pirateDrawings.ts) until sheet 4 is painted.
  */
 export function drawVisitor(g: Gfx, id: VisitorId, state: DrawState): void {
   g.clear();
@@ -172,5 +181,17 @@ export function drawVisitor(g: Gfx, id: VisitorId, state: DrawState): void {
       return drawCandyfloss(g);
     case 'trophy':
       return drawTrophy(g);
+    case 'ship_sail':
+      return drawShipSail(g);
+    case 'fishing_net':
+      return drawFishingNet(g);
+    case 'parrot':
+      return drawParrot(g, state.leaving);
+    case 'crab':
+      return drawCrab(g);
+    case 'treasure_chest':
+      return drawTreasureChest(g);
+    case 'golden_compass':
+      return drawGoldenCompass(g);
   }
 }

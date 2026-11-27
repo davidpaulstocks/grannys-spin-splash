@@ -4,6 +4,7 @@
  */
 
 import type { VisitorDef, VisitorId } from './visitor.types';
+import { SHIP_VISITOR_DEFS } from './visitor.ship.data';
 
 export const VISITOR_DEFS: Readonly<Record<VisitorId, VisitorDef>> = {
   bloomers: {
@@ -193,6 +194,7 @@ export const VISITOR_DEFS: Readonly<Record<VisitorId, VisitorDef>> = {
     hitOffsetY: -6,
     exitRisePxPerS: 0,
   },
+  ...SHIP_VISITOR_DEFS,
   trophy: {
     id: 'trophy',
     kind: 'treat',
@@ -213,6 +215,15 @@ export const VENUE_CAST: Readonly<Record<string, readonly VisitorId[]>> = {
   kitchen: ['tea_towel', 'cat', 'rubber_duck', 'cupcake'],
   funfair: ['balloons', 'dodgem', 'seagull', 'rubber_duck', 'candyfloss'],
   disco: ['flamingo', 'pigeon', 'rubber_duck', 'trophy'],
+  ship: [
+    'ship_sail',
+    'fishing_net',
+    'parrot',
+    'crab',
+    'rubber_duck',
+    'treasure_chest',
+    'golden_compass',
+  ],
 };
 
 /** Venue used when an id has no cast of its own. */

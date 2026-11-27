@@ -1,5 +1,5 @@
 /**
- * WORLD_DEFS — all 5 launch worlds (CLAUDE.md §1, §4; re-planned into v1
+ * WORLD_DEFS — all 6 worlds (CLAUDE.md §1, §4; re-planned into v1
  * scope 2026-09-11, see BACKLOG.md — originally launch was Garden-only
  * with the other 4 as post-launch drops, but the whole prototype roster
  * ships together now). Round length is 30 s for every world per §4.
@@ -86,6 +86,19 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     // Back wall in the light pools — below the mirror ball, above the dance floor.
     wallArea: { x: 165, y: 165, width: 950, height: 370 },
   },
+  {
+    id: 'ship',
+    name: 'Pirate Ship',
+    bg: 'world_ship_bg',
+    grid: { cols: 6, rows: 3 },
+    types: ['propeller', 'pinwheel', 'windmill', 'whirligig', 'fan'],
+    time: ROUND_LENGTH_SECONDS,
+    starsToOpen: 110,
+    deckRolls: true,
+    // The sail canvas between the rail and the deck: stand-in measure, re-measure when the painting lands.
+    // Measured against the painting: the big cream sail (about x 211 to 1037, to y 591).
+    wallArea: { x: 225, y: 140, width: 800, height: 350 },
+  },
 ];
 
 export const DEFAULT_WORLD_ID = 'garden';
@@ -114,6 +127,8 @@ export const SPINNER_PALETTE_BY_WORLD: Readonly<Record<string, readonly string[]
   funfair: ['#FF6BA8', '#FFC93C', '#4DB3E5', '#7FD9A8'],
   // Disco: neon glam.
   disco: ['#FF6BA8', '#4DB3E5', '#FFC93C', '#6B6F8C'],
+  // Pirate Ship: sea blue, sail cloth, brass and flag pink.
+  ship: ['#4DB3E5', '#F5F2E8', '#FFC93C', '#FF6BA8'],
 };
 
 /**
@@ -197,6 +212,7 @@ export const WORLD_EASTER_EGG: Readonly<Record<string, WorldEasterEgg>> = {
     confetti: [0xff6ba8, 0xffc93c, 0x4db3e5, 0x7fd9a8],
   },
   disco: { text: 'GROOVY!', textColour: '#4DB3E5', confetti: [0xff6ba8, 0x4db3e5, 0xffc93c] },
+  ship: { text: 'AHOY!', textColour: '#4DB3E5', confetti: [0x4db3e5, 0xffc93c, 0xf5f2e8] },
 };
 
 /** How often a level-up triggers its world's easter egg — rare enough to stay a surprise. */

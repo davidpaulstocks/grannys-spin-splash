@@ -12,7 +12,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { GIGS_PER_VENUE } from '../entities/world/gigs.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import type { WorldDef } from '../entities/world/world.types';
-import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
+import { standInTileFill, worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import {
   currentGig,
@@ -56,6 +56,7 @@ const ART_HEIGHT = 225;
 const ART_X = GAME_WIDTH / 2 - CARD_WIDTH / 2 + 40 + ART_WIDTH / 2;
 const ART_Y = CARD_Y - 44;
 const ART_FRAME_PX = 5;
+const ART_FALLBACK_FILL = 0x8a8a9a;
 const VENUE_STARS_Y = CARD_Y + 132;
 const VENUE_STARS_PILL_WIDTH = 190;
 const LOCK_ICON_SIZE = 54;
@@ -203,6 +204,17 @@ export class TourScene extends Phaser.Scene {
       const art = this.add.image(ART_X, ART_Y, key).setDisplaySize(ART_WIDTH, ART_HEIGHT);
       if (!open) art.setTint(0x8a8a9a);
       this._pageLayer.add(art);
+    } else {
+      // No painting yet: a flat stand-in swatch, dimmed when locked, so the card is never an empty frame.
+      const swatch = this.add.rectangle(
+        ART_X,
+        ART_Y,
+        ART_WIDTH,
+        ART_HEIGHT,
+        standInTileFill(venue.id) ?? ART_FALLBACK_FILL,
+      );
+      if (!open) swatch.setFillStyle(ART_FALLBACK_FILL);
+      this._pageLayer.add(swatch);
     }
     const frame = this.add.graphics();
     frame.lineStyle(ART_FRAME_PX, COLOUR.ink, 1);

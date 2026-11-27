@@ -47,8 +47,8 @@ function runVisits(
 }
 
 describe('the cast', () => {
-  it('has the eighteen visitors, each in at least one venue', () => {
-    expect(VISITOR_IDS).toHaveLength(18);
+  it('has the twenty-four visitors, each in at least one venue', () => {
+    expect(VISITOR_IDS).toHaveLength(24);
     const used = new Set(Object.values(VENUE_CAST).flat());
     for (const id of VISITOR_IDS) expect(used.has(id)).toBe(true);
   });

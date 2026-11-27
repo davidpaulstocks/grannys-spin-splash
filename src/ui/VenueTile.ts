@@ -12,7 +12,7 @@ import type Phaser from 'phaser';
 
 import { GIGS_PER_VENUE } from '../entities/world/gigs.data';
 import type { WorldDef } from '../entities/world/world.types';
-import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
+import { standInTileFill, worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { MAX_STARS_PER_GIG } from '../systems/Progress';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { DURATION, EASE } from '../utils/tween';
@@ -200,13 +200,15 @@ export function createVenueTile(scene: Phaser.Scene, config: VenueTileConfig): V
       });
     },
     shake: (): void => {
+      // From where the tile stands now: the strip may have paged it since it was built.
+      const restX = container.x;
       scene.tweens.add({
         targets: container,
-        x: config.x + SHAKE_PX,
+        x: restX + SHAKE_PX,
         duration: SHAKE_MS,
         yoyo: true,
         repeat: SHAKE_REPEATS,
-        onComplete: () => container.setX(config.x),
+        onComplete: () => container.setX(restX),
       });
     },
   };
@@ -231,7 +233,7 @@ function buildThumb(scene: Phaser.Scene, venueId: string): Phaser.GameObjects.Ga
   const key = ensureThumbTexture(scene, venueId);
   if (key) return scene.add.image(0, 0, key).setDisplaySize(VENUE_TILE_WIDTH, VENUE_TILE_HEIGHT);
   const swatch = scene.add.graphics();
-  swatch.fillStyle(FALLBACK_FILL, 1);
+  swatch.fillStyle(standInTileFill(venueId) ?? FALLBACK_FILL, 1);
   swatch.fillRoundedRect(
     -HALF_WIDTH,
     -HALF_HEIGHT,

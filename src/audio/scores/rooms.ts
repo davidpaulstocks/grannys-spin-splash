@@ -21,10 +21,12 @@ const CLUB_WETNESS = 0.5;
 const GARAGE_WETNESS = 0.25;
 const BANDSTAND_WETNESS = 2 / 3;
 const BALLROOM_WETNESS = 1.2;
+const DECK_WETNESS = 0.3;
 
 /** Opening low-pass cutoffs for the bands that are bright from the first second. */
 const GARAGE_TONE_MIN_HZ = 7000;
 const BALLROOM_TONE_MIN_HZ = 6000;
+const DECK_TONE_MIN_HZ = 6500;
 
 /** Kitchen: a small jazz club — about half the hall's reverb. */
 export const CLUB_ROOM: Room = roomLike(CLUB_WETNESS);
@@ -34,3 +36,5 @@ export const GARAGE_ROOM: Room = roomLike(GARAGE_WETNESS, GARAGE_TONE_MIN_HZ);
 export const BANDSTAND_ROOM: Room = roomLike(BANDSTAND_WETNESS);
 /** Disco: big and glossy — a little more than the hall, bright from the start. */
 export const BALLROOM_ROOM: Room = roomLike(BALLROOM_WETNESS, BALLROOM_TONE_MIN_HZ);
+/** Pirate Ship: an open deck under the sky — little reverb, bright from the start. */
+export const DECK_ROOM: Room = roomLike(DECK_WETNESS, DECK_TONE_MIN_HZ);

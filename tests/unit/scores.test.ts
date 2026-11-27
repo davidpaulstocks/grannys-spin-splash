@@ -150,6 +150,8 @@ describe('rooms and palettes', () => {
     expect(send('workshop')).toBeCloseTo(0.25);
     expect(send('funfair')).toBeCloseTo(2 / 3);
     expect(send('disco')).toBeGreaterThan(1);
+    expect(send('ship')).toBeCloseTo(0.3);
+    expect(resolveRoom(resolveScore('ship')).toneMinHz).toBeGreaterThanOrEqual(6500 - 1);
     expect(resolveRoom(resolveScore('workshop')).toneMinHz).toBeGreaterThanOrEqual(7000 - 1);
     expect(resolveRoom(resolveScore('disco')).toneMinHz).toBeGreaterThanOrEqual(6000 - 1);
     for (const score of SCORES) {
@@ -214,5 +216,14 @@ describe('rooms and palettes', () => {
   it('plays the Workshop guitars through the amp in the frenzy too', () => {
     const driven = resolveScore('workshop').frenzy.filter((l) => (l.drive ?? 0) > 0);
     expect(driven.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('seats the Pirate Ship as a sea-shanty band: bass, harmony and tune first, eighteen in all', () => {
+    const ship = resolveScore('ship');
+    expect(ship.lineup.slice(0, 3)).toEqual(['bass', 'squeezebox', 'fiddle']);
+    expect(ship.seats).toHaveLength(18);
+    expect(ship.bpm).toBeGreaterThanOrEqual(100);
+    expect(ship.bpm).toBeLessThanOrEqual(108);
+    expect(ship.swing).toBeGreaterThan(0);
   });
 });
