@@ -50,7 +50,7 @@ import subprocess
 import sys
 from collections import deque
 
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -78,6 +78,7 @@ SETS = {
 }
 
 CELLS_PER_SHEET = 6
+SKIP_ID = "_"  # an id of "_" in a sheet's list means: there is a picture here, leave it out
 HERO_FACTOR = 3  # a hero picture is this many times the small picture, same framing
 HERO_CANVAS = (384 * HERO_FACTOR, 256 * HERO_FACTOR)
 HERO_QUALITY = 78  # WebP quality of hero pictures (about 50 to 90 KB each)
@@ -257,7 +258,28 @@ def place_like_small(tile, small_path):
     return canvas
 
 
-def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=False, hero_only=False):
+def punch_holes(canvas, seeds, factor=1):
+    """Makes enclosed white see-through: from each seed (x, y in the small 384x256 picture, scaled by
+    `factor` for a hero picture) every connected near-white pixel loses its alpha. For shapes with a real
+    hole, such as the middle of a coiled hose, which the border flood-fill cannot reach."""
+    if not seeds:
+        return canvas
+    r, g, b, a = canvas.split()
+    floor = 255 - WHITE_TOLERANCE
+    whitish = ImageChops.darker(ImageChops.darker(r, g), b).point(lambda v: 255 if v >= floor else 0)
+    mask = ImageChops.multiply(whitish, a.point(lambda v: 255 if v > 0 else 0))
+    for x, y in seeds:
+        px, py = round(x * factor), round(y * factor)
+        if 0 <= px < mask.width and 0 <= py < mask.height and mask.getpixel((px, py)) == 255:
+            ImageDraw.floodfill(mask, (px, py), 128)
+    hole = mask.point(lambda v: 255 if v == 128 else 0)
+    # Grow the hole a touch into the pale fringe, then soften its edge.
+    hole = hole.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(max(1, factor * 0.5)))
+    canvas.putalpha(ImageChops.subtract(a, hole))
+    return canvas
+
+
+def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=False, hero_only=False, holes=None):
     """Cuts one sheet into its icons. Returns the ids written.
 
     hero: write <id>/hero.webp (full-resolution sheet, HERO_CANVAS) instead of the small picture.
@@ -305,7 +327,8 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=Fa
                         if y < b[1]: b[1] = y
                         if x > b[2]: b[2] = x
                         if y > b[3]: b[3] = y
-    wanted = len(icons) if hero_only else CELLS_PER_SHEET
+    # A sheet normally holds CELLS_PER_SHEET pictures; a guns sheet may hold more or fewer (its ids say how many).
+    wanted = len(icons) if (hero_only or wide) else CELLS_PER_SHEET
     ranked = sorted(range(1, count + 1), key=lambda k: areas[k], reverse=True)[:wanted]
     if len(ranked) < wanted:
         raise SystemExit(f"{path}: found only {len(ranked)} instruments, expected {wanted}")
@@ -318,6 +341,8 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=Fa
     os.makedirs(out_dir, exist_ok=True)
     written = []
     for k, icon in zip(ordered, icons):
+        if icon == SKIP_ID:  # a picture on the sheet that is not used
+            continue
         x0, y0, x1, y1 = boxes[k]
         margin = 0 if hero_only else round(max(x1 - x0, y1 - y0) * CROP_MARGIN)
         box = (max(0, x0 - margin), max(0, y0 - margin), min(w, x1 + margin + 1), min(h, y1 + margin + 1))
@@ -332,11 +357,13 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=Fa
                     canvas = place_like_small(tile, os.path.join(gun_dir, "0.webp"))
                 else:
                     canvas, _ = fit_gun(tile, icon in flip, None, canvas_size)
+                    canvas = punch_holes(canvas, (holes or {}).get(icon), HERO_FACTOR)
                 canvas.save(os.path.join(gun_dir, "hero.webp"), "WEBP", quality=HERO_QUALITY,
                             alpha_quality=HERO_ALPHA_QUALITY, method=HERO_METHOD, exact=False)
                 written.append(icon)
                 continue
             canvas, nozzle = fit_gun(tile, icon in flip, (nozzles or {}).get(icon))
+            canvas = punch_holes(canvas, (holes or {}).get(icon))
             canvas.save(os.path.join(gun_dir, "0.png"))
             with open(os.path.join(gun_dir, "anchor.json"), "w") as f:
                 json.dump({"x": nozzle[0], "y": nozzle[1]}, f)
@@ -372,6 +399,7 @@ def main():
     for name, entry in sheets.items():
         icons, flip = (entry["ids"], entry.get("flip", [])) if isinstance(entry, dict) else (entry, [])
         nozzles = entry.get("nozzle") if isinstance(entry, dict) else None
+        holes = entry.get("holes") if isinstance(entry, dict) else None
         # Nano Banana often saves a JPG whatever the file is called, so take any of these.
         hero_only_entry = isinstance(entry, dict) and entry.get("hero_only", False)
         if hero_only_entry:
@@ -386,10 +414,10 @@ def main():
         wide = chosen.get("wide", False)
         written = []
         if not hero_only_entry and not args.hero_only:
-            written = slice_sheet(path, icons, args.out, wide, flip, nozzles)
+            written = slice_sheet(path, icons, args.out, wide, flip, nozzles, holes=holes)
             print("  wrote " + ", ".join(written))
         if wide:
-            heroes = slice_sheet(path, icons, args.out, wide, flip, nozzles, hero=True, hero_only=hero_only_entry)
+            heroes = slice_sheet(path, icons, args.out, wide, flip, nozzles, hero=True, hero_only=hero_only_entry, holes=holes)
             print("  hero pictures: " + ", ".join(heroes))
             written = written or heroes
         done += written

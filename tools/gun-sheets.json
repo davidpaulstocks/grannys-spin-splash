@@ -1,5 +1,5 @@
 {
-  "_comment": "Each sheet holds six guns; the slicer works out the grid itself (rows by vertical position, each row left to right, top row first). 'ids' is the gun id of each cell in that order; 'flip' lists guns painted nozzle-left, mirrored before saving; 'nozzle' optionally overrides a gun's nozzle point ({id: [x, y]} in the 384x256 picture). NOTE: the owner's files are named the other way round from the order they were first described: sheet-1-guns.jpg holds the bubble / slime / rainbow / shark / dragon / galaxy guns. Keep in step with GUN_LADDER in src/entities/gun/gun.data.ts. Entries with hero_only and file are the six single-gun originals: they write only hero.webp, twice the size of the gun's existing 0.webp.",
+  "_comment": "Each sheet holds guns; the slicer works out the grid itself (rows by vertical position, each row left to right, top row first) and expects as many pictures as there are ids. 'ids' is the gun id of each picture in that order; an id of '_' means a picture that is on the sheet but not used. 'flip' lists guns painted nozzle-left, mirrored before saving; 'nozzle' optionally overrides a gun's nozzle point ({id: [x, y]} in the 384x256 picture). NOTE: the owner's files are named the other way round from the order they were first described: sheet-1-guns.jpg holds the bubble / slime / rainbow / shark / dragon / galaxy guns. sheet-3-guns.jpg (2026-11-27) is the six starter guns repainted in the same style; it came out with seven pictures (rows of 3, 2, 2): the fourth, a spare pink blaster, is not used. Keep in step with GUN_LADDER in src/entities/gun/gun.data.ts. Every gun gets 0.webp, anchor.json and hero.webp (three times the size) from its sheet. 'holes' optionally lists seed points ({id: [[x, y], ...]} in the 384x256 picture) where enclosed white is made see-through, e.g. the middle of the coiled hose.",
   "sheets": {
     "sheet-1-guns": {
       "ids": [
@@ -45,47 +45,26 @@
         ]
       }
     },
-    "pistol-original": {
+    "sheet-3-guns": {
       "ids": [
-        "pistol"
-      ],
-      "hero_only": true,
-      "file": "_reference/guns/pistol_0_raw.jpg"
-    },
-    "squirter-original": {
-      "ids": [
-        "squirter"
-      ],
-      "hero_only": true,
-      "file": "_reference/guns/squirter_0_raw.jpg"
-    },
-    "hose-original": {
-      "ids": [
-        "hose"
-      ],
-      "hero_only": true,
-      "file": "_reference/guns/hose_0_raw.jpg"
-    },
-    "splashjr-original": {
-      "ids": [
-        "splashjr"
-      ],
-      "hero_only": true,
-      "file": "_reference/guns/splashjr_0_raw.jpg"
-    },
-    "soaker3000-original": {
-      "ids": [
-        "soaker3000"
-      ],
-      "hero_only": true,
-      "file": "_reference/guns/soaker3000_0_raw.jpg"
-    },
-    "inferno-original": {
-      "ids": [
+        "pistol",
+        "squirter",
+        "hose",
+        "_",
+        "soaker3000",
+        "splashjr",
         "inferno"
       ],
-      "hero_only": true,
-      "file": "_reference/guns/inferno_0_raw.jpg"
+      "flip": [],
+      "nozzle": {},
+      "holes": {
+        "hose": [
+          [
+            140,
+            145
+          ]
+        ]
+      }
     }
   }
 }
