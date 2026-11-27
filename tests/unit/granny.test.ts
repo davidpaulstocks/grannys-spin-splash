@@ -73,8 +73,8 @@ describe('talents', () => {
 
 describe('the roster', () => {
   it('offers only the painted grannies', () => {
-    expect(GRANNY_ART_READY).toEqual(['classic', 'squirt', 'punk']);
-    expect(GRANNY_DEFS.map((g) => g.id)).toEqual(['classic', 'squirt', 'punk']);
+    expect(GRANNY_ART_READY).toEqual(['classic', 'squirt', 'punk', 'joy']);
+    expect(GRANNY_DEFS.map((g) => g.id)).toEqual(['classic', 'squirt', 'punk', 'joy']);
     expect(GRANNY_LADDER_DEFS.map((g) => g.id)).toEqual([
       'classic',
       'squirt',

@@ -14,6 +14,9 @@ export type ShipVisitorId =
   | 'treasure_chest'
   | 'golden_compass';
 
+/** The crab is painted holding a gold coin: squirting it off pays this share of the third-star target (David, 2026-11-27). */
+const CRAB_COIN_FRACTION = 0.05;
+
 export const SHIP_VISITOR_DEFS: Readonly<Record<ShipVisitorId, VisitorDef>> = {
   ship_sail: {
     id: 'ship_sail',
@@ -52,6 +55,7 @@ export const SHIP_VISITOR_DEFS: Readonly<Record<ShipVisitorId, VisitorDef>> = {
     id: 'crab',
     kind: 'sitter',
     word: 'Shoo!',
+    shooFraction: CRAB_COIN_FRACTION,
     artPx: 110,
     drawScale: 1.2,
     hitRx: 0,

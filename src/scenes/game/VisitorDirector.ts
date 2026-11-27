@@ -232,7 +232,7 @@ export class VisitorDirector {
   private _returnLoot(thief: ThiefVisitor, at: { x: number; y: number }): void {
     const d = this._d;
     const loot = thief.loot;
-    const bonus = this._coins(VISIT_PAY.shooFraction);
+    const bonus = this._coins(thief.def.shooFraction ?? VISIT_PAY.shooFraction);
     thief.clearLoot();
     d.reward.payBurst(
       Array.from({ length: THIEF.returnCoinThrows }, () => ({

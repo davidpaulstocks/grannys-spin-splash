@@ -16,6 +16,7 @@
     "instruments": "python3 tools/slice-instrument-sheet.py",
     "visitors": "python3 tools/slice-instrument-sheet.py --set visitors",
     "guns": "python3 tools/slice-instrument-sheet.py --set guns",
+    "grannies": "python3 tools/cut-granny.py",
     "samples": "node tools/build-orchestra-samples.ts"
   },
   "dependencies": {

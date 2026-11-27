@@ -62,4 +62,9 @@ export interface VisitorDef {
   readonly hitOffsetY: number;
   /** Seagull-like sitters rise as they leave, px per second. */
   readonly exitRisePxPerS: number;
+  /**
+   * A thief that is carrying something of its own (the crab's gold coin) drops it when squirted off:
+   * this share of the gig's third-star target, in place of the small standard shoo bonus.
+   */
+  readonly shooFraction?: number;
 }

@@ -211,7 +211,7 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
       this._swatch.setVisible(true).setFillStyle(item.swatchColour);
       this._swatchImage.setVisible(false);
     }
-    // Long names (e.g. "The Squirt Sister") get a smaller row all to
+    // Long names (e.g. "Neptune's Trident") get a smaller row all to
     // themselves rather than sharing the thumbnail row with the arrows —
     // see the class doc comment for why that's the actual fix.
     this._label.setText(item.label).setScale(1);
