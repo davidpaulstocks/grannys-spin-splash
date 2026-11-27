@@ -1,8 +1,9 @@
 /**
  * A painted instrument mounted in the hub of a spinning disc. The blades turn
  * behind it; the instrument itself never rotates (a spinning violin is an
- * unreadable blur). It bounces on its notes, slumps to one side when its
- * musician is asleep and straightens, with a bounce, when woken.
+ * unreadable blur). It bounces on its notes, slumps to one side while its
+ * musician is quiet (the spinner has stopped) and straightens, with a bounce,
+ * when it starts playing.
  */
 
 import Phaser from 'phaser';
@@ -51,7 +52,7 @@ export class InstrumentMount extends Phaser.GameObjects.Container {
 
   /**
    * Call once per frame with the spinner's pulse (0-1) and whether its
-   * musician is asleep. Changes of sleep state animate on their own.
+   * musician is quiet (the `asleep` flag). Changes of that state animate on their own.
    */
   sync(pulse: number, asleep: boolean): void {
     if (asleep !== this._asleep) {

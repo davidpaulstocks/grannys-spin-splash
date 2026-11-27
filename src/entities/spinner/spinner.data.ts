@@ -165,13 +165,13 @@ export const INSTRUMENT_MOUNT = {
   /** Ink outline around the disc, px. */
   discRingPx: 3,
   discAlpha: 0.92,
-  /** Degrees an asleep instrument slumps to one side. */
+  /** Degrees a quiet (stopped) instrument slumps to one side. */
   sleepTiltDegrees: 18,
-  /** Brightness multiplier (0-1) of an asleep instrument. */
+  /** Brightness multiplier (0-1) of a quiet instrument. */
   sleepBrightness: 0.72,
   /** How much a full pulse enlarges the picture, and lifts it (fraction of radius). */
   pulseScale: 0.22,
   pulseLift: 0.08,
-  /** Wake-up straighten tween, ms (CLAUDE.md §5.6 state change). */
+  /** Straighten tween when the instrument starts playing, ms (CLAUDE.md §5.6 state change). */
   wakeMs: 200,
 } as const;

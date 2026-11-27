@@ -1,5 +1,7 @@
 # Granny's Grand Tour — Engagement Redesign
 
+**Updated 2026-11-27:** jeopardy (coin thieves, blockers), the Big Finish, the rebuilt results screen with "Double coins" removed, the eighteen-gun ladder and the count-in with auto-fire changed parts of this document; where they conflict, `docs/REWARD_LOOP.md` and the "2026-11-27" notes below win. None of it has been played or heard by David.
+
 **Written:** 2026-11-25 · **Status:** approved direction (David: "the whole game
 needs to be rethought from an engagement perspective… a big transformation I
 need you to oversee and drive"). Built in slices; each slice is playable.
@@ -57,8 +59,9 @@ means more music, literally.
 > coins, a stopped one is quiet. The words are playing, quiet and full band;
 > the 2026-11-25 asleep/awake wording, the "z z z" and the band meter are gone.
 > The top of the screen is a score bar (the coin total, with a star at each of
-> three coin targets) and a groove badge, and a YOUR GOAL card states the goal
-> and the targets before the first squirt of every gig. An instrument about to
+> three coin targets) and a groove badge, and a YOUR GOAL line (since
+> 2026-11-27 a one-line plate beside Granny; the targets stand under each star
+> on the score bar) states the goal while the count-in plays before every gig. An instrument about to
 > drop out of full speed rocks and shows an orange ring.
 
 - **Goal, in one sentence a seven-year-old can act on:** get the whole band
@@ -81,7 +84,7 @@ means more music, literally.
   always a reason to get better at a gig already passed.
 - **Difficulty is authored per gig**, not left to wall size alone: round
   length, how fast spinners wind down, how long a topped-up spinner holds,
-  obstacles, moving targets. Tuned with a bot that plays like a child
+  visitors (a blocker, a coin thief or a treat, from the venue's first gig; they replaced the fixed cat, umbrella and duck), moving targets. Tuned with a bot that plays like a child
   (slow retargeting, imperfect aim), not a perfect one.
 
 ### Gig ladder (band size per gig)
@@ -163,8 +166,10 @@ Four screens on the main path, each with one obvious button.
    BUY button when it can be afforded; then the venue's eight gigs as a path
    with the next venue at the end and the stars it needs. Below, **NEXT GIG**
    (largest, the only green button) with who joins at the next gig, Retry
-   (small) and Home (icon). "Double coins" sits beside Next as the rewarded
-   option, never larger.
+   (small) and Home (icon). **2026-11-27:** the screen was rebuilt (one layout; a
+   failed gig says "Almost!" with TRY AGAIN as the one green button; a NEW WORLD
+   card with GO THERE when the stars open a venue; the next venue on the path is
+   a button) and "Double coins" was removed, so there is no rewarded option on it.
 
 Off the main path:
 
@@ -183,8 +188,8 @@ UI restraint still applies: no screen has more than one primary action.
   "play a gig in the Workshop"), paying coins.
 - **Jam mode** per venue, unlocked by its Grand Concert: no timer, no score,
   the whole band — the pure ASMR toy.
-- **Rewarded ads, inside Poki's rules:** double coins at results; ten more
-  seconds once per failed gig; try a locked gun for one gig. Each always has
+- **Rewarded ads, inside Poki's rules:** ~~double coins at results~~ (removed 2026-11-27: David asked "how have I earned that?"); ten more
+  seconds once per failed gig (not built); try a locked gun for one gig (not built; the Shop's free-gun ad is the only rewarded option today). Each always has
   an equal-or-larger free alternative beside it.
 
 ---
@@ -198,7 +203,7 @@ UI restraint still applies: no screen has more than one primary action.
 | **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                           | **Part built:** one rolling mission and the daily gift. Not built: Jam mode, the album, "ten more seconds"                                                                                                                                                                             |
 | **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                                       | **All five bands built**, each in its own room with its own Frenzy fanfare, closing chord, accents and results chimes (2026-11-26); Workshop reworked at 136 BPM. None of the 2026-11-26 audio has been heard by David, see `BANDS.md`                                                 |
 | **5. The reward loop**   | Coins from every spinning instrument, the groove, stars from the coin total, the results screen, gun coin boosts and upgrade levels (`REWARD_LOOP.md`) | **Built 2026-11-26** (`dc38f8c`, `4b4cd4e`); bot-tested on Garden only, not played by David since                                                                                                                                                                                      |
-| **6. Visitors**          | Random surprise blockers, sitters and treats replacing the fixed obstacles                                                                             | **Being built, 2026-11-26**                                                                                                                                                                                                                                                            |
+| **6. Visitors**          | Random surprise blockers, sitters and treats replacing the fixed obstacles                                                                             | **Built 2026-11-27** (`ceda261`, `cd20e22`, `dd6b821`): 18 painted visitors from a venue's first gig; sitters steal coins, blockers silence two or three instruments; not played by David. Balance bot does not understand visitors                                                    |
 
 Each slice ends with lint, tests, build, budget, a live playthrough, a commit
 and a push.

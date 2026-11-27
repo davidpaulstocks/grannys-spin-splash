@@ -1,6 +1,6 @@
 /**
  * The pure maths of a spinner's painted instrument — how big it draws, how it
- * lies when asleep, how it bounces on a note. No Phaser, so it is unit-tested.
+ * lies when quiet (stopped), how it bounces on a note. No Phaser, so it is unit-tested.
  */
 
 import { INSTRUMENT_MOUNT } from './spinner.data';
@@ -10,7 +10,7 @@ export function mountSizes(r: number): { picture: number; disc: number } {
   return { picture: r * INSTRUMENT_MOUNT.pictureFactor, disc: r * INSTRUMENT_MOUNT.discFactor };
 }
 
-/** Rotation in degrees: slumped to `side` (+1 or -1) while asleep, upright when awake. */
+/** Rotation in degrees: slumped to `side` (+1 or -1) while quiet, upright while playing. */
 export function mountTilt(asleep: boolean, side: 1 | -1): number {
   return asleep ? side * INSTRUMENT_MOUNT.sleepTiltDegrees : 0;
 }
@@ -21,7 +21,7 @@ export function mountBounce(pulse: number, r: number): { scale: number; lift: nu
   return { scale: 1 + p * INSTRUMENT_MOUNT.pulseScale, lift: p * r * INSTRUMENT_MOUNT.pulseLift };
 }
 
-/** Tint colour (0xRRGGBB, grey) that dims a picture: full white when awake. */
+/** Tint colour (0xRRGGBB, grey) that dims a picture: full white while playing. */
 export function mountTint(asleep: boolean): number {
   const level = Math.round(255 * (asleep ? INSTRUMENT_MOUNT.sleepBrightness : 1));
   return (level << 16) | (level << 8) | level;

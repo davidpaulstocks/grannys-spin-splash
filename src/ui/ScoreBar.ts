@@ -3,7 +3,7 @@
  * total as the largest text on screen, under it a bar filling toward the
  * third star with a star standing at each of the three targets, and beside
  * it the groove badge. It replaced the band meter, which counted musicians
- * awake; what the player earns now is coins, so coins are what it shows.
+ * playing; what the player earns now is coins, so coins are what it shows.
  *
  * One Cloud plate backs all of it, so it reads as a single HUD element and
  * never fights the painted backdrop. Logical 1280x720 layout: the plate spans

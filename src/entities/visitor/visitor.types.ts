@@ -26,7 +26,8 @@ export type VisitorId = (typeof VISITOR_IDS)[number];
 
 /**
  * What a visitor does: a blocker drifts across and stops water, a sitter
- * lands on an instrument and silences it until shooed, a treat flies across
+ * (a thief) lands on an instrument, silences it and steals coins until
+ * shooed, a treat flies across
  * and pays out when hit.
  */
 export type VisitorKind = 'blocker' | 'sitter' | 'treat';

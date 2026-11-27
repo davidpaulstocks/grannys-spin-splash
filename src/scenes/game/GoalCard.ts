@@ -1,12 +1,9 @@
 /**
- * The goal, stated before the first squirt of every gig: one headline,
+ * The goal, stated while a gig opens (during the count-in): one headline,
  * "Keep the band playing!", on a small Cloud plate on the floor to Granny's
  * left, clear of the wall and the HUD. The coin each star takes is not here:
  * it stands small under that star on the score bar (`ui/ScoreBar.ts`), where
- * it is tracked. The headline leaves on the first input.
- *
- * The round does not begin until the first input, so reading it costs the
- * player no time.
+ * it is tracked. The headline leaves on GO, when the clock starts.
  */
 
 import type Phaser from 'phaser';

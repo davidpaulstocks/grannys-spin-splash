@@ -1,8 +1,8 @@
 /**
  * A blocker: drifts in (with the short peek-in warning), then parks over a
  * cluster of two or three instruments. While it is parked those instruments
- * are silenced — no sound, no coins — but keep winding down, so falling out
- * of full speed under it still costs groove; and any water heading for them
+ * are silenced and frozen — no sound, no coins — and the wind-down is counted
+ * for them, so falling out of full speed under it still costs groove; and any water heading for them
  * or for it is absorbed by it and counts as a hit. Enough hits and it spins
  * off; ignored, it leaves by itself.
  */

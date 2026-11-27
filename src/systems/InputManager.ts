@@ -6,8 +6,8 @@
  * to PokiSDK.gameplayStart() (§3 SDK integration, never on scene load).
  *
  * Granny does not walk (2026-09-12): aim is the only input. Nothing in the
- * game could ever *require* repositioning — the umbrella opens and closes on
- * a timer, the cat is shooed by aiming near it, the duck paddles — and the
+ * game could ever *require* repositioning — visitors are shooed by aiming at them,
+ * nothing needs Granny in a particular place — and the
  * two-thumb grip walking forced was the direct cause of two of the three
  * critical input bugs the spec audit found. Arrow keys are still captured so
  * they can't scroll the page (§3 rule 10), they just don't drive anything.

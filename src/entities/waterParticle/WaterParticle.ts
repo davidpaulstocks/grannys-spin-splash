@@ -136,7 +136,7 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     return this._target ? [this._target] : allSpinners;
   }
 
-  /** Recycles this particle from outside — Obstacle.tryBlock() calls this when a cat/umbrella/duck intercepts it. */
+  /** Recycles this particle from outside — a visitor's `tryBlock()` calls this when a blocker or sitter intercepts it. */
   blockAndRecycle(): void {
     this._deactivate();
   }

@@ -17,6 +17,8 @@ npm run samples        # rebuild every instrument sprite (needs ffmpeg and lame)
 npm run samples -- kitchen   # rebuild one band's sprite (tools/bands/<band>.manifest.json)
 npm run optimise       # convert PNGs dropped in public/sprites/ to WebP (tools/sprite-optimise.sh)
 npm run instruments    # cut instrument art sheets in _art_inbox/instruments/ into icons (tools/slice-instrument-sheet.py)
+npm run visitors       # cut visitor art sheets in _art_inbox/visitors/ into pictures
+npm run guns           # cut gun art sheets in _art_inbox/guns/ into one picture + anchor per gun
 ```
 
 ## Balance harness (dev only)
@@ -26,6 +28,10 @@ In a dev build (`npm run dev`), open the browser console and run `await window._
 ## Review link (dev and review only)
 
 `?venue=<id>&gig=<n>` opens that gig directly, e.g. `http://localhost:5173/?venue=kitchen&gig=1`, so a venue's band can be heard without earning the stars to reach it. It bypasses the tour, so it is for review only and must be removed before Poki submission (see BACKLOG.md).
+
+## What a gig is, today (2026-11-27)
+
+Every gig opens with a band count-in (3, 2, 1, GO!); the water then fires by itself (Space switches it off and on) and the player only aims. Visitors (treats, coin thieves, blockers) come from a venue's first gig; at the whistle a Big Finish pays each instrument still playing. There are eighteen guns. None of this has been played or heard by the owner yet; see `BACKLOG.md`.
 
 ## Where the plans live
 

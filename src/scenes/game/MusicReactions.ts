@@ -1,6 +1,6 @@
 /**
  * How the wall answers the music: each note kicks its own spinner, now and
- * then floats a note glyph off it. Also owns the name pills under the
+ * then throws a note visual off it (the note fountain). Also owns the name pills under the
  * musicians who join at this gig.
  */
 

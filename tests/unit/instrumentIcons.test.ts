@@ -44,7 +44,7 @@ describe('instrument mount maths', () => {
     expect(picture / 2).toBeLessThan(40);
   });
 
-  it('tilts asleep and stands upright awake', () => {
+  it('tilts when quiet and stands upright while playing', () => {
     expect(mountTilt(true, 1)).toBe(INSTRUMENT_MOUNT.sleepTiltDegrees);
     expect(mountTilt(true, -1)).toBe(-INSTRUMENT_MOUNT.sleepTiltDegrees);
     expect(mountTilt(false, 1)).toBe(0);

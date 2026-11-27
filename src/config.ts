@@ -130,8 +130,8 @@ export const GRANNY_BREATH_CYCLE_MS = 2000;
 export const GRANNY_BREATH_SCALE = 1.02;
 
 /**
- * Gun's longest on-screen dimension, px — its 8 angle sprites all target
- * roughly this same apparent size. Scaled with GRANNY_HEIGHT (160 → 216) by
+ * Gun's longest on-screen dimension, px — its one picture (turned in code to
+ * face the aim) targets roughly this size. Scaled with GRANNY_HEIGHT (160 → 216) by
  * the same 1.35x so the gun stays in proportion to the hands holding it.
  */
 export const GUN_LENGTH_PX = 148;

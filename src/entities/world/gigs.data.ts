@@ -125,9 +125,9 @@ export function newMusicianCount(world: WorldDef, index: number): number {
 }
 
 /**
- * How many of a band must be wide awake at once for one, two and three
+ * How many of a band must be at full speed at once for one, two and three
  * stars. The same thresholds `FrenzyMeter` fires on, expressed as a head
- * count so the HUD and the goal card can say "4 awake" instead of "80%".
+ * count so the HUD and the goal card can say "4 playing" instead of "80%".
  * Small bands skip a star: a trio needs two for the first and all three for
  * both the second and third.
  */

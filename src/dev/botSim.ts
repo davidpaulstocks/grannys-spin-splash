@@ -2,7 +2,7 @@
  * Dev-only balance harness: plays gigs with a scripted player, far faster
  * than real time, and reports stars, coins, the groove and drop-outs. It exists because difficulty
  * here is an emergent property of gun power, wind-down, hold time, band
- * size, obstacles and how a person actually sweeps a wall — and guessing at
+ * size, visitors and how a person actually sweeps a wall — and guessing at
  * it is how the game ended up with every wall solvable in five seconds.
  *
  * Loaded only in development builds (see main.ts). From the browser console:

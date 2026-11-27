@@ -1,8 +1,8 @@
 /**
  * The groove — the multiplier on every coin (docs/REWARD_LOOP.md). Level 1–5,
  * and a ring that fills toward the next level while the band is going: the
- * whole band at full speed earns a level every four seconds, half the band
- * every eight. An instrument falling out of full speed costs a level, which
+ * whole band at full speed earns a level every three seconds, half the band
+ * every six. An instrument falling out of full speed costs a level, which
  * is the jeopardy: chasing new instruments while the old ones wind down
  * keeps the multiplier from ever building.
  *
