@@ -1,6 +1,15 @@
 {
   "_comment": "Each granny is three single paintings on pure white in _art_inbox/grannies. This maps a granny id to the file name (without extension) of each pose. Cut with `npm run grannies` (tools/cut-granny.py), then add the id to GRANNY_ART_READY in src/entities/granny/granny.data.ts.",
   "grannies": {
-    "joy": { "front": "joy_front", "back": "joy_back", "back_firing": "joy_arms_out" }
+    "joy": {
+      "front": "joy_front",
+      "back": "joy_back",
+      "back_firing": "joy_arms_out"
+    },
+    "priya": {
+      "front": "priya_front",
+      "back": "priya_back",
+      "back_firing": "priya_arms_out"
+    }
   }
 }
