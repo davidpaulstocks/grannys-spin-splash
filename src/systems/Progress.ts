@@ -66,6 +66,36 @@ export function currentGig(save: SaveData, venueId: string): number {
   return unpassed === -1 ? GIGS_PER_VENUE - 1 : unpassed;
 }
 
+/** Stars still to win on one gig: 3 minus its best, 0 once it has all three. */
+export function starsLeft(save: SaveData, venueId: string, gigIndex: number): number {
+  return Math.max(0, MAX_STARS_PER_GIG - (venueStars(save, venueId)[gigIndex] ?? 0));
+}
+
+/**
+ * Where the player should go next in a venue: the first open gig with no stars
+ * yet (the next step up the ladder); once every open gig has been passed, the
+ * open gig with the fewest stars (the lowest index on a tie). Null when every
+ * gig has all three stars, which is to say the venue is complete.
+ */
+export function recommendedGig(save: SaveData, venueId: string): number | null {
+  const stars = venueStars(save, venueId);
+  const open = stars.map((_, i) => i).filter((i) => isGigOpen(save, venueId, i));
+  const fresh = open.find((i) => stars[i] === 0);
+  if (fresh !== undefined) return fresh;
+  let best: number | null = null;
+  for (const i of open) {
+    const have = stars[i] ?? 0;
+    if (have >= MAX_STARS_PER_GIG) continue;
+    if (best === null || have < (stars[best] ?? 0)) best = i;
+  }
+  return best;
+}
+
+/** The gig PLAY starts by default in a venue: the recommended one, or the Grand Concert when the venue is complete. */
+export function playGig(save: SaveData, venueId: string): number {
+  return recommendedGig(save, venueId) ?? GIGS_PER_VENUE - 1;
+}
+
 export interface GigResult {
   readonly save: SaveData;
   /** Stars earned on this gig for the first time, 0–3. */

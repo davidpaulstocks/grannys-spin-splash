@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 
 import { audioOrchestra } from '../../audio/AudioOrchestra';
-import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
+import { GAME_HEIGHT } from '../../config';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { EASTER_EGG_CHANCE, WORLD_EASTER_EGG } from '../../entities/world/world.data';
 import type { WorldDef } from '../../entities/world/world.types';
@@ -15,6 +15,8 @@ import { spawnConfetti, spawnSparks } from '../../entities/waterParticle/splashV
 import { pickEncouragementPhrase } from '../../ui/encouragementPhrases';
 import { spawnFloatingText } from '../../ui/FloatingText';
 import { showToast } from '../../ui/Toast';
+import { stageFor, STAGE_X, textBox, visualOf } from './BigMessageStage';
+import { STAGE_PRIORITY } from './stageRules';
 import { COLOUR } from '../../utils/colour';
 
 /** How often a spinner reaching FULL also gets a spoken "well done!" — rare enough to stay a nice surprise. */
@@ -58,8 +60,13 @@ export class LevelUpFlair {
    */
   maybeEncourage(): void {
     if (Math.random() >= ENCOURAGEMENT_CHANCE) return;
-    showToast(this._scene, GAME_WIDTH / 2, GAME_HEIGHT * 0.3, pickEncouragementPhrase());
-    audioOrchestra.accent('cheer');
+    const y = GAME_HEIGHT * 0.3;
+    // A low-priority stage message: it waits its turn and never speaks over a bigger one.
+    const shown = stageFor(this._scene).show(STAGE_PRIORITY.other, 'drop', (done) => {
+      const toast = showToast(this._scene, STAGE_X, y, pickEncouragementPhrase(), done);
+      return visualOf(this._scene, [toast], textBox(toast, STAGE_X, y));
+    });
+    if (shown) audioOrchestra.accent('cheer');
   }
 
   /**

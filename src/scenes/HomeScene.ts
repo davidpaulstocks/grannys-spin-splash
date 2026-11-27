@@ -9,13 +9,12 @@
 
 import Phaser from 'phaser';
 
-import { SPRITE_KEYS } from '../assets/keys';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { GAME_WIDTH } from '../config';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
-import { currentGig, frontier, isJamUnlocked, totalStars } from '../systems/Progress';
+import { frontier, isJamUnlocked, playGig, recommendedGig, totalStars } from '../systems/Progress';
 import { nextReward, shopHasNews } from '../systems/Rewards';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
@@ -29,9 +28,8 @@ import { drawTourIcon } from '../ui/icons';
 import { createSavingForStrip } from '../ui/SavingForStrip';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { createVenueStrip, type VenueStrip } from '../ui/VenueStrip';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { EASE } from '../utils/tween';
-import { textStyle } from '../utils/typography';
+import { buildGranny, buildTitle } from './home/homeDecor';
+import { COLOUR } from '../utils/colour';
 
 /**
  * Layout. Along the top: what the player owns (coins, stars), the wordmark,
@@ -39,9 +37,6 @@ import { textStyle } from '../utils/typography';
  * left, ALL GIGS beneath her, and on the right the next-gig card with the one
  * big PLAY button under it. Along the bottom: the five venue tiles.
  */
-const TITLE_Y = 50;
-const TITLE_HEIGHT = 88;
-
 const COINS_PILL_X = 104;
 const STARS_PILL_X = 264;
 const PILLS_Y = 50;
@@ -55,12 +50,6 @@ const SHOP_DOT_DEPTH = 10;
 
 const GIFT_X = GAME_WIDTH - 176;
 const GIFT_Y = 54;
-
-const GRANNY_X = 380;
-const GRANNY_Y = 350;
-const GRANNY_HEIGHT = 400;
-const GRANNY_BOB_PX = 10;
-const GRANNY_BOB_MS = 900;
 
 const ALL_GIGS_X = 104;
 const ALL_GIGS_Y = 480;
@@ -86,6 +75,8 @@ export class HomeScene extends Phaser.Scene {
   private _isLeaving = false;
   private _coinsPill!: StatPill;
   private _venueId = '';
+  /** The gig PLAY will start: the recommended one until the player taps another. */
+  private _gig = 0;
   private _backdrop: Phaser.GameObjects.GameObject[] = [];
   private _card: Phaser.GameObjects.GameObject[] = [];
   private _strip!: VenueStrip;
@@ -104,12 +95,13 @@ export class HomeScene extends Phaser.Scene {
     // Opens on the venue the player is working through; tapping a tile changes it.
     this._venueId = frontier(save, WORLD_DEFS).venueId;
     if (!WORLD_DEFS.some((w) => w.id === this._venueId)) return;
+    this._gig = playGig(save, this._venueId);
 
     this._setBackdrop();
-    this._buildTitle();
+    buildTitle(this);
     this._coinsPill = createStatPill(this, COINS_PILL_X, PILLS_Y, 'coins', save.vault);
     createStatPill(this, STARS_PILL_X, PILLS_Y, 'stars', totalStars(save));
-    this._buildGranny();
+    buildGranny(this, this._unlocks.getSelectedGrannyId());
     this._setCard();
     createDailyGiftButton(this, {
       x: GIFT_X,
@@ -174,6 +166,7 @@ export class HomeScene extends Phaser.Scene {
   private _select(venueId: string): void {
     if (venueId === this._venueId || this._isLeaving) return;
     this._venueId = venueId;
+    this._gig = playGig(saveManager.load(), venueId);
     this._strip.setSelected(venueId);
     this._setBackdrop();
     this._setCard();
@@ -204,7 +197,7 @@ export class HomeScene extends Phaser.Scene {
     this._backdrop = this.children.list.filter((o) => !before.has(o));
   }
 
-  /** Builds the next-gig card for the selected venue. */
+  /** Builds the gig card for the selected venue and gig. */
   private _setCard(): void {
     this._card.forEach((o) => o.destroy());
     const venue = WORLD_DEFS.find((w) => w.id === this._venueId);
@@ -214,38 +207,13 @@ export class HomeScene extends Phaser.Scene {
       y: CARD_Y,
       venueId: venue.id,
       venueName: venue.name,
-      gig: currentGig(saveManager.load(), venue.id),
-    });
-  }
-
-  private _buildTitle(): void {
-    if (!this.textures.exists(SPRITE_KEYS.titleWordmark)) {
-      this.add
-        .text(
-          GAME_WIDTH / 2,
-          TITLE_Y,
-          "GRANNY'S SPIN SPLASH",
-          textStyle('displayL', COLOUR_HEX.grannyPink, COLOUR_HEX.ink),
-        )
-        .setOrigin(0.5);
-      return;
-    }
-    const wordmark = this.add.image(GAME_WIDTH / 2, TITLE_Y, SPRITE_KEYS.titleWordmark);
-    wordmark.setScale(TITLE_HEIGHT / wordmark.height);
-  }
-
-  private _buildGranny(): void {
-    const key = SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front');
-    if (!this.textures.exists(key)) return;
-    const granny = this.add.image(GRANNY_X, GRANNY_Y, key);
-    granny.setScale(GRANNY_HEIGHT / granny.height);
-    this.tweens.add({
-      targets: granny,
-      y: GRANNY_Y - GRANNY_BOB_PX,
-      duration: GRANNY_BOB_MS,
-      ease: EASE.standardOut,
-      yoyo: true,
-      repeat: -1,
+      gig: this._gig,
+      recommended: recommendedGig(saveManager.load(), venue.id),
+      onSelect: (gig) => {
+        if (this._isLeaving) return;
+        this._gig = gig;
+        this._setCard();
+      },
     });
   }
 
@@ -254,7 +222,7 @@ export class HomeScene extends Phaser.Scene {
     if (this._isLeaving) return; // double-tap guard while the ad promise is pending
     this._isLeaving = true;
     const venueId = this._venueId;
-    const gig = currentGig(saveManager.load(), venueId);
+    const gig = this._gig;
     this._unlocks.selectWorld(venueId);
     const next: GameSceneData = {
       grannyId: this._unlocks.getSelectedGrannyId(),

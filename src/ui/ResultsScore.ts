@@ -28,6 +28,8 @@ export interface ResultsScoreConfig {
   readonly y: number;
   readonly ribbon: string;
   readonly data: GigResultData;
+  /** The gig's best stars now that this play is banked: at 3 the line says it is finished. */
+  readonly bestStars: number;
 }
 
 export const RESULTS_SCORE_WIDTH = 760;
@@ -66,6 +68,7 @@ export class ResultsScore {
   private readonly _x: number;
   private readonly _y: number;
   private readonly _missed: boolean;
+  private readonly _bestStars: number;
   private readonly _number: Phaser.GameObjects.Text;
   private readonly _coin: Phaser.GameObjects.Graphics;
   private readonly _slots: Phaser.GameObjects.Graphics[] = [];
@@ -76,6 +79,7 @@ export class ResultsScore {
     this._x = config.x;
     this._y = config.y;
     this._missed = config.data.stars <= 0;
+    this._bestStars = config.bestStars;
     createPanel(scene, {
       x: config.x,
       y: config.y,
@@ -202,7 +206,9 @@ export class ResultsScore {
     const { previousBest, isNewBest, score, starCoins } = this._data;
     if (isNewBest && previousBest > 0) this._popTag();
     const next = nextStarLine(this._data, formatCount);
-    const done = this._missed ? null : 'All three stars!';
+    // Only after a pass: after a miss the line says what the first star needs.
+    const done =
+      !this._missed && this._bestStars >= MAX_STARS_PER_GIG ? 'All three stars here!' : null;
     const left = this._missed
       ? { text: `You still earned ${formatCount(score)} coins`, hex: COLOUR_HEX.ink }
       : starCoins > 0
@@ -210,10 +216,10 @@ export class ResultsScore {
         : previousBest > 0 && !isNewBest
           ? { text: `Best ${formatCount(previousBest)}`, hex: COLOUR_HEX.softSlate }
           : null;
-    const right = next
-      ? { text: next, hex: COLOUR_HEX.grannyPink }
-      : done
-        ? { text: done, hex: COLOUR_HEX.ink }
+    const right = done
+      ? { text: done, hex: COLOUR_HEX.ink }
+      : next
+        ? { text: next, hex: COLOUR_HEX.grannyPink }
         : null;
     if (left && right) {
       this._line(left.text, left.hex, -SLOT_X);

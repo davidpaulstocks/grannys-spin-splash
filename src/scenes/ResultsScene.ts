@@ -7,8 +7,10 @@
  *     A gig with no star is "Almost!" — warm, with how far the first star was.
  *  2. ONE "what next" card: a NEW WORLD card when this gig opened a venue,
  *     otherwise the next gun or granny worth saving for.
- *  3. The tour path: this venue's eight gigs, with the next venue as a button.
- *  4. The main button (the only green one, NEXT GIG or TRY AGAIN), Home, Retry.
+ *  3. The tour path: this venue's eight gigs as buttons (an open one starts
+ *     that gig), with the next venue as a button.
+ *  4. The main button (the only green one: NEXT GIG, a gig that still has
+ *     stars to win, or TRY AGAIN; see `results/resultsPlan`), Home, Retry.
  *
  * Poki requires the standard continue to be the most prominent button and
  * never gated (CLAUDE.md §11.3); there is no rewarded option on this screen.
@@ -25,7 +27,9 @@ import { adManager } from '../systems/AdManager';
 import { applyGigToMission } from '../systems/Missions';
 import {
   currentGig,
+  isGigOpen,
   nextStop,
+  recommendedGig,
   starsToGo,
   venueJustOpened,
   venueStars,
@@ -47,6 +51,7 @@ import { COLOUR } from '../utils/colour';
 import { EASE } from '../utils/tween';
 import { buildResultsBackdrop } from './results/ResultsBackdrop';
 import { buildResultsButtons } from './results/resultsButtons';
+import { planMain } from './results/resultsPlan';
 import {
   CENTRE_X,
   PATH_CENTRE_Y,
@@ -101,6 +106,7 @@ export class ResultsScene extends Phaser.Scene {
       y: SCORE_TOP + SCORE_HEIGHT / 2,
       ribbon: `${venue.name}  ·  GIG ${data.gig + 1}`.toUpperCase(),
       data,
+      bestStars: venueStars(save, data.worldId)[data.gig] ?? 0,
     });
 
     const opened = venueJustOpened(save, WORLD_DEFS, data.newStars);
@@ -126,23 +132,32 @@ export class ResultsScene extends Phaser.Scene {
     const here: TourStop = { venueId: data.worldId, gig: data.gig };
     const onward = passed ? nextStop(save, WORLD_DEFS, data.worldId, data.gig) : null;
     const following = this._followingVenue(data.worldId);
+    const stars = venueStars(save, data.worldId);
+    const recommended = recommendedGig(save, data.worldId);
     const path = createTourPath(this, {
       x: CENTRE_X,
       y: PATH_CENTRE_Y,
       venue,
-      stars: venueStars(save, data.worldId),
+      stars,
+      open: stars.map((_, gig) => isGigOpen(save, data.worldId, gig)),
       played: data.gig,
-      next: onward && onward.venueId === data.worldId ? onward.gig : data.gig,
+      recommended,
+      onPick: (gig) => void this._play({ venueId: data.worldId, gig }),
       following: following ? { venue: following, starsNeeded: starsToGo(save, following) } : null,
       onGo: (target) => void this._play({ venueId: target.id, gig: currentGig(save, target.id) }),
     });
     path.container.setAlpha(START_ALPHA);
 
     buildResultsButtons(this, {
-      passed,
-      onward,
+      plan: planMain({
+        passed,
+        here,
+        onward,
+        stars,
+        recommended,
+        joins: onward ? joinsLine(data.worldId, data.gig, onward) : null,
+      }),
       here,
-      joins: onward ? joinsLine(data.worldId, data.gig, onward) : null,
       onPlay: (stop) => void this._play(stop),
       onHome: () => this._toMenu(),
     });

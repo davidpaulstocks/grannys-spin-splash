@@ -18,8 +18,8 @@ export interface Point {
   readonly y: number;
 }
 
-/** Gun length in the close-up, in screen widths. Was 2.2: "very pixelated" (David); the art is ~1,050 px long. */
-export const CLOSE_LENGTH_SCREENS = 1.1;
+/** Gun length in the close-up, in screen widths. Was 2.2 then 1.1: still "a little bit pixelated" on a big screen (David). */
+export const CLOSE_LENGTH_SCREENS = 0.9;
 /** The gun's length in the hero shot, as a share of the screen's width (two thirds). */
 export const HERO_LENGTH_SHARE = 0.625;
 /** How much of the picture's width the gun itself fills (measured: 0.92 to 0.93 of every gun picture). */
@@ -27,9 +27,9 @@ export const CONTENT_FRACTION = 0.93;
 /** The close-up starts this much further out and pushes in to full size during the pan. */
 export const PAN_ZOOM_FROM = 0.94;
 /** At the start of the pan the gun's left end sits this far (px) inside the screen's left edge. */
-export const PAN_START_INSET_PX = 90;
+export const PAN_START_INSET_PX = 210;
 /** Where the nozzle is shown at the end of the pan, as a share of the screen's width (a little right of centre, so most of the gun is still in view). */
-export const NOZZLE_VIEW_X = 0.56;
+export const NOZZLE_VIEW_X = 0.8;
 /** The hero shot's gun centre (px); the name and tag sit under it. It drifts in by HERO_DRIFT while it holds. */
 export const HERO_CENTRE_Y = 262;
 export const HERO_DRIFT = 0.025;

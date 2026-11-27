@@ -10,7 +10,10 @@ import {
   isVenueOpen,
   nextLockedVenue,
   nextStop,
+  playGig,
+  recommendedGig,
   recordGig,
+  starsLeft,
   starsToGo,
   totalStars,
   venueStars,
@@ -131,5 +134,48 @@ describe('jam unlock', () => {
   it('is per venue', () => {
     const save = recordGig(fresh(), 'garden', GIGS_PER_VENUE - 1, 3, 0).save;
     expect(isJamUnlocked(save, 'workshop')).toBe(false);
+  });
+});
+
+describe('where to go next in a venue', () => {
+  /** A garden whose gigs hold exactly these best stars. */
+  function garden(stars: readonly number[]): SaveData {
+    let save = fresh();
+    stars.forEach((value, gig) => {
+      save = recordGig(save, 'garden', gig, value, 0).save;
+    });
+    return save;
+  }
+
+  it('recommends gig 1 on a fresh save', () => {
+    expect(recommendedGig(fresh(), 'garden')).toBe(0);
+  });
+
+  it('recommends the next gig up the ladder while there is one', () => {
+    expect(recommendedGig(garden([3, 3, 1]), 'garden')).toBe(3);
+    expect(recommendedGig(garden([1]), 'garden')).toBe(1);
+  });
+
+  it('recommends the open gig with fewest stars once all are passed, lowest index on a tie', () => {
+    expect(recommendedGig(garden([3, 2, 3, 3, 3, 3, 3, 3]), 'garden')).toBe(1);
+    expect(recommendedGig(garden([2, 3, 1, 3, 1, 3, 3, 3]), 'garden')).toBe(2);
+    expect(recommendedGig(garden([2, 2, 2, 2, 2, 2, 2, 2]), 'garden')).toBe(0);
+  });
+
+  it('recommends nothing when every gig has three stars', () => {
+    const save = garden(Array(GIGS_PER_VENUE).fill(3));
+    expect(recommendedGig(save, 'garden')).toBeNull();
+    expect(playGig(save, 'garden')).toBe(GIGS_PER_VENUE - 1);
+  });
+
+  it('plays the recommended gig by default', () => {
+    expect(playGig(garden([3, 1]), 'garden')).toBe(2);
+  });
+
+  it('counts the stars left on a gig', () => {
+    const save = garden([3, 1]);
+    expect(starsLeft(save, 'garden', 0)).toBe(0);
+    expect(starsLeft(save, 'garden', 1)).toBe(2);
+    expect(starsLeft(save, 'garden', 2)).toBe(3);
   });
 });

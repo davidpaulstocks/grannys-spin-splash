@@ -90,7 +90,18 @@ export const AIM_MAGNET_MARGIN = 28;
  * reachable without the hand travelling the whole way. 1 turns it off. Touch
  * is always 1:1 (a finger must hit what it touches).
  */
-export const AIM_REACH_GAIN = 1.3;
+export const AIM_REACH_GAIN = 1.15;
+/**
+ * The aim cannot leave the band (2026-11-27). Owner, watching children on a
+ * trackpad: "they often end up pushing a bit too high". The aim point is
+ * clamped into the box around the instruments' centres, grown by this
+ * fraction of an instrument's radius, so an overshoot lands on the top row
+ * (or the outer column) instead of empty sky. The reach boost was lowered
+ * from 1.3 to 1.15 with it: the clamp now absorbs the overshoot, and a big
+ * boost only made small hand movements sloppy for little fingers while the
+ * top row was already within reach.
+ */
+export const AIM_BOX_GROW = 0.5;
 /** Extra px around a power-up pickup within which aim goes to the pickup instead of the magnet. */
 export const AIM_PICKUP_MARGIN = 16;
 /** How close a water particle must pass to collect a power-up pickup, px (mirrors PowerUp.ts). */
@@ -102,8 +113,20 @@ export const AIM_RING_POP_MS = 100;
 /** The ring starts this much larger than its final size when it lands on a new target. */
 export const AIM_RING_POP_FROM = 1.4;
 /** Reticle at the free aim point (mouse and touch; hidden while snapped): radius and stroke, px. */
-export const AIM_RETICLE_RADIUS = 7;
+export const AIM_RETICLE_RADIUS = 11;
 export const AIM_RETICLE_STROKE = 3;
+/** The Ink outline around the reticle's Cloud ring, and the centre dot's radius, px. */
+export const AIM_RETICLE_OUTLINE = 3;
+export const AIM_RETICLE_DOT_RADIUS = 3;
+/** Where free-aimed water lands is splashed this often while it flows (ms), so a child sees where it is going. */
+export const AIM_LANDING_SPLASH_MS = 130;
+/** The landing pulse ring: start radius, how far it grows (x), its stroke and how long it lasts (ms). */
+export const AIM_LANDING_RING_RADIUS = 12;
+export const AIM_LANDING_RING_GROWTH = 2.6;
+export const AIM_LANDING_RING_STROKE = 4;
+export const AIM_LANDING_RING_MS = 320;
+/** Depth of the reticle: above the wall, below floating text. */
+export const AIM_RETICLE_DEPTH = 160;
 
 /** Granny's on-screen size (CLAUDE.md §8.1 sprite art, wired Sprint 3). */
 export const GRANNY_WIDTH = 96;

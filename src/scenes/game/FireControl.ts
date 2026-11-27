@@ -8,6 +8,7 @@ import type Phaser from 'phaser';
 
 import { waterSound } from '../../audio/WaterSound';
 import {
+  AIM_BOX_GROW,
   AIM_CAPTURE_EXTRA,
   AIM_CAPTURE_SCALE,
   AIM_MAGNET_MARGIN,
@@ -15,8 +16,6 @@ import {
   AIM_PICKUP_RADIUS,
   AIM_REACH_GAIN,
   AIM_REACH_PIVOT,
-  AIM_RETICLE_RADIUS,
-  AIM_RETICLE_STROKE,
   AIM_RING_PADDING,
   AIM_RING_POP_FROM,
   AIM_RING_POP_MS,
@@ -37,7 +36,8 @@ import { COLOUR, COLOUR_HEX } from '../../utils/colour';
 import type { AimResult } from '../../types/input';
 import { distance, resolveMagneticAim, scaleAboutPivot } from '../../utils/math';
 import { pickVisitorLock } from '../../utils/shotLock';
-import { resolveSoftAim } from '../../utils/softAim';
+import { aimBox, clampToBox, resolveSoftAim } from '../../utils/softAim';
+import { FreeAimMarker } from './FreeAimMarker';
 import type { PowerUpEffects } from './PowerUpEffects';
 
 /** What the firing line reads from the rest of the scene. */
@@ -78,8 +78,10 @@ export interface FireControlDeps {
 export class FireControl {
   /** One ring, moved between targets. */
   private readonly _ring: Phaser.GameObjects.Arc;
-  /** Dot where free-aimed water will land (mouse and touch); hidden while snapped or on a visitor. */
-  private readonly _reticle: Phaser.GameObjects.Arc;
+  /** Reticle and landing splash where free-aimed water ends; hidden while snapped or on a visitor. */
+  private readonly _marker: FreeAimMarker;
+  /** True for the frame the aim is on bare wall: not snapped to an instrument and not on a visitor. */
+  private _free = false;
   private _targetId: number | null = null;
   /** True for the frame the aim sits on a visitor. */
   private _visitorLock = false;
@@ -90,10 +92,7 @@ export class FireControl {
       .circle(0, 0, 1, COLOUR.mintGreen, 0)
       .setStrokeStyle(AIM_RING_STROKE, COLOUR.mintGreen)
       .setVisible(false);
-    this._reticle = _d.scene.add
-      .circle(0, 0, AIM_RETICLE_RADIUS, COLOUR.cloud)
-      .setStrokeStyle(AIM_RETICLE_STROKE, COLOUR.ink)
-      .setVisible(false);
+    this._marker = new FreeAimMarker(_d.scene);
   }
 
   /** Puts a different gun in her hands (Jam's gun button): the sprite, the cannon behind it and the gun's numbers. */
@@ -113,6 +112,7 @@ export class FireControl {
    */
   update(time: number, started: boolean, introPlaying: boolean): void {
     const d = this._d;
+    const input = d.input;
     const aim = this._updateAim();
     const grip = d.granny.getGunGripOrigin();
     d.gunSprite.updateAim(grip.x, grip.y, aim.x, aim.y);
@@ -131,9 +131,10 @@ export class FireControl {
     // out of reach (direct user feedback: "I seem to be nowhere near getting
     // a splash frenzy going... it feels like I don't have the power").
     //
-    // Still gated on `started` (GO of the count-in, see CountIn.ts), and on
-    // Space not having switched it off (the accessibility toggle).
-    const firing = !introPlaying && started && d.input.isFiring();
+    // Still gated on `started` (GO of the count-in, see CountIn.ts). There is
+    // no off switch: Space used to toggle the jet and children kept pressing
+    // it by accident (owner, 2026-11-27), so the water is always on.
+    const firing = !introPlaying && started;
     d.granny.setFiring(firing);
     d.cannon.update(time, {
       firing,
@@ -149,12 +150,9 @@ export class FireControl {
     // The hiss of the jet: on only while water is actually leaving the gun.
     waterSound.setFiring(firing && !d.cannon.isPumping && d.cannon.tank > 0);
     this._onPumpEvent(d.cannon.updatePump(time));
-    d.jet.update(
-      time,
-      d.gunSprite.getNozzleWorldPosition(),
-      firing && !d.cannon.isPumping && d.cannon.tank > 0,
-      d.gun,
-    );
+    const flowing = firing && !d.cannon.isPumping && d.cannon.tank > 0;
+    d.jet.update(time, d.gunSprite.getNozzleWorldPosition(), flowing, d.gun);
+    this._marker.update(time, aim, this._free && input.hasAimed(), flowing, d.gun);
   }
 
   /**
@@ -166,7 +164,7 @@ export class FireControl {
    * only inside an instrument's capture radius does it snap to its centre
    * with the ring. A visitor or pickup under the pointer takes it first.
    * Before the pointer has moved it starts on the instrument nearest the
-   * wall's bottom-centre. Also moves the ring and the free-aim reticle.
+   * wall's bottom-centre. Also moves the ring; the free point is marked by FreeAimMarker.
    */
   private _updateAim(): AimResult {
     const d = this._d;
@@ -183,7 +181,7 @@ export class FireControl {
     if (visitor) {
       // Dead-centre on the visitor, whatever the instruments in between.
       this._showRing(null);
-      this._reticle.setVisible(false);
+      this._free = false;
       return { x: visitor.x, y: visitor.y, target: null, snapped: false };
     }
     const onPickup = (d.pickupPoints?.() ?? []).some(
@@ -205,8 +203,10 @@ export class FireControl {
         y: s.y,
         r: s.def.r * s.scaleX,
       }));
+      // The aim cannot leave the band: an overshoot lands on the top row, not in the sky.
+      const inBand = clampToBox(point, aimBox(targets, AIM_BOX_GROW));
       aim = resolveSoftAim(
-        point,
+        inBand,
         targets,
         this._targetId,
         AIM_CAPTURE_SCALE,
@@ -215,7 +215,7 @@ export class FireControl {
       );
     }
     this._showRing(aim.target ? (spinners.find((s) => s.id === aim.target?.id) ?? null) : null);
-    this._reticle.setVisible(!aim.snapped && aimed).setPosition(aim.x, aim.y);
+    this._free = !aim.snapped;
     return aim;
   }
 

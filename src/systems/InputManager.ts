@@ -49,8 +49,6 @@ export class InputManager extends EventEmitter {
   private _hasAimed = false;
   /** Whether the latest aim input was a finger — decides if the mouse reach assist applies. */
   private _lastWasTouch: boolean;
-  /** The water fires by itself from the start of a gig; Space switches it off and on (§6.2, accessibility). */
-  private _firing = true;
   private _hasFiredFirstInput = false;
   /**
    * Pointer ids held down on an on-screen control (the pause button). The
@@ -86,11 +84,9 @@ export class InputManager extends EventEmitter {
       down: kb.addKey(Keys.DOWN),
     };
 
-    this._keys.space.on('down', () => {
-      // The press that is the player's first input only starts the gig; it must not also switch the water off.
-      if (this._hasFiredFirstInput) this._firing = !this._firing;
-      this._registerFirstInput();
-    });
+    // Space is "any key" for TAP TO START and nothing else: the on/off toggle was removed
+    // (2026-11-27, children pressed it by accident and the water stopped).
+    this._keys.space.on('down', () => this._registerFirstInput());
     this._keys.esc.on('down', () => this.emit('pause'));
     for (const key of [this._keys.left, this._keys.right, this._keys.a, this._keys.d]) {
       key.on('down', () => this._registerFirstInput());
@@ -179,11 +175,6 @@ export class InputManager extends EventEmitter {
   /** True once a pointer or finger has moved or touched down; before that the scene aims by default. */
   hasAimed(): boolean {
     return this._hasAimed;
-  }
-
-  /** True while the gun should be firing: always, unless Space has switched it off. Holding or clicking does nothing extra. */
-  isFiring(): boolean {
-    return this._firing;
   }
 
   /** Detaches every listener — call from the owning scene's shutdown handler. */

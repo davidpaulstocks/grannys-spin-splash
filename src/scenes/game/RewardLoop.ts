@@ -16,15 +16,18 @@ import { SpinnerState } from '../../entities/spinner/spinner.types';
 import { THIEF } from '../../entities/visitor/visitorTuning.data';
 import { starTargets, type GigDef } from '../../entities/world/gigs.data';
 import { Groove } from '../../systems/Groove';
-import { spawnFloatingText } from '../../ui/FloatingText';
 import { SCORE_COIN_X, SCORE_COIN_Y } from '../../ui/ScoreBar';
 import { CoinFountain, COIN_TRAVEL_MS } from './CoinFountain';
 import { GigScore, payFor, type StarTargets } from './GigScore';
+import { showStageBanner } from './stageMessages';
+import { STAGE_PRIORITY } from './stageRules';
 
 /** A spinner that falls out of full speed this soon after the first squirt is not the player's doing. */
 const DROP_OUT_GRACE_MS = 1000;
 /** After Splash Frenzy ends the whole band winds down together; that is the party ending, not a mistake. */
 const AFTER_FRENZY_GRACE_MS = 2500;
+/** How long a "TWO STARS!" call-out stays on the stage once it has landed, ms. */
+const STAR_CALLOUT_HOLD_MS = 700;
 /** A visitor's coins fly as full-speed coins. */
 const COIN_BURST_PAY = 4;
 
@@ -51,7 +54,13 @@ export class RewardLoop {
   constructor(private readonly _d: RewardLoopDeps) {
     const targets: StarTargets = starTargets(_d.gig);
     this._score = new GigScore(
-      (x, y, message, colourHex) => spawnFloatingText(_d.scene, x, y, message, colourHex),
+      // The star call-out is a stage message, so it never overprints Frenzy or the finish.
+      (_x, _y, message, colourHex) =>
+        showStageBanner(_d.scene, STAGE_PRIORITY.star, message, {
+          holdMs: STAR_CALLOUT_HOLD_MS,
+          fillHex: colourHex,
+          small: true,
+        }),
       targets,
     );
     this._fountain = new CoinFountain(_d.scene);

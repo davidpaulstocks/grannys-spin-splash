@@ -8,6 +8,19 @@
  * A ribbon sits astride the top edge of a panel, half a ribbon above it.
  */
 
+import { GIGS_PER_VENUE } from '../../entities/world/gigs.data';
+import { gigButtonExtent } from '../../ui/gigButtonLayout';
+import {
+  PATH_GIG_DIAMETER,
+  PATH_GIG_Y,
+  PATH_TILE_CLEARANCE,
+  PATH_TILE_FACE_Y,
+  PATH_TILE_WIDTH,
+  PATH_TILE_X,
+  pathGigX,
+  TOUR_PATH_HEIGHT,
+} from '../../ui/tourPathLayout';
+
 /** The logical canvas (the same as `GAME_WIDTH` x `GAME_HEIGHT` in config.ts, which cannot be imported without Phaser). */
 const CANVAS_WIDTH = 1280;
 const CANVAS_HEIGHT = 720;
@@ -32,7 +45,7 @@ export const SLOT_TOP = SCORE_BOTTOM + MIN_GAP + 4 + RIBBON_RISE;
 export const SLOT_CENTRE_Y = SLOT_TOP + SLOT_HEIGHT / 2;
 export const SLOT_BOTTOM = SLOT_TOP + SLOT_HEIGHT;
 
-export const PATH_HEIGHT = 104;
+export const PATH_HEIGHT = TOUR_PATH_HEIGHT;
 export const PATH_TOP = SLOT_BOTTOM + MIN_GAP + 4;
 export const PATH_CENTRE_Y = PATH_TOP + PATH_HEIGHT / 2;
 export const PATH_BOTTOM = PATH_TOP + PATH_HEIGHT;
@@ -105,3 +118,68 @@ export const COLUMN_BOXES: readonly LayoutBox[] = [
   box('joins line', CENTRE_X, JOINS_TOP, JOINS_MAX_WIDTH, JOINS_HEIGHT),
   box('main button', CENTRE_X, MAIN_TOP, MAIN_MIN_WIDTH, MAIN_BOTTOM - MAIN_TOP),
 ];
+
+/** The panel's outline is 5 px, centred on its edge; nothing but a ribbon may cross it. */
+export const PANEL_INNER_INSET = 3;
+/** A gig button's pointer, ring and stars reach this far from its disc (`gigButtonExtent`). */
+export const PATH_GIG_EXTENT = gigButtonExtent(PATH_GIG_DIAMETER);
+
+/** The path card's centre, as an absolute position: gig buttons are positioned relative to it. */
+function pathBox(
+  name: string,
+  cx: number,
+  top: number,
+  right: number,
+  bottom: number,
+  left: number,
+): LayoutBox {
+  return {
+    name,
+    left: cx + left,
+    top: PATH_CENTRE_Y + top,
+    right: cx + right,
+    bottom: PATH_CENTRE_Y + bottom,
+  };
+}
+
+/** The eight gig discs (lip and shadow included below), as boxes on the canvas, for the layout test. */
+export function pathDiscBoxes(withTile: boolean): readonly LayoutBox[] {
+  const r = PATH_GIG_DIAMETER / 2;
+  return Array.from({ length: GIGS_PER_VENUE }, (_, i) => {
+    const x = pathGigX(i, withTile);
+    return pathBox(`gig ${i + 1}`, CENTRE_X, PATH_GIG_Y - r, x + r, PATH_GIG_Y + r, x - r);
+  });
+}
+
+/** Everything one gig draws (pointer, ring, stars), as boxes on the canvas. */
+export function pathExtentBoxes(withTile: boolean): readonly LayoutBox[] {
+  return Array.from({ length: GIGS_PER_VENUE }, (_, i) => {
+    const x = pathGigX(i, withTile);
+    return pathBox(
+      `gig ${i + 1} reach`,
+      CENTRE_X,
+      PATH_GIG_Y + PATH_GIG_EXTENT.top,
+      x + PATH_GIG_EXTENT.halfWidth,
+      PATH_GIG_Y + PATH_GIG_EXTENT.bottom,
+      x - PATH_GIG_EXTENT.halfWidth,
+    );
+  });
+}
+
+/** The next-venue tile (face, lip and shadow) as a box on the canvas. */
+export function pathTileBox(): LayoutBox {
+  const half = PATH_TILE_WIDTH / 2;
+  const lipReach = 6 + 4;
+  const faceHalfHeight = 37;
+  return pathBox(
+    'next-venue tile',
+    CENTRE_X,
+    PATH_TILE_FACE_Y - faceHalfHeight,
+    PATH_TILE_X + half,
+    PATH_TILE_FACE_Y + faceHalfHeight + lipReach,
+    PATH_TILE_X - half,
+  );
+}
+
+/** Minimum air between the last gig's reach and the tile. */
+export const PATH_TILE_MIN_GAP = PATH_TILE_CLEARANCE;

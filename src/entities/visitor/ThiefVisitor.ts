@@ -10,6 +10,7 @@ import Phaser from 'phaser';
 
 import type { Spinner } from '../spinner/Spinner';
 import type { WaterParticle } from '../waterParticle/WaterParticle';
+import { boxesOverlap, getStageBounds } from '../../ui/stageBounds';
 import { COLOUR_HEX } from '../../utils/colour';
 import { textStyle } from '../../utils/typography';
 import { drawSitterShadow } from './sitterShadow';
@@ -18,6 +19,10 @@ import type { VisitorHit } from './visitor.types';
 import { Visitor, type VisitorSpec } from './Visitor';
 
 const { Quadratic } = Phaser.Math.Easing;
+
+/** The loot number's size and opacity while it would sit on a big message. */
+const LOOT_YIELD_SCALE = 0.6;
+const LOOT_YIELD_ALPHA = 0.5;
 
 /** What the director hands a thief when it is sent out. */
 export interface ThiefSpec extends Omit<VisitorSpec, 'y' | 'widthPx'> {
@@ -133,6 +138,7 @@ export class ThiefVisitor extends Visitor {
       if (t >= 1) this._land();
     } else if (this._phase === 'active') {
       this.setPosition(host.x, perchY + Math.sin(time * M.perchSwayRadPerMs) * M.perchSwayPx);
+      this._yieldToStage();
       this._stealMs += dt * 1000;
       while (this._stealMs >= THIEF.tickMs) {
         this._stealMs -= THIEF.tickMs;
@@ -142,6 +148,15 @@ export class ThiefVisitor extends Visitor {
     } else {
       this._stepLeaving(dt);
     }
+  }
+
+  /** While a big message is on the wall's stage and the loot number would sit on it, the number shrinks and dims. */
+  private _yieldToStage(): void {
+    const label = this._lootLabel;
+    const stage = getStageBounds();
+    const over = stage !== null && label.visible && boxesOverlap(label.getBounds(), stage);
+    label.setAlpha(over ? LOOT_YIELD_ALPHA : 1);
+    if (!this.scene.tweens.isTweening(label)) label.setScale(over ? LOOT_YIELD_SCALE : 1);
   }
 
   private _land(): void {

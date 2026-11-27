@@ -1,20 +1,33 @@
 /**
- * The home screen's card for the next gig: venue name, a row of dots
- * showing where in the venue's eight gigs the player is, who joins the band
- * for this gig, and Granny's current request along the bottom.
+ * The home screen's card for the selected gig: venue name, a row of eight gig
+ * buttons to pick from (`GigPicker`), a caption with the gig's number and the
+ * stars still to win, who joins the band at this gig, and Granny's current
+ * request along the bottom.
  */
 
 import type Phaser from 'phaser';
 
 import { musiciansJoining } from '../audio/scores';
-import { gigFor, GIGS_PER_VENUE } from '../entities/world/gigs.data';
+import { gigFor } from '../entities/world/gigs.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { currentMission } from '../systems/Missions';
 import { venueStars } from '../systems/Progress';
 import { saveManager } from '../systems/SaveManager';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
+import { COLOUR_HEX } from '../utils/colour';
 import { textStyle } from '../utils/typography';
+import {
+  CAPTION_OFFSET_Y,
+  CARD_TEXT_MARGIN,
+  GIG_CARD_HEIGHT,
+  GIG_CARD_WIDTH,
+  GIG_ROW_OFFSET_Y,
+  NAME_OFFSET_Y,
+  NEW_LABEL_OFFSET_Y,
+  NEW_NAMES_OFFSET_Y,
+} from './gigCardLayout';
+import { gigTitle, starsToWinLine } from './gigLines';
 import { createGigMissionBand } from './GigMissionBand';
+import { createGigPicker } from './GigPicker';
 import { createPanel } from './Panel';
 
 export interface GigCardConfig {
@@ -23,31 +36,15 @@ export interface GigCardConfig {
   readonly y: number;
   readonly venueId: string;
   readonly venueName: string;
-  /** Zero-based gig within the venue. */
+  /** Zero-based gig selected within the venue; PLAY starts this one. */
   readonly gig: number;
+  /** `recommendedGig` for the venue, or null when it is complete. */
+  readonly recommended: number | null;
+  /** An open gig button was tapped. */
+  readonly onSelect: (gig: number) => void;
 }
 
-/**
- * Composition, top to bottom, all centred on the card: the ribbon, the venue
- * name, the dots, a one-line caption, the band's new musicians, and the
- * mission band along the card's bottom edge.
- */
-export const GIG_CARD_WIDTH = 480;
-export const GIG_CARD_HEIGHT = 336;
-const RIBBON_LABEL = 'NEXT GIG';
-const NAME_OFFSET_Y = -116;
-const DOTS_OFFSET_Y = -62;
-const CAPTION_OFFSET_Y = -26;
-const NEW_LABEL_OFFSET_Y = 14;
-const NEW_NAMES_OFFSET_Y = 44;
-const NEW_NAMES_MARGIN = 28;
-
-const DOT_RADIUS = 13;
-const CURRENT_DOT_RADIUS = 16;
-const DOT_SPACING = 44;
-const DOT_OUTLINE_PX = 3;
-const FUTURE_DOT = 0xd8d4c6;
-const FUTURE_DOT_OUTLINE_ALPHA = 0.4;
+const CAPTION_MAX_WIDTH = GIG_CARD_WIDTH - CARD_TEXT_MARGIN * 2;
 
 /** Builds the card and returns everything it made, background first. */
 export function createGigCard(
@@ -61,7 +58,7 @@ export function createGigCard(
     y,
     width: GIG_CARD_WIDTH,
     height: GIG_CARD_HEIGHT,
-    ribbon: RIBBON_LABEL,
+    ribbon: config.gig === config.recommended ? 'NEXT GIG' : `GIG ${gig + 1}`,
     alpha: 0.96,
   });
 
@@ -76,18 +73,27 @@ export function createGigCard(
       .setOrigin(0.5),
   );
 
-  parts.push(buildDots(scene, x, y + DOTS_OFFSET_Y, venueStars(save, venueId), gig));
-  const isFinale = gig === GIGS_PER_VENUE - 1;
   parts.push(
-    scene.add
-      .text(
-        x,
-        y + CAPTION_OFFSET_Y,
-        isFinale ? 'The Grand Concert' : `Gig ${gig + 1} of ${GIGS_PER_VENUE}`,
-        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
-      )
-      .setOrigin(0.5),
+    ...createGigPicker(scene, {
+      x,
+      y: y + GIG_ROW_OFFSET_Y,
+      save,
+      venueId,
+      selected: gig,
+      recommended: config.recommended,
+      onSelect: config.onSelect,
+    }),
   );
+  const caption = scene.add
+    .text(
+      x,
+      y + CAPTION_OFFSET_Y,
+      `${gigTitle(gig)}  ·  ${starsToWinLine(venueStars(save, venueId)[gig] ?? 0)}`,
+      textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
+    )
+    .setOrigin(0.5);
+  if (caption.width > CAPTION_MAX_WIDTH) caption.setScale(CAPTION_MAX_WIDTH / caption.width);
+  parts.push(caption);
 
   parts.push(...buildNewMusicians(scene, x, y, venueId, gig));
 
@@ -102,30 +108,6 @@ export function createGigCard(
     }),
   );
   return parts;
-}
-
-/** One dot per gig: gold if passed, pink and larger if current, pale if still ahead. */
-function buildDots(
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-  stars: readonly number[],
-  current: number,
-): Phaser.GameObjects.Graphics {
-  const dots = scene.add.graphics();
-  for (let i = 0; i < GIGS_PER_VENUE; i++) {
-    const dotX = x + (i - (GIGS_PER_VENUE - 1) / 2) * DOT_SPACING;
-    const isCurrent = i === current;
-    const passed = (stars[i] ?? 0) > 0;
-    const fill = isCurrent ? COLOUR.grannyPink : passed ? COLOUR.sunnyGold : FUTURE_DOT;
-    const outlineAlpha = isCurrent || passed ? 1 : FUTURE_DOT_OUTLINE_ALPHA;
-    const radius = isCurrent ? CURRENT_DOT_RADIUS : DOT_RADIUS;
-    dots.fillStyle(fill, 1);
-    dots.fillCircle(dotX, y, radius);
-    dots.lineStyle(DOT_OUTLINE_PX, COLOUR.ink, outlineAlpha);
-    dots.strokeCircle(dotX, y, radius);
-  }
-  return dots;
 }
 
 /** Who is new to the band for this gig; nothing when nobody is. */
@@ -152,11 +134,14 @@ function buildNewMusicians(
     )
     .setOrigin(0.5);
   const names = scene.add
-    .text(x, y + NEW_NAMES_OFFSET_Y, joining.join('  ·  '), {
-      ...textStyle('bodyL', COLOUR_HEX.grannyPink, COLOUR_HEX.cloud),
-      align: 'center',
-      wordWrap: { width: GIG_CARD_WIDTH - NEW_NAMES_MARGIN * 2 },
-    })
+    .text(
+      x,
+      y + NEW_NAMES_OFFSET_Y,
+      joining.join('  ·  '),
+      textStyle('bodyL', COLOUR_HEX.grannyPink, COLOUR_HEX.cloud),
+    )
     .setOrigin(0.5, 0);
+  // One line, shrunk to fit: a second line would run into the request band below.
+  if (names.width > CAPTION_MAX_WIDTH) names.setScale(CAPTION_MAX_WIDTH / names.width);
   return [label, names];
 }

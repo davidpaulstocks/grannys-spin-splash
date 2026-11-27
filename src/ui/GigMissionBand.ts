@@ -11,6 +11,7 @@ import type Phaser from 'phaser';
 import type { MissionDef } from '../systems/Missions';
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { textStyle } from '../utils/typography';
+import { MISSION_BAND_HEIGHT } from './gigCardLayout';
 import { drawCoinIcon } from './icons';
 import { PANEL_OUTLINE_PX, PANEL_RADIUS } from './Panel';
 
@@ -24,7 +25,7 @@ export interface GigMissionBandConfig {
   readonly progress: number;
 }
 
-const BAND_HEIGHT = 64;
+const BAND_HEIGHT = MISSION_BAND_HEIGHT;
 /** Keeps the tint inside the card's outline. */
 const BAND_INSET = Math.ceil(PANEL_OUTLINE_PX / 2);
 const BAND_TINT_ALPHA = 0.22;

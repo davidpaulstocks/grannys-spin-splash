@@ -13,7 +13,7 @@ import { SpinnerState } from '../../entities/spinner/spinner.types';
 import { COLOUR_HEX } from '../../utils/colour';
 
 /** Draws a transient "+N" style label at a world position — GameScene binds this to `spawnFloatingText`. */
-export type FloatTextFn = (x: number, y: number, message: string, colourHex: string) => void;
+export type FloatTextFn = (x: number, y: number, message: string, colourHex: string) => unknown;
 
 /** The coin totals that earn one, two and three stars (`starTargets` in gigs.data.ts). */
 export type StarTargets = readonly [number, number, number];

@@ -17,6 +17,16 @@ import {
   MAIN_MIN_WIDTH,
   CENTRE_X,
 } from '../../src/scenes/results/resultsLayout';
+import {
+  PANEL_INNER_INSET,
+  PATH_BOTTOM,
+  PATH_TOP,
+  pathDiscBoxes,
+  pathExtentBoxes,
+  pathTileBox,
+  PATH_TILE_MIN_GAP,
+} from '../../src/scenes/results/resultsLayout';
+import { PATH_GIG_DIAMETER, PATH_GIG_GAP } from '../../src/ui/tourPathLayout';
 import { coinsToNextStar, nextStarLine } from '../../src/ui/resultsLines';
 
 describe('results layout', () => {
@@ -47,6 +57,44 @@ describe('results layout', () => {
     expect(columnLeft).toBeGreaterThan(PILL_X + PILL_WIDTH / 2 + MIN_GAP);
     expect(PILL_X - PILL_WIDTH / 2).toBeGreaterThanOrEqual(SCREEN_MARGIN);
     expect(PILL_Y - PILL_HEIGHT / 2).toBeGreaterThanOrEqual(SCREEN_MARGIN);
+  });
+});
+
+describe('tour path gig buttons', () => {
+  const left = CENTRE_X - 380;
+  const right = CENTRE_X + 380;
+
+  it.each([true, false])('fit the card with the next-venue tile = %s', (withTile) => {
+    for (const b of pathExtentBoxes(withTile)) {
+      expect(b.top, b.name).toBeGreaterThanOrEqual(PATH_TOP + PANEL_INNER_INSET);
+      expect(b.bottom, b.name).toBeLessThanOrEqual(PATH_BOTTOM - PANEL_INNER_INSET);
+      expect(b.left, b.name).toBeGreaterThanOrEqual(left + PANEL_INNER_INSET);
+      expect(b.right, b.name).toBeLessThanOrEqual(right - PANEL_INNER_INSET);
+    }
+  });
+
+  it('are at least 56 across with 8 px between neighbours', () => {
+    expect(PATH_GIG_DIAMETER).toBeGreaterThanOrEqual(56);
+    expect(PATH_GIG_GAP).toBeGreaterThanOrEqual(8);
+    for (const withTile of [true, false]) {
+      const discs = pathDiscBoxes(withTile);
+      for (let i = 1; i < discs.length; i++) {
+        const a = discs[i - 1];
+        const b = discs[i];
+        if (!a || !b) throw new Error('missing disc');
+        expect(b.left - a.right).toBeGreaterThanOrEqual(8);
+      }
+    }
+  });
+
+  it('leave clear air before the next-venue tile', () => {
+    const last = pathExtentBoxes(true).at(-1);
+    if (!last) throw new Error('missing gig');
+    expect(pathTileBox().left - last.right).toBeGreaterThanOrEqual(PATH_TILE_MIN_GAP);
+    const tile = pathTileBox();
+    expect(tile.top).toBeGreaterThanOrEqual(PATH_TOP + PANEL_INNER_INSET);
+    expect(tile.bottom).toBeLessThanOrEqual(PATH_BOTTOM - PANEL_INNER_INSET);
+    expect(tile.right).toBeLessThanOrEqual(right - PANEL_INNER_INSET);
   });
 });
 

@@ -46,6 +46,7 @@ import { COLOUR_HEX } from '../utils/colour';
 import { bankGig } from './game/bankGig';
 import { buildHudData } from './game/hudSnapshot';
 import { BigFinish } from './game/BigFinish';
+import { stageFor } from './game/BigMessageStage';
 import { CountIn } from './game/CountIn';
 import { CountdownUrgency } from './game/CountdownUrgency';
 import { bindPauseHandlers } from './game/pauseHandlers';
@@ -425,6 +426,8 @@ export class GameScene extends Phaser.Scene {
    */
   private _endRound(): void {
     this._roundOver = true;
+    // Everything from the gig leaves the stage at once; only the finish and its verdict may speak.
+    stageFor(this).closeForFinish();
     this._frenzy.cutShort();
     this._quietWater();
     poki.gameplayStop();

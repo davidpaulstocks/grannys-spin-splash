@@ -23,9 +23,10 @@ export function showBanner(
   y: number,
   text: string,
   fillHex: string = COLOUR_HEX.sunnyGold,
+  tier: 'displayXL' | 'displayL' = 'displayXL',
 ): Phaser.GameObjects.Text {
   const banner = scene.add
-    .text(x, y, text, textStyle('displayXL', fillHex, COLOUR_HEX.ink))
+    .text(x, y, text, textStyle(tier, fillHex, COLOUR_HEX.ink))
     .setOrigin(0.5)
     .setScale(ENTRANCE_START_SCALE)
     .setAlpha(0);
@@ -42,30 +43,13 @@ export function showBanner(
   return banner;
 }
 
-/** Fades a banner out and destroys it. */
-export function hideBanner(scene: Phaser.Scene, banner: Phaser.GameObjects.Text): void {
-  scene.tweens.add({
-    targets: banner,
-    alpha: 0,
-    duration: DURATION.stateChange,
-    onComplete: () => banner.destroy(),
-  });
-}
-
 /**
- * The full SPLASH FRENZY entrance: banner + camera shake + a full-screen
- * flash (prototype: `shake(500, 0.012)` plus a white flash rect). Bundled
- * here rather than left to GameScene, since "how a Frenzy moment presents
- * itself" is a UI/celebration concern, not scene orchestration.
+ * The SPLASH FRENZY entrance apart from its words: camera shake + a
+ * full-screen flash (prototype: `shake(500, 0.012)` plus a white flash rect).
+ * The banner itself goes through the stage (`game/stageMessages.ts`) so it
+ * never overprints another big message.
  */
-export function playFrenzyCelebration(
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-  text: string,
-): Phaser.GameObjects.Text {
-  const banner = showBanner(scene, x, y, text);
-
+export function playFrenzyImpact(scene: Phaser.Scene): void {
   scene.cameras.main.shake(FRENZY_SHAKE_DURATION_MS, FRENZY_SHAKE_INTENSITY);
 
   const flash = scene.add
@@ -79,6 +63,4 @@ export function playFrenzyCelebration(
     ease: EASE.standardOut,
     onComplete: () => flash.destroy(),
   });
-
-  return banner;
 }

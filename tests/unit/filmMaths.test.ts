@@ -114,7 +114,7 @@ describe('filmPose', () => {
       const n = screenPointOf(p, g.nozzle);
       expect(n.x).toBeCloseTo(SCREEN.w * NOZZLE_VIEW_X, 3);
       expect(n.y).toBeCloseTo(SCREEN.h / 2, 3);
-      expect(n.x).toBeLessThan(SCREEN.w * 0.7);
+      expect(n.x).toBeLessThan(SCREEN.w * 0.85);
     }
   });
 

@@ -21,6 +21,8 @@ import { createButton } from '../../ui/Button';
 import { COLOUR_HEX } from '../../utils/colour';
 import { DURATION, EASE } from '../../utils/tween';
 import { textStyle } from '../../utils/typography';
+import { stageFor, textBox, visualOf, type StageVisual } from './BigMessageStage';
+import { STAGE_PRIORITY } from './stageRules';
 import { COUNT_IN_DELAY_MS, COUNT_LABELS, GO_INDEX, beatMs, countInOffsets } from './countInTiming';
 
 /** Centre of the wall, where the numbers and the tap button sit. */
@@ -146,6 +148,14 @@ export class CountIn {
   private _showWord(word: string, isGo: boolean): void {
     const scene = this._d.scene;
     this._label?.destroy();
+    // The count is a stage message (count-in priority), so nothing else is printed over it.
+    stageFor(scene).show(STAGE_PRIORITY.countIn, 'replace', (done) =>
+      this._presentWord(word, isGo, done),
+    );
+  }
+
+  private _presentWord(word: string, isGo: boolean, done: () => void): StageVisual {
+    const scene = this._d.scene;
     const style = textStyle(
       'displayXL',
       isGo ? COLOUR_HEX.sunnyGold : COLOUR_HEX.cloud,
@@ -177,8 +187,10 @@ export class CountIn {
       onComplete: () => {
         if (this._label === label) this._label = null;
         label.destroy();
+        done();
       },
     });
+    return visualOf(scene, [label], textBox(label, CENTRE_X, CENTRE_Y));
   }
 
   private _showTapButton(): void {

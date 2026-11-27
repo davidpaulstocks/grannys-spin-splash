@@ -130,7 +130,8 @@ export function createSavingForStrip(
   fitWidth(name, NAME_MAX_WIDTH);
   const gun =
     reward.kind === 'granny' ? undefined : GUN_LADDER_DEFS.find((g) => g.id === reward.id);
-  if (gun) {
+  // Affordable: the perk line moves up to make room for GET IT, so POWER (shown big in the reveal) gives way.
+  if (gun && !reward.canAfford) {
     parts.push(
       scene.add
         .text(
@@ -152,6 +153,8 @@ export function createSavingForStrip(
     .setOrigin(0.5)
     .setAlign('center');
   wrapFit(perk, PERK_MAX_WIDTH, PERK_MAX_HEIGHT);
+  // Affordable: the strip is too small for a perk line beside the picture and above GET IT; the reveal says it all.
+  perk.setVisible(!reward.canAfford);
   parts.push(name, perk);
 
   if (reward.canAfford) {

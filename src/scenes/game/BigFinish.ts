@@ -17,18 +17,21 @@ import { audioOrchestra } from '../../audio/AudioOrchestra';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { spawnSparks } from '../../entities/waterParticle/splashVFX';
-import { hideBanner, showBanner } from '../../ui/Banner';
 import { spawnFloatingText } from '../../ui/FloatingText';
 import { drawStarIcon } from '../../ui/icons';
 import { COLOUR, COLOUR_HEX } from '../../utils/colour';
 import { DURATION, EASE } from '../../utils/tween';
 import { textStyle } from '../../utils/typography';
 import { finishVerdict, planBows, type Bow, type FinishPlan } from './bigFinishRules';
+import { stageFor, STAGE_X, visualOf } from './BigMessageStage';
 import type { RewardLoop } from './RewardLoop';
+import { showStageBanner } from './stageMessages';
+import { STAGE_PRIORITY } from './stageRules';
 
 /** The banner lands over this long, then the cascade starts. */
 const CASCADE_START_MS = 500;
-const BANNER_HOLD_MS = 700;
+/** The banner stays this long after landing before it fades, ms (it lands over 600 ms and fades over 200). */
+const BANNER_HOLD_MS = 100;
 /** A bow's pop lasts this long; the verdict waits for the last one to settle. */
 const BOW_POP_MS = 160;
 const BOW_POP_SCALE = 1.3;
@@ -42,7 +45,6 @@ const VERDICT_HOLD_MS = 800;
 const SKIP_AFTER_MS = 1000;
 
 const DEPTH = 300;
-const BANNER_Y = GAME_HEIGHT * 0.5;
 const BOW_TEXT_LIFT_PX = 12;
 const BOW_PULSE = 1;
 const FULL_BAND_SPARK_BURSTS = 6;
@@ -59,6 +61,8 @@ const VERDICT_UNLIT = 0xd8d4c6;
 const VERDICT_UNLIT_ALPHA = 0.6;
 const VERDICT_WORD_OFFSET_Y = 116;
 const SHADE_ALPHA = 0.4;
+/** Half the height of the verdict word, for the box it fills. */
+const VERDICT_WORD_HALF_HEIGHT = 48;
 
 /** What the finish needs from the scene. */
 export interface BigFinishDeps {
@@ -98,13 +102,13 @@ export class BigFinish {
       d.coinBoost,
     );
 
-    const banner = showBanner(
+    // On the stage at finish priority: nothing from the gig is left under it, and the verdict replaces it at once.
+    showStageBanner(
       scene,
-      GAME_WIDTH / 2,
-      BANNER_Y,
+      STAGE_PRIORITY.finish,
       this._plan.fullBand ? 'FULL BAND FINISH!' : 'BIG FINISH!',
-    ).setDepth(DEPTH);
-    scene.time.delayedCall(BANNER_HOLD_MS, () => hideBanner(scene, banner));
+      { holdMs: BANNER_HOLD_MS },
+    );
     if (this._plan.fullBand) audioOrchestra.accent('cheer');
 
     for (const bow of this._plan.bows) {
@@ -187,10 +191,12 @@ export class BigFinish {
     const stars = this._d.reward.stars;
     this._playClosingChord();
 
+    const made: Phaser.GameObjects.GameObject[] = [];
     const shade = scene.add
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.ink, 0)
       .setOrigin(0)
       .setDepth(DEPTH - 1);
+    made.push(shade);
     scene.tweens.add({ targets: shade, alpha: SHADE_ALPHA, duration: DURATION.stateChange });
 
     for (let i = 0; i < 3; i++) {
@@ -198,6 +204,7 @@ export class BigFinish {
       const star = scene.add
         .graphics({ x: GAME_WIDTH / 2 + (i - 1) * VERDICT_STAR_SPACING, y: VERDICT_Y })
         .setDepth(DEPTH);
+      made.push(star);
       drawStarIcon(star, VERDICT_STAR_RADIUS + VERDICT_STAR_OUTLINE_PX, COLOUR.ink);
       drawStarIcon(star, VERDICT_STAR_RADIUS, lit ? COLOUR.sunnyGold : VERDICT_UNLIT);
       if (!lit) {
@@ -225,6 +232,7 @@ export class BigFinish {
       .setDepth(DEPTH)
       .setScale(VERDICT_STAR_SLAM_SCALE)
       .setAlpha(0);
+    made.push(word);
     scene.tweens.add({
       targets: word,
       scale: 1,
@@ -232,6 +240,15 @@ export class BigFinish {
       duration: VERDICT_STAR_SLAM_MS,
       ease: EASE.standardIn,
     });
+    // The verdict outranks everything: it takes the stage, so no banner is left under it.
+    stageFor(scene).show(STAGE_PRIORITY.verdict, 'replace', () =>
+      visualOf(scene, made, {
+        left: STAGE_X - VERDICT_STAR_SPACING - VERDICT_STAR_RADIUS - VERDICT_STAR_OUTLINE_PX,
+        right: STAGE_X + VERDICT_STAR_SPACING + VERDICT_STAR_RADIUS + VERDICT_STAR_OUTLINE_PX,
+        top: VERDICT_Y - VERDICT_STAR_RADIUS - VERDICT_STAR_OUTLINE_PX,
+        bottom: VERDICT_Y + VERDICT_WORD_OFFSET_Y + VERDICT_WORD_HALF_HEIGHT,
+      }),
+    );
 
     const landed = Math.max(0, stars - 1) * VERDICT_STAR_STAGGER_MS + VERDICT_STAR_SLAM_MS;
     scene.time.delayedCall(landed + VERDICT_HOLD_MS, () => this._complete());

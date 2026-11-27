@@ -8,11 +8,13 @@
 import type Phaser from 'phaser';
 
 import { audioOrchestra } from '../../audio/AudioOrchestra';
-import { FRENZY_DURATION_MS, GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE } from '../../config';
+import { FRENZY_DURATION_MS, RENDER_SCALE } from '../../config';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { spawnConfetti, spawnSparks } from '../../entities/waterParticle/splashVFX';
-import { hideBanner, playFrenzyCelebration } from '../../ui/Banner';
+import { playFrenzyImpact } from '../../ui/Banner';
 import { COLOUR } from '../../utils/colour';
+import { STAGE_PRIORITY } from './stageRules';
+import { showStageBanner } from './stageMessages';
 
 /**
  * How often landed hits during the SPLASH FRENZY window are celebrated with
@@ -35,6 +37,13 @@ import { COLOUR } from '../../utils/colour';
  */
 const FRENZY_HIT_FLOURISH_CHANCE = 0.14;
 
+/**
+ * How long the SPLASH FRENZY banner stays after landing, ms. It used to stay
+ * for the whole window, which put it under the count-down, the star callouts
+ * and, when a gig ended in Frenzy, the BIG FINISH (owner, 2026-11-27). Frenzy
+ * is shown by the HUD's gold groove badge and the wall itself after this.
+ */
+const FRENZY_BANNER_HOLD_MS = 1300;
 const FRENZY_FLASH_MS = 220;
 const FRENZY_ZOOM = 1.045;
 const FRENZY_ZOOM_IN_MS = 110;
@@ -53,7 +62,6 @@ const FRENZY_CONFETTI_COLOURS = [
 export class FrenzyController {
   private _active = false;
   private _endAt = 0;
-  private _banner: Phaser.GameObjects.Text | null = null;
   private _reached = false;
 
   constructor(
@@ -76,7 +84,6 @@ export class FrenzyController {
   /** Back to "never happened" — covers first boot and a "Play Again" restart alike. */
   reset(): void {
     this._active = false;
-    this._banner = null;
     this._reached = false;
   }
 
@@ -89,12 +96,10 @@ export class FrenzyController {
       spinner.maxOut();
       spinner.locked = true;
     }
-    this._banner = playFrenzyCelebration(
-      this._scene,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2,
-      'SPLASH FRENZY!',
-    );
+    showStageBanner(this._scene, STAGE_PRIORITY.frenzy, 'SPLASH FRENZY!', {
+      holdMs: FRENZY_BANNER_HOLD_MS,
+    });
+    playFrenzyImpact(this._scene);
     this._onStart();
     audioOrchestra.onFrenzyStart();
     // The drop should hit the eyes as hard as the ears: a flash, a punch of
@@ -114,19 +119,15 @@ export class FrenzyController {
     });
   }
 
-  /** Closes the window once its time is up: music back to normal, spinners unlocked, banner away. */
+  /** Closes the window once its time is up: music back to normal, spinners unlocked. */
   updateWindow(time: number): void {
     if (!this._active || time < this._endAt) return;
     this._active = false;
     audioOrchestra.onFrenzyEnd();
     for (const spinner of this._spinners()) spinner.locked = false;
-    if (this._banner) {
-      hideBanner(this._scene, this._banner);
-      this._banner = null;
-    }
   }
 
-  /** Ends the window at once, for the final whistle: banner away, spinners unlocked. */
+  /** Ends the window at once, for the final whistle: spinners unlocked (the stage clears its own banner). */
   cutShort(): void {
     this._endAt = 0;
     this.updateWindow(0);
