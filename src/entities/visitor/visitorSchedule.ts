@@ -2,9 +2,10 @@
  * When a visitor comes, and which one. Pure logic with an injectable random
  * function, so the rules can be tested without a scene (CLAUDE.md §7.3 rule 10).
  *
- * The rules: none in a venue's first two gigs; from the third, the first
+ * The rules: visitors come from a venue's very first gig (David, 2026-11-27:
+ * "you only get one chance to make it fun from the beginning"); the first
  * visitor comes a few seconds after the first squirt and then one every so
- * often; the kinds (blocker, sitter, treat) are about equally likely and the
+ * often; in a venue's first gig the first one is always a treat; the kinds (blocker, sitter, treat) are about equally likely and the
  * same visitor never comes twice running; one at a time, two from a later gig;
  * nothing starts near the final whistle or during Splash Frenzy.
  */
@@ -67,6 +68,7 @@ export class VisitorSchedule {
   private _elapsedMs = 0;
   private _nextAtMs: number;
   private _last: VisitorId | null = null;
+  private _sent = 0;
 
   constructor(
     private readonly _cast: readonly VisitorId[],
@@ -87,11 +89,20 @@ export class VisitorSchedule {
     if (this._elapsedMs < this._nextAtMs) return null;
     if (ctx.frenzyActive || ctx.timeRemainingMs <= VISIT_SCHEDULE.noStartLastMs) return null;
     if (ctx.liveCount >= maxLiveVisitors(this._gigIndex)) return null;
-    const id = pickVisitor(this._cast, this._last, this._random);
+    const id = pickVisitor(this._castForNext(), this._last, this._random);
     if (!id) return null;
     this._last = id;
+    this._sent++;
     this._nextAtMs = this._elapsedMs + between(VISIT_SCHEDULE.gapMs, this._random);
     return id;
+  }
+
+  /** Everyone, or only the treats for the opening visit of a venue's first gig. */
+  private _castForNext(): readonly VisitorId[] {
+    if (this._sent > 0 || this._gigIndex > VISIT_SCHEDULE.treatFirstUntilGigIndex)
+      return this._cast;
+    const treats = this._cast.filter((id) => VISITOR_DEFS[id].kind === 'treat');
+    return treats.length > 0 ? treats : this._cast;
   }
 
   /** A visit that could not happen (a sitter with nothing to sit on) asks to try again soon. */

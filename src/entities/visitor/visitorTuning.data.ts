@@ -104,6 +104,8 @@ export const BLOCKER = {
   stayMs: 7000,
   /** Instruments it covers: the one it lands on and this many neighbours at most (so 2 to 3 in all). */
   clusterSize: { min: 2, max: 3 },
+  /** ...but never more than this share of the instruments it could cover, so a trio is never all hidden. */
+  maxBandShare: 0.5,
   /** Neighbours must be within this many instrument radii of the seed to be covered with it. */
   neighbourReachRadii: 3.2,
   /** The picture is this much wider than the cluster it covers. */

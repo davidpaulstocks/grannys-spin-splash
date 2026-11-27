@@ -220,8 +220,10 @@ export const DEFAULT_CAST_VENUE = 'garden';
 
 /** When visitors come, in ms since the first squirt unless stated. */
 export const VISIT_SCHEDULE = {
-  /** The first two gigs of a venue (index 0 and 1) have none. */
-  firstGigIndex: 2,
+  /** Visitors come from this gig index: the very first gig. */
+  firstGigIndex: 0,
+  /** In a venue's gigs up to this index the first visitor is always a treat: a nice surprise before a nuisance. */
+  treatFirstUntilGigIndex: 0,
   /** From this gig index two visitors may be on screen at once. */
   twoLiveFromGigIndex: 5,
   firstDelayMs: { min: 5000, max: 8000 },

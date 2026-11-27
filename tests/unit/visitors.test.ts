@@ -105,14 +105,28 @@ describe('choosing who comes', () => {
 });
 
 describe('when they come', () => {
-  it("sends none in a venue's first two gigs", () => {
-    expect(hasVisitors(0)).toBe(false);
-    expect(hasVisitors(1)).toBe(false);
-    expect(hasVisitors(2)).toBe(true);
-    for (const gig of [0, 1]) {
-      const schedule = new VisitorSchedule(castFor('garden'), gig, seeded(3));
-      expect(runVisits(schedule, 120, () => RUNNING)).toHaveLength(0);
+  it("sends them from a venue's very first gig", () => {
+    expect(hasVisitors(0)).toBe(true);
+    const schedule = new VisitorSchedule(castFor('garden'), 0, seeded(3));
+    expect(runVisits(schedule, 20, () => RUNNING).length).toBeGreaterThan(0);
+  });
+
+  it("opens a venue's first gig with a treat, then anyone", () => {
+    for (const venue of Object.keys(VENUE_CAST)) {
+      for (let seed = 1; seed <= 20; seed++) {
+        const schedule = new VisitorSchedule(castFor(venue), 0, seeded(seed));
+        const sent = runVisits(schedule, 60, () => RUNNING);
+        expect(VISITOR_DEFS[sent[0]?.id ?? 'gnome'].kind, venue).toBe('treat');
+      }
     }
+    const kinds = new Set<string>();
+    for (let seed = 1; seed <= 20; seed++) {
+      const schedule = new VisitorSchedule(castFor('garden'), 0, seeded(seed));
+      for (const visit of runVisits(schedule, 60, () => RUNNING).slice(1)) {
+        kinds.add(VISITOR_DEFS[visit.id].kind);
+      }
+    }
+    expect(kinds.has('blocker') || kinds.has('sitter')).toBe(true);
   });
 
   it('does not start its clock before the first squirt', () => {

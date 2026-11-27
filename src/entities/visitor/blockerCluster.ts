@@ -40,7 +40,8 @@ export function pickCluster<T extends ClusterCandidate>(
   const seed = pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
   if (!seed) return null;
   const { min, max } = BLOCKER.clusterSize;
-  const size = Math.min(candidates.length, min + Math.floor(random() * (max - min + 1)));
+  const cap = Math.max(1, Math.floor(candidates.length * BLOCKER.maxBandShare));
+  const size = Math.min(cap, min + Math.floor(random() * (max - min + 1)));
   const reach = BLOCKER.neighbourReachRadii * seed.r;
   const near = candidates
     .filter((c) => c !== seed)
@@ -48,7 +49,10 @@ export function pickCluster<T extends ClusterCandidate>(
     .sort((a, b) => a.d - b.d);
   const inReach = near.filter((n) => n.d <= reach).length;
   // Cover at least a pair even when the seed is stranded; past that, only neighbours in reach.
-  const take = Math.max(Math.min(inReach, size - 1), Math.min(near.length, min - 1));
+  const take = Math.min(
+    size - 1,
+    Math.max(Math.min(inReach, size - 1), Math.min(near.length, min - 1)),
+  );
   const members: T[] = [seed, ...near.slice(0, take).map((n) => n.c)];
   return enclose(members);
 }

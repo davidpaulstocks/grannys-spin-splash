@@ -58,6 +58,13 @@ describe('pickCluster', () => {
     }
   });
 
+  it('never hides more than half of a small band', () => {
+    for (const r of [0, 0.4, 0.99]) {
+      expect(pickCluster(wall([0]).slice(0, 3), () => r)?.members).toHaveLength(1);
+      expect(pickCluster(wall([0]).slice(0, 4), () => r)?.members).toHaveLength(2);
+    }
+  });
+
   it('covers a lone instrument and nothing when there is none', () => {
     expect(pickCluster(wall([]).slice(0, 1), () => 0)?.members).toHaveLength(1);
     expect(pickCluster([], () => 0)).toBeNull();
