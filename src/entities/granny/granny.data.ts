@@ -103,7 +103,7 @@ export const GRANNY_LADDER_DEFS: readonly GrannyDef[] = [
  * One not listed is left out of the game entirely: no Shop slot, no milestone, no texture loaded. To
  * switch one on, drop her three pictures in and add her id here.
  */
-export const GRANNY_ART_READY: readonly string[] = ['classic', 'squirt', 'punk', 'joy', 'priya'];
+export const GRANNY_ART_READY: readonly string[] = ['classic', 'squirt', 'punk', 'joy', 'priya', 'mei'];
 
 /** The grannies that exist in the game today: the roster, minus any whose art is not yet painted. */
 export const GRANNY_DEFS: readonly GrannyDef[] = GRANNY_LADDER_DEFS.filter((g) =>

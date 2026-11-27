@@ -10,6 +10,11 @@
       "front": "priya_front",
       "back": "priya_back",
       "back_firing": "priya_arms_out"
+    },
+    "mei": {
+      "front": "mei_front",
+      "back": "mei_back",
+      "back_firing": "mei_arms_out"
     }
   }
 }
