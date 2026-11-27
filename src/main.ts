@@ -10,6 +10,7 @@ import { sampleBank } from './audio/orchestra/SampleBank';
 import { resolveScore } from './audio/scores';
 import { BACKGROUND_COLOUR, fitCameraToLogicalSize, SCALE_CONFIG } from './config';
 import type { BotSim } from './dev/botSim';
+import type { RevealDebug } from './dev/revealDebug';
 import * as poki from './poki';
 import { BootScene } from './scenes/BootScene';
 import { ResultsScene } from './scenes/ResultsScene';
@@ -28,6 +29,8 @@ declare global {
     __audioForDebug?: Record<string, unknown>;
     /** Dev-only: the balance harness (src/dev/botSim.ts). */
     __bot?: BotSim;
+    /** Dev-only: opens the gun reveal for any gun without buying it (src/dev/revealDebug.ts). */
+    __revealGun?: RevealDebug;
   }
 }
 
@@ -132,6 +135,9 @@ async function boot(): Promise<void> {
     // is never in a production bundle.
     void import('./dev/botSim').then(({ installBotSim }) => {
       window.__bot = installBotSim(game);
+    });
+    void import('./dev/revealDebug').then(({ installRevealDebug }) => {
+      window.__revealGun = installRevealDebug(game);
     });
   }
 }

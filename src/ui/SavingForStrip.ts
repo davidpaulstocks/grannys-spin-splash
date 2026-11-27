@@ -13,11 +13,11 @@ import { formatCount, type NextReward } from '../systems/Rewards';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { textStyle } from '../utils/typography';
 import { createButton } from './Button';
-import { buyGunWithReveal } from './gunPurchase';
+import { buyGunWithReveal, previewGunReveal } from './gunPurchase';
 import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
 import { powerText } from './gunRarity';
 import { createPanel } from './Panel';
-import { addGoalPicture, createRewardBar, fitWidth, wrapFit } from './RewardParts';
+import { addGoalPicture, addPictureTap, createRewardBar, fitWidth, wrapFit } from './RewardParts';
 
 export interface SavingForStripConfig {
   /** Centre of the strip. */
@@ -110,6 +110,15 @@ export function createSavingForStrip(
       !reward.canAfford,
     ),
   );
+  if (reward.kind === 'gun') {
+    parts.push(
+      addPictureTap(scene, left + PICTURE_X, top + PICTURE_Y, PICTURE_MAX_W, PICTURE_MAX_H, () =>
+        previewGunReveal(scene, reward.id, {
+          onClosed: config.onBought ?? (() => scene.scene.restart()),
+        }),
+      ),
+    );
+  }
   const name = scene.add
     .text(
       left + NAME_X,

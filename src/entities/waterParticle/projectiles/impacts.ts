@@ -153,15 +153,23 @@ function makePiece(
   }
 }
 
-/** Plays the landing of a shot from `gun` at (x, y). */
-export function spawnImpact(scene: Phaser.Scene, x: number, y: number, gun: GunDef): void {
-  const splashed = spawnSplash(scene, x, y, gun.particleColour);
+/** Plays the landing of a shot from `gun` at (x, y); a `depth` above 0 lifts it over an overlay (the gun reveal). */
+export function spawnImpact(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  gun: GunDef,
+  depth = 0,
+): void {
+  const splashed = spawnSplash(scene, x, y, gun.particleColour, depth);
   const extra = EXTRAS[gun.projectile];
   if (!splashed || !extra) return;
   const duration = DURATION.stateChange * (extra.slow ?? 1);
 
   if (extra.flash) {
-    const flash = scene.add.circle(x, y, extra.flash, tone(gun, extra.tones[0] as 'main', 0), 0.45);
+    const flash = scene.add
+      .circle(x, y, extra.flash, tone(gun, extra.tones[0] as 'main', 0), 0.45)
+      .setDepth(depth);
     scene.tweens.add({
       targets: flash,
       scale: gun.projectile === 'mega' ? MEGA_RING_GROWTH : 1.6,
@@ -174,7 +182,7 @@ export function spawnImpact(scene: Phaser.Scene, x: number, y: number, gun: GunD
   for (let i = 0; i < extra.count; i++) {
     const angle = (i / extra.count) * Math.PI * 2 + Math.random() * 0.5;
     const colour = tone(gun, extra.tones[i % extra.tones.length] as 'main', i);
-    const piece = makePiece(scene, extra.shape, x, y, extra.size, colour);
+    const piece = makePiece(scene, extra.shape, x, y, extra.size, colour).setDepth(depth);
     if (extra.shape === 'spark' || extra.shape === 'star') piece.setRotation(angle);
     const reach = extra.distance * (0.7 + Math.random() * 0.5);
     const inward = extra.shape === 'triangle';

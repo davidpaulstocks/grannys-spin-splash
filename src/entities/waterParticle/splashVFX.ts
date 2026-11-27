@@ -43,19 +43,21 @@ const CONFETTI_DURATION_MS = 900;
 /**
  * Spawns a small radial water-droplet burst centred on (x, y), tinted `colour` (defaults to Water Blue).
  * Returns false when the burst was skipped because another landed a moment ago.
+ * `depth` lifts it above an overlay (the gun reveal) when it is not 0.
  */
 export function spawnSplash(
   scene: Phaser.Scene,
   x: number,
   y: number,
   colour: number = COLOUR.waterBlue,
+  depth = 0,
 ): boolean {
   const now = scene.time.now;
   if (now - _lastSplashAt < SPLASH_MIN_INTERVAL_MS && now >= _lastSplashAt) return false;
   _lastSplashAt = now;
 
   // The ripple: a ring that opens out from the point of impact.
-  const ring = scene.add.circle(x, y, RING_START_RADIUS, colour, 0);
+  const ring = scene.add.circle(x, y, RING_START_RADIUS, colour, 0).setDepth(depth);
   ring.setStrokeStyle(RING_WIDTH, 0xffffff, 0.9);
   scene.tweens.add({
     targets: ring,
@@ -71,7 +73,7 @@ export function spawnSplash(
     const targetX = x + Math.cos(angle) * BURST_DISTANCE;
     const targetY = y + Math.sin(angle) * BURST_DISTANCE;
 
-    const droplet = scene.add.circle(x, y, DROPLET_RADIUS, colour, 0.9);
+    const droplet = scene.add.circle(x, y, DROPLET_RADIUS, colour, 0.9).setDepth(depth);
     scene.tweens.add({
       targets: droplet,
       x: targetX,

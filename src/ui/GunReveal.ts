@@ -1,28 +1,42 @@
 /**
- * The gun reveal: a full-screen moment any scene can open after a gun is
- * bought. A dimmed backdrop, soft gold rays turning behind the gun, the gun
- * scaling in large, its name, then three stat rows (Coins, Power, Water) that
- * count from the previous gun's value to this one's, one after another, with
- * the gain in Mint Green. USE IT equips it; Later keeps the old gun. Nothing
- * here buys or equips anything: the caller's callbacks do.
+ * The gun reveal: a full-screen event any scene can open after a gun is
+ * bought, or open as a preview of a gun not owned yet. Three beats.
+ *
+ * 1. Impact: the screen snaps dark, the gun is a black silhouette growing from
+ *    a coloured glow, then a white flash, a camera shake, a shockwave in the
+ *    rarity colour and the gun SLAMS in full colour with "NEW GUN!" stamped
+ *    above it (the rarest guns hold the breath longer and ring twice).
+ * 2. It blasts: the gun turns and fires its real projectile at three spinning
+ *    discs (`reveal/DemoRange.ts`); the name and rarity land.
+ * 3. The numbers: the blasting calms to an occasional burst; POWER counts up
+ *    and the Coins / Power / Water rows count (a gun just bought, with USE IT
+ *    and Later), or the price and how far the player is from it (a preview,
+ *    with OK, or BUY when it is affordable and then straight on into the
+ *    owned gun's numbers).
+ *
+ * A tap after the impact skips to beat 3. Nothing here buys or equips
+ * anything: the caller's callbacks do. Everything it makes is destroyed when
+ * it closes.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 import { playStarChime } from '../audio/ResultsMusic';
 import { SPRITE_KEYS } from '../assets/keys';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { GUN_DEFS } from '../entities/gun/gun.data';
+import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
+import type { AnchorJSON } from '../entities/gun/gun.types';
 import { powerRatingAt } from '../entities/gun/gunLevels';
-import { addPowerPill, rarityColour, rarityHex, rarityLabel } from './gunRarity';
-import { gunStats, statRows } from '../systems/gunStats';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
-import { createButton } from './Button';
-import { buildRow, playRow } from './GunRevealRows';
 import { fitWidth } from './RewardParts';
-import { spawnSparkles } from './sparkle';
+import { DemoRange } from './reveal/DemoRange';
+import { addGlow, addRays, playImpactFx } from './reveal/ImpactBeat';
+import { buildTagRow, showPill } from './reveal/RevealPanels';
+import { RevealEnding } from './reveal/RevealEnding';
+import { RevealTracker, type RevealCtx } from './reveal/RevealTracker';
+import { REVEAL_DEPTH, REVEAL_LAYOUT, revealGunScale, revealTimeline } from './reveal/revealTiming';
 
 export interface GunRevealConfig {
   /** The gun just bought. */
@@ -40,216 +54,227 @@ export interface GunRevealConfig {
   readonly onClosed?: () => void;
 }
 
+/** A gun not owned yet, shown blasting with its price. */
+export interface GunPreviewConfig {
+  readonly gunId: string;
+  /** Coins held, and the gun's price. */
+  readonly have: number;
+  readonly price: number;
+  /** BUY (shown only when affordable): buys it and returns what the owned reveal needs, or null when it failed. */
+  readonly onBuy?: () => GunRevealConfig | null;
+}
+
 export interface GunRevealHandle {
   close(): void;
 }
 
-const DEPTH = 1000;
 const CENTRE_X = GAME_WIDTH / 2;
-const BACKDROP_ALPHA = 0.94;
-const RAY_COUNT = 12;
-const RAY_RADIUS = 760;
-const RAY_HALF_ANGLE = 0.09;
-const RAY_ALPHA = 0.1;
-const RAY_TURN_MS = 26000;
-const GUN_X = CENTRE_X;
-const GUN_Y = 198;
-/** The picture is this fraction of its own size for the pistol; `showScale` (1 to 1.5) makes bigger guns bigger, within the box. */
-const GUN_BASE_SCALE = 0.6;
-const GUN_MAX_W = 560;
-const GUN_MAX_H = 230;
-const GUN_START_SCALE = 0.15;
-const HEADLINE_Y = 52;
-const NAME_Y = 338;
-const RARITY_Y = 380;
-const POWER_Y = 424;
-const POWER_COUNT_MS = 900;
-const LEGENDARY_BURST_AT_MS = 420;
-const NAME_MAX_WIDTH = 780;
-const ROWS_Y = 486;
-const ROW_GAP = 50;
-const ROWS_START_MS = 750;
-const ROW_STEP_MS = 450;
-const BUTTONS_Y = 664;
-const USE_X = 560;
-const LATER_X = 800;
-const USE_MIN_WIDTH = 240;
-const BUTTONS_AT_MS = ROWS_START_MS + ROW_STEP_MS * 2 + 200;
-const CHIME_GAP_MS = 180;
-const CHIME_COUNT = 3;
-const RARITY_TAG_SCALE = 1.25;
+const BACKDROP_ALPHA = 1;
+const SILHOUETTE_FROM = 0.25;
+const SILHOUETTE_TO = 0.8;
+const SLAM_FROM = 1.7;
+const SLAM_MS = 380;
+const STAMP_FROM = 2.4;
+const STAMP_MS = 160;
+const NAME_FROM = 1.5;
+const NAME_MAX_WIDTH = 900;
+const NAME_Y_RISE = 24;
+const HEADLINE_NEW = 'NEW GUN!';
+const HEADLINE_PREVIEW = 'COMING UP';
 
-/** Opens the reveal over `scene` and returns a handle to close it early. */
+/** Opens the reveal for a gun just bought over `scene` and returns a handle to close it early. */
 export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): GunRevealHandle {
-  const next = GUN_DEFS.find((g) => g.id === config.gunId);
-  const before = GUN_DEFS.find((g) => g.id === config.previousGunId) ?? next;
-  const root = scene.add.container(0, 0).setDepth(DEPTH);
-  const handle: GunRevealHandle = { close: () => undefined };
-  if (!next || !before) return handle;
-  const rows = statRows(
-    gunStats(before, config.previousLevel ?? 1),
-    gunStats(next, config.level ?? 1),
-  );
-  const timers: Phaser.Time.TimerEvent[] = [];
-  const tweenList: Phaser.Tweens.Tween[] = [];
+  return openReveal(scene, config.gunId, config, null);
+}
+
+/** Opens the "see it blast" preview of a gun not owned yet. */
+export function showGunPreview(scene: Phaser.Scene, preview: GunPreviewConfig): GunRevealHandle {
+  return openReveal(scene, preview.gunId, null, preview);
+}
+
+function openReveal(
+  scene: Phaser.Scene,
+  gunId: string,
+  ownedConfig: GunRevealConfig | null,
+  previewConfig: GunPreviewConfig | null,
+): GunRevealHandle {
+  const gun = GUN_LADDER_DEFS.find((g) => g.id === gunId);
+  const root = scene.add.container(0, 0).setDepth(REVEAL_DEPTH);
+  if (!gun) {
+    root.destroy();
+    return { close: () => undefined };
+  }
+  const tracker = new RevealTracker(scene);
+  const ctx: RevealCtx = { scene, root, tracker };
+  const timeline = revealTimeline(gun.rarity);
+  const at = { x: REVEAL_LAYOUT.gun.x, y: REVEAL_LAYOUT.gun.y };
+  let owned = ownedConfig;
+  let preview = previewConfig;
   let open = true;
+  let beat3Started = false;
+  let range: DemoRange | null = null;
+
+  const steps: {
+    at: number;
+    run: (instant: boolean) => void;
+    done: boolean;
+    timer?: Phaser.Time.TimerEvent;
+  }[] = [];
+  const startMs = scene.time.now;
+  const schedule = (when: number, run: (instant: boolean) => void): void => {
+    const step: (typeof steps)[number] = { at: when, run, done: false };
+    step.timer = tracker.delay(when, () => {
+      step.done = true;
+      run(false);
+    });
+    steps.push(step);
+  };
+  const skip = (): void => {
+    if (!open || beat3Started || scene.time.now - startMs < timeline.beat2At) return;
+    steps
+      .filter((s) => !s.done)
+      .sort((a, b) => a.at - b.at)
+      .forEach((s) => {
+        if (s.timer) tracker.cancel(s.timer);
+        s.done = true;
+        s.run(true);
+      });
+  };
 
   const backdrop = scene.add
-    .rectangle(CENTRE_X, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLOUR.ink, BACKDROP_ALPHA)
+    .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLOUR.ink, BACKDROP_ALPHA)
     .setInteractive();
+  backdrop.on('pointerup', skip);
   root.add(backdrop);
-
-  const rays = scene.add.graphics({ x: GUN_X, y: GUN_Y });
-  rays.fillStyle(rarityColour(next.rarity), RAY_ALPHA);
-  for (let i = 0; i < RAY_COUNT; i++) {
-    const a = (i / RAY_COUNT) * Math.PI * 2;
-    rays.fillTriangle(
-      0,
-      0,
-      Math.cos(a - RAY_HALF_ANGLE) * RAY_RADIUS,
-      Math.sin(a - RAY_HALF_ANGLE) * RAY_RADIUS,
-      Math.cos(a + RAY_HALF_ANGLE) * RAY_RADIUS,
-      Math.sin(a + RAY_HALF_ANGLE) * RAY_RADIUS,
-    );
-  }
-  root.add(rays);
-  tweenList.push(
-    scene.tweens.add({ targets: rays, angle: 360, duration: RAY_TURN_MS, repeat: -1 }),
-  );
+  addGlow(ctx, at, gun.rarity);
+  const rays = addRays(ctx, at, gun.rarity);
 
   const headline = scene.add
     .text(
       CENTRE_X,
-      HEADLINE_Y,
-      'NEW GUN!',
+      REVEAL_LAYOUT.headlineY,
+      preview ? HEADLINE_PREVIEW : HEADLINE_NEW,
       textStyle('displayM', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
     )
-    .setOrigin(0.5);
+    .setOrigin(0.5)
+    .setAlpha(0);
   root.add(headline);
 
-  const key = SPRITE_KEYS.gun(next.id);
+  const key = SPRITE_KEYS.gun(gun.id);
+  const anchor = scene.cache.json.get(SPRITE_KEYS.gunAnchorKey(gun.id)) as AnchorJSON | undefined;
+  let image: Phaser.GameObjects.Image | null = null;
+  let finalScale = 1;
   if (scene.textures.exists(key)) {
-    const image = scene.add.image(GUN_X, GUN_Y, key);
-    const scale = Math.min(
-      GUN_BASE_SCALE * next.showScale,
-      GUN_MAX_W / image.width,
-      GUN_MAX_H / image.height,
-    );
-    image.setScale(scale * GUN_START_SCALE);
+    image = scene.add.image(at.x, at.y, key).setTintFill(COLOUR.ink);
+    finalScale = revealGunScale(image.width, image.height, gun.showScale);
+    image.setScale(finalScale * SILHOUETTE_FROM);
     root.add(image);
-    tweenList.push(
-      scene.tweens.add({
-        targets: image,
-        scale,
-        duration: DURATION.celebration,
-        ease: EASE.bouncy,
-        easeParams: [BOUNCE_OVERSHOOT],
-      }),
-    );
+    tracker.tween({
+      targets: image,
+      scale: finalScale * SILHOUETTE_TO,
+      duration: timeline.impactAt,
+      ease: EASE.standardIn,
+    });
   }
-  const name = scene.add
-    .text(CENTRE_X, NAME_Y, next.name, textStyle('displayL', COLOUR_HEX.cloud, COLOUR_HEX.ink))
-    .setOrigin(0.5);
-  fitWidth(name, NAME_MAX_WIDTH);
-  root.add(name);
 
-  root.add(
-    addPowerPill(scene, CENTRE_X, RARITY_Y, rarityLabel(next.rarity), next.rarity).setScale(
-      RARITY_TAG_SCALE,
-    ),
-  );
-  const power = scene.add
+  const name = scene.add
     .text(
       CENTRE_X,
-      POWER_Y,
-      `POWER ${powerRatingAt(before, config.previousLevel ?? 1).toLocaleString('en-US')}`,
-      textStyle('displayM', rarityHex(next.rarity), COLOUR_HEX.ink),
+      REVEAL_LAYOUT.nameY,
+      gun.name,
+      textStyle('displayL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
     )
-    .setOrigin(0.5);
-  root.add(power);
-  const powerTo = powerRatingAt(next, config.level ?? 1);
-  const powerFrom = powerRatingAt(before, config.previousLevel ?? 1);
-  tweenList.push(
-    scene.tweens.addCounter({
-      from: powerFrom,
-      to: powerTo,
-      delay: ROWS_START_MS - ROW_STEP_MS,
-      duration: POWER_COUNT_MS,
-      ease: EASE.standardOut,
-      onUpdate: (tween) =>
-        power.setText(`POWER ${Math.round(tween.getValue() ?? powerTo).toLocaleString('en-US')}`),
-    }),
-  );
+    .setOrigin(0.5)
+    .setAlpha(0);
+  fitWidth(name, NAME_MAX_WIDTH);
+  const nameScale = name.scale;
+  root.add(name);
 
-  const parts = rows.map((row, i) => buildRow(scene, root, row, ROWS_Y + i * ROW_GAP));
-  parts.forEach((p, i) => {
-    timers.push(
-      scene.time.delayedCall(ROWS_START_MS + i * ROW_STEP_MS, () => {
-        if (open) tweenList.push(playRow(scene, p));
-      }),
-    );
-  });
+  const level = owned?.level ?? 1;
+  const powerTo = powerRatingAt(gun, level);
+  const tag = buildTagRow(ctx, gun, powerTo);
+
+  const stamp = (): void => {
+    headline.setAlpha(0).setScale(STAMP_FROM);
+    tracker.tween({
+      targets: headline,
+      scale: 1,
+      alpha: 1,
+      duration: STAMP_MS,
+      ease: EASE.standardIn,
+    });
+  };
 
   const close = (): void => {
     if (!open) return;
     open = false;
-    timers.forEach((t) => t.remove(false));
-    tweenList.forEach((t) => t.remove());
+    range?.destroy();
+    tracker.clear();
     scene.tweens.killTweensOf(root.list);
     root.destroy();
-    config.onClosed?.();
+    owned?.onClosed?.();
   };
-  const use = createButton(scene, {
-    x: USE_X,
-    y: BUTTONS_Y,
-    label: 'USE IT',
-    variant: 'primary',
-    size: 'md',
-    minWidth: USE_MIN_WIDTH,
-    onClick: () => {
-      if (!open) return;
-      config.onUse();
-      close();
-    },
-  });
-  const later = createButton(scene, {
-    x: LATER_X,
-    y: BUTTONS_Y,
-    label: 'Later',
-    variant: 'secondary',
-    size: 'sm',
-    onClick: () => {
-      if (!open) return;
-      config.onLater();
-      close();
-    },
-  });
-  [use, later].forEach((b) => {
-    b.setAlpha(0).setVisible(false);
-    root.add(b);
-  });
-  timers.push(
-    scene.time.delayedCall(BUTTONS_AT_MS, () => {
-      if (!open) return;
-      [use, later].forEach((b) => b.setVisible(true));
-      tweenList.push(
-        scene.tweens.add({ targets: [use, later], alpha: 1, duration: DURATION.stateChange }),
-      );
-    }),
-  );
 
-  for (let i = 0; i < CHIME_COUNT; i++) {
-    timers.push(scene.time.delayedCall(i * CHIME_GAP_MS, () => playStarChime(i)));
-  }
-  spawnSparkles(scene, GUN_X, GUN_Y, DEPTH + 1);
-  if (next.rarity === 'legendary') {
-    // A second burst for the rarest guns, in the rarity gold and white.
-    timers.push(
-      scene.time.delayedCall(LEGENDARY_BURST_AT_MS, () => {
-        if (open)
-          spawnSparkles(scene, GUN_X, GUN_Y, DEPTH + 1, [rarityColour('legendary'), COLOUR.cloud]);
-      }),
-    );
-  }
+  const ending = new RevealEnding(ctx, gun, tag, timeline, at, {
+    isOpen: () => open,
+    close,
+    becameOwned: (cfg) => {
+      owned = cfg;
+      preview = null;
+      headline.setText(HEADLINE_NEW);
+      stamp();
+    },
+  });
+
+  // Beat 1: the slam.
+  schedule(timeline.impactAt, () => {
+    if (image) {
+      image.clearTint().setScale(finalScale * SLAM_FROM);
+      tracker.tween({
+        targets: image,
+        scale: finalScale,
+        duration: SLAM_MS,
+        ease: EASE.bouncy,
+        easeParams: [BOUNCE_OVERSHOOT],
+      });
+    }
+    playImpactFx(ctx, at, gun.rarity, rays);
+    stamp();
+    playStarChime(0);
+  });
+  // Beat 2: it blasts, the name and the rarity land.
+  schedule(timeline.nameAt, (instant) => {
+    name.setY(REVEAL_LAYOUT.nameY + (instant ? 0 : NAME_Y_RISE));
+    if (instant) name.setAlpha(1).setScale(nameScale);
+    else {
+      name.setScale(nameScale * NAME_FROM);
+      tracker.tween({
+        targets: name,
+        alpha: 1,
+        scale: nameScale,
+        y: REVEAL_LAYOUT.nameY,
+        duration: DURATION.stateChange,
+        ease: EASE.standardOut,
+      });
+    }
+    playStarChime(1);
+  });
+  schedule(timeline.tagAt, (instant) => {
+    showPill(ctx, tag, instant);
+    playStarChime(2);
+  });
+  schedule(timeline.beat2At, () => {
+    if (image && anchor) {
+      range = new DemoRange(scene, root, tracker, gun, image, anchor);
+      range.start();
+    }
+  });
+  // Beat 3: the numbers.
+  schedule(timeline.beat3At, (instant) => {
+    beat3Started = true;
+    range?.setMode('idle');
+    if (owned) ending.startOwned(owned, instant);
+    else if (preview) ending.startPreview(preview, instant);
+  });
   return { close };
 }

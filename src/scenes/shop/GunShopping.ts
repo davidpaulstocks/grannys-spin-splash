@@ -15,7 +15,7 @@ import { upgradeCost } from '../../entities/gun/gunLevels';
 import { formatCount } from '../../systems/Rewards';
 import type { UnlockManager } from '../../systems/UnlockManager';
 import { createGunCard, type GunCard } from '../../ui/GunCard';
-import { buyGunWithReveal } from '../../ui/gunPurchase';
+import { buyGunWithReveal, previewGunReveal } from '../../ui/gunPurchase';
 import { showToast } from '../../ui/Toast';
 import { gunCardState } from './gunCardState';
 
@@ -42,6 +42,7 @@ export class GunShopping {
       x: _config.x,
       y: _config.y,
       onAction: (id) => this.act(id),
+      onBlast: (id) => this.blast(id),
     });
   }
 
@@ -56,6 +57,17 @@ export class GunShopping {
     if (!def) return;
     this._shownId = id;
     this._card.show(gunCardState(this._config.unlocks, def), bounceFrom);
+  }
+
+  /** SEE IT BLAST: previews gun `id`; a purchase made from the preview refreshes the screen like any other. */
+  blast(id: string): void {
+    const { scene, onChanged } = this._config;
+    previewGunReveal(scene, id, {
+      onClosed: () => {
+        onChanged();
+        this.show(id);
+      },
+    });
   }
 
   /** The button was pressed: true when it went through, false (with a toast) when coins were short. */

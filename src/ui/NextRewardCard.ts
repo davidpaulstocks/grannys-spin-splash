@@ -16,11 +16,11 @@ import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 import { createButton } from './Button';
-import { equippedGun, revealIfOwned } from './gunPurchase';
+import { equippedGun, previewGunReveal, revealIfOwned } from './gunPurchase';
 import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
 import { addPowerPill, powerText } from './gunRarity';
 import { createPanel } from './Panel';
-import { addGoalPicture, createRewardBar, fitWidth, wrapFit } from './RewardParts';
+import { addGoalPicture, addPictureTap, createRewardBar, fitWidth, wrapFit } from './RewardParts';
 
 export interface NextRewardCardConfig {
   /** Centre of the card. */
@@ -131,6 +131,20 @@ export function createNextRewardCard(
         !reward.canAfford,
       ),
     );
+
+    if (reward.kind === 'gun') {
+      // Tap the picture to see it blast; a purchase made from the preview goes through the scene like GET IT.
+      container.add(
+        addPictureTap(scene, left + PICTURE_X, top + PICTURE_Y, PICTURE_MAX_W, PICTURE_MAX_H, () =>
+          previewGunReveal(scene, reward.id, {
+            buy: () => {
+              config.onBuy(reward);
+              return true;
+            },
+          }),
+        ),
+      );
+    }
 
     if (reward.kind !== 'granny') {
       const gun = GUN_LADDER_DEFS.find((g) => g.id === reward.id);

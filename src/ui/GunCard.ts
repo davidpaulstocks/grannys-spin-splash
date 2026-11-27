@@ -15,12 +15,11 @@ import Phaser from 'phaser';
 import { GUN_LADDER_DEFS, MAX_GUN_LEVEL } from '../entities/gun/gun.data';
 import { formatCount } from '../systems/Rewards';
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
-import { pillRadius } from '../utils/math';
 import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 import { createButton } from './Button';
-import { drawLockIcon } from './icons';
 import { addPowerPill, powerText, rarityLabel } from './gunRarity';
+import { ACTION_WIDTH, maxTag, shake } from './gunCardParts';
 import { createPanel } from './Panel';
 import { fitWidth } from './RewardParts';
 import { spawnSparkles } from './sparkle';
@@ -44,6 +43,8 @@ export interface GunCardState {
   /** Coins the action costs; null at the maximum level. */
   readonly price: number | null;
   readonly canAfford: boolean;
+  /** A gun not owned that may be previewed (not a mystery far up the ladder): shows SEE IT BLAST. */
+  readonly canBlast?: boolean;
 }
 
 export interface GunCardConfig {
@@ -52,6 +53,8 @@ export interface GunCardConfig {
   readonly y: number;
   /** The player pressed the action button; true when it went through, false when coins were short. */
   readonly onAction: (gunId: string) => boolean;
+  /** SEE IT BLAST: open the preview of a gun not owned yet. */
+  readonly onBlast?: (gunId: string) => void;
 }
 
 export interface GunCard {
@@ -72,16 +75,15 @@ const RARITY_PILL_Y = -80;
 const PIP_SPACING = 30;
 const PIP_RADIUS = 10;
 const PIPS_SHIFT_X = 14;
-const LOCK_X = -88;
-const LOCK_SIZE = 20;
 const ROW_Y = [-24, 0, 24] as const;
 const ROW_MAX_WIDTH = 204;
 const ACTION_Y = 66;
-const ACTION_WIDTH = 190;
-const MAX_TAG_HEIGHT = 40;
+/** A gun not owned: no pips, one line, BUY above SEE IT BLAST. */
+const LOCKED_PILL_Y = -82;
+const LOCKED_ROW_Y = -48;
+const LOCKED_BUY_Y = 4;
+const BLAST_Y = 68;
 const DISABLED_ALPHA = 0.55;
-const SHAKE_PX = 8;
-const SHAKE_MS = 55;
 const PIP_OUTLINE_PX = 3;
 const PIP_POP_FROM = 0.2;
 const PIP_STAGGER_MS = 90;
@@ -131,7 +133,7 @@ export function createGunCard(scene: Phaser.Scene, config: GunCardConfig): GunCa
         addPowerPill(
           scene,
           config.x,
-          config.y + RARITY_PILL_Y,
+          config.y + (state.owned ? RARITY_PILL_Y : LOCKED_PILL_Y),
           `${rarityLabel(def.rarity)} · ${powerText(def.id, level)}`,
           def.rarity,
         ),
@@ -139,7 +141,8 @@ export function createGunCard(scene: Phaser.Scene, config: GunCardConfig): GunCa
     }
 
     const filled = state.owned ? state.level : 0;
-    for (let i = 0; i < MAX_GUN_LEVEL; i++) {
+    // A gun not owned has no level to show: its pips and padlock give way to the second button.
+    for (let i = 0; i < (state.owned ? MAX_GUN_LEVEL : 0); i++) {
       const pip = scene.add.graphics({
         x: config.x + PIPS_SHIFT_X + (i - (MAX_GUN_LEVEL - 1) / 2) * PIP_SPACING,
         y: config.y + PIP_Y,
@@ -163,17 +166,12 @@ export function createGunCard(scene: Phaser.Scene, config: GunCardConfig): GunCa
         spawnSparkles(scene, pip.x, pip.y, container.depth + 1);
       }
     }
-    if (!state.owned) {
-      const lock = scene.add.graphics({ x: config.x + LOCK_X, y: config.y + PIP_Y });
-      drawLockIcon(lock, LOCK_SIZE, COLOUR.softSlate);
-      container.add(lock);
-    }
 
     const texts = state.rows.map((row, i) => {
       const text = scene.add
         .text(
           config.x,
-          config.y + (ROW_Y[i] ?? ROW_Y[ROW_Y.length - 1]),
+          config.y + (state.owned ? (ROW_Y[i] ?? ROW_Y[ROW_Y.length - 1]) : LOCKED_ROW_Y),
           rowText(row, row.from, row.to ?? row.from),
           textStyle(
             i === 0 ? 'bodyL' : 'bodyM',
@@ -212,9 +210,10 @@ export function createGunCard(scene: Phaser.Scene, config: GunCardConfig): GunCa
       return;
     }
     const verb = state.owned ? 'UPGRADE' : 'BUY';
+    const blastable = !state.owned && state.canBlast === true;
     const button = createButton(scene, {
       x: config.x,
-      y: config.y + ACTION_Y,
+      y: config.y + (blastable ? LOCKED_BUY_Y : ACTION_Y),
       label: `${verb} · ${formatCount(state.price)}`,
       variant: 'secondary',
       size: 'sm',
@@ -237,41 +236,21 @@ export function createGunCard(scene: Phaser.Scene, config: GunCardConfig): GunCa
       });
     }
     container.add(button);
+    if (blastable) {
+      container.add(
+        createButton(scene, {
+          x: config.x,
+          y: config.y + BLAST_Y,
+          label: 'SEE IT BLAST',
+          variant: 'secondary',
+          size: 'sm',
+          minWidth: ACTION_WIDTH,
+          expandHitArea: false,
+          onClick: () => config.onBlast?.(state.gunId),
+        }),
+      );
+    }
   };
 
   return { container, show };
-}
-
-/** The tag that replaces the button at the top level: gold, outlined, not pressable. */
-function maxTag(scene: Phaser.Scene, x: number, y: number): Phaser.GameObjects.Container {
-  const bg = scene.add.graphics();
-  const radius = pillRadius(ACTION_WIDTH, MAX_TAG_HEIGHT);
-  bg.fillStyle(COLOUR.sunnyGold, 1);
-  bg.fillRoundedRect(-ACTION_WIDTH / 2, -MAX_TAG_HEIGHT / 2, ACTION_WIDTH, MAX_TAG_HEIGHT, radius);
-  bg.lineStyle(PIP_OUTLINE_PX, COLOUR.ink, 1);
-  bg.strokeRoundedRect(
-    -ACTION_WIDTH / 2,
-    -MAX_TAG_HEIGHT / 2,
-    ACTION_WIDTH,
-    MAX_TAG_HEIGHT,
-    radius,
-  );
-  const label = scene.add
-    .text(0, 0, 'MAX LEVEL', textStyle('buttonS', COLOUR_HEX.ink, COLOUR_HEX.ink))
-    .setOrigin(0.5);
-  return scene.add.container(x, y, [bg, label]);
-}
-
-/** A gentle side-to-side wobble: "not yet". */
-function shake(scene: Phaser.Scene, target: Phaser.GameObjects.Container): void {
-  const home = target.x;
-  scene.tweens.add({
-    targets: target,
-    x: { from: home - SHAKE_PX, to: home + SHAKE_PX },
-    duration: SHAKE_MS,
-    yoyo: true,
-    repeat: 2,
-    ease: EASE.standardOut,
-    onComplete: () => target.setX(home),
-  });
 }

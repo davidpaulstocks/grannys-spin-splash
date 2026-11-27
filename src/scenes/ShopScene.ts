@@ -17,6 +17,7 @@ import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { GunShopping } from './shop/GunShopping';
+import { isMysteryGun, MYSTERY_MESSAGE } from './shop/mystery';
 import { grannyItems, gunItems, worldItems } from './shop/shopItems';
 import { buildShopTitle } from './shop/shopTitle';
 import { adManager } from '../systems/AdManager';
@@ -127,6 +128,10 @@ export class ShopScene extends Phaser.Scene {
       x: WORLD_CAROUSEL_X,
       y: RACK_Y,
       onPick: (id) => {
+        if (isMysteryGun(this._unlocks, id)) {
+          showToast(this, GAME_WIDTH / 2, SELECT_TOAST_Y, MYSTERY_MESSAGE);
+          return;
+        }
         this._gunSelector.selectId(id);
         this._onTapGun(id);
       },
@@ -198,7 +203,6 @@ export class ShopScene extends Phaser.Scene {
     const equipped = this._unlocks.getSelectedGunId();
     const ordered = [...GUN_DEFS].sort((a, b) => a.cost - b.cost);
     const next = ordered.find((g) => !this._unlocks.isGunUnlocked(g.id));
-    const vault = this._unlocks.getVault();
     return ordered.map((g) => {
       const owned = this._unlocks.isGunUnlocked(g.id);
       const level = this._unlocks.getGunLevel(g.id);
@@ -211,7 +215,7 @@ export class ShopScene extends Phaser.Scene {
         isNext: g.id === next?.id,
         rarity: g.rarity,
         power: powerText(g.id, level),
-        silhouette: !owned && g.id !== next?.id && g.cost > vault,
+        silhouette: isMysteryGun(this._unlocks, g.id),
       };
     });
   }

@@ -11,6 +11,8 @@ import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
+import type { RevealTracker } from './reveal/RevealTracker';
+import { ROW_COUNT_MS } from './reveal/revealTiming';
 import { fitWidth } from './RewardParts';
 
 const LABEL_X = 250;
@@ -23,7 +25,6 @@ const GAIN_X = 932;
 const GAIN_MAX_W = 112;
 const OUTLINE_PX = 3;
 const TRACK = shade(COLOUR.cloud, 0.85);
-const ROW_COUNT_MS = 450;
 const GAIN_POP_FROM = 1.5;
 
 export interface RowParts {
@@ -32,6 +33,8 @@ export interface RowParts {
   readonly value: Phaser.GameObjects.Text;
   readonly gain: Phaser.GameObjects.Text;
   readonly y: number;
+  /** Everything the row drew, so it can be faded in as one. */
+  readonly objects: readonly Phaser.GameObjects.GameObject[];
 }
 
 /** One row: label, bar at the previous gun's fill, value text "from → from", and a hidden gain. */
@@ -59,7 +62,7 @@ export function buildRow(
     .setAlpha(0);
   fitWidth(gain, GAIN_MAX_W);
   root.add([label, bar, value, gain]);
-  const parts: RowParts = { row, bar, value, gain, y };
+  const parts: RowParts = { row, bar, value, gain, y, objects: [label, bar, value] };
   paintRow(parts, row.from, row.fromFill);
   return parts;
 }
@@ -86,10 +89,16 @@ function paintRow(parts: RowParts, current: number, fill: number): void {
   fitWidth(value, VALUE_MAX_W);
 }
 
+/** Jumps a row to its final numbers and shows the gain: what a skipped reveal shows. */
+export function finishRow(parts: RowParts): void {
+  paintRow(parts, parts.row.to, parts.row.toFill);
+  if (parts.row.gain > 0) parts.gain.setAlpha(1).setScale(1);
+}
+
 /** Counts a row from the previous value to the new one, then pops the gain in. */
-export function playRow(scene: Phaser.Scene, parts: RowParts): Phaser.Tweens.Tween {
+export function playRow(tracker: RevealTracker, parts: RowParts): void {
   const { row, gain } = parts;
-  return scene.tweens.addCounter({
+  tracker.counter({
     from: 0,
     to: 1,
     duration: ROW_COUNT_MS,
@@ -106,7 +115,7 @@ export function playRow(scene: Phaser.Scene, parts: RowParts): Phaser.Tweens.Twe
       paintRow(parts, row.to, row.toFill);
       if (row.gain <= 0) return;
       gain.setAlpha(1).setScale(GAIN_POP_FROM);
-      scene.tweens.add({
+      tracker.tween({
         targets: gain,
         scale: 1,
         duration: DURATION.stateChange,

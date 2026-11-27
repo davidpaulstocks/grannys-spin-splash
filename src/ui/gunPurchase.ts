@@ -7,10 +7,11 @@
 
 import type Phaser from 'phaser';
 
+import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
 import { gunLevelIn } from '../entities/gun/gunLevels';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
-import { showGunReveal } from './GunReveal';
+import { showGunPreview, showGunReveal, type GunRevealConfig } from './GunReveal';
 
 /** What was equipped before a purchase; take it before spending anything. */
 export interface EquippedGun {
@@ -58,4 +59,52 @@ export function buyGunWithReveal(
   const previous = equippedGun();
   if (!unlocks.buy({ kind: 'gun', id: gunId })) return false;
   return revealIfOwned(scene, gunId, previous, onClosed);
+}
+
+/** What the preview needs from its caller: how a purchase is made (the default spends coins directly) and what to run once the gun is owned and the overlay closed. */
+export interface GunPreviewOptions {
+  /** Makes the purchase; true when the gun is owned afterwards. Defaults to buying with the vault. */
+  readonly buy?: () => boolean;
+  /** Runs once the owned reveal has closed after a purchase made from the preview. */
+  readonly onClosed?: () => void;
+}
+
+/**
+ * Opens "see it blast" for a gun not owned yet: beats 1 and 2 of the reveal,
+ * then the price and progress, or BUY when it is affordable (which carries on
+ * into the owned gun's numbers). A gun already owned opens nothing.
+ */
+export function previewGunReveal(
+  scene: Phaser.Scene,
+  gunId: string,
+  options: GunPreviewOptions = {},
+): boolean {
+  const unlocks = new UnlockManager(saveManager);
+  const def = GUN_LADDER_DEFS.find((g) => g.id === gunId);
+  if (!def || unlocks.isGunUnlocked(gunId)) return false;
+  const have = unlocks.getVault();
+  const buy = options.buy ?? ((): boolean => unlocks.buy({ kind: 'gun', id: gunId }));
+  showGunPreview(scene, {
+    gunId,
+    have,
+    price: def.cost,
+    ...(have >= def.cost
+      ? {
+          onBuy: (): GunRevealConfig | null => {
+            const previous = equippedGun();
+            if (!buy() || !unlocks.isGunUnlocked(gunId)) return null;
+            return {
+              gunId,
+              level: unlocks.getGunLevel(gunId),
+              previousGunId: previous.id,
+              previousLevel: previous.level,
+              onUse: () => unlocks.selectGun(gunId),
+              onLater: () => unlocks.selectGun(previous.id),
+              ...(options.onClosed ? { onClosed: options.onClosed } : {}),
+            };
+          },
+        }
+      : {}),
+  });
+  return true;
 }

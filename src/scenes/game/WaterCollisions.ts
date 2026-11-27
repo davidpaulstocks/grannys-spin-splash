@@ -14,7 +14,7 @@ import { GAME_WIDTH } from '../../config';
 import type { GunDef } from '../../entities/gun/gun.types';
 import { MAX_SPINNER_SPEED } from '../../entities/spinner/spinner.data';
 import type { Spinner } from '../../entities/spinner/Spinner';
-import { FIRE_DENSITY_SCALE } from '../../entities/waterParticle/WaterCannon';
+import { FIRE_DENSITY_SCALE } from '../../entities/waterParticle/fireDensity';
 import type { WaterParticle } from '../../entities/waterParticle/WaterParticle';
 import { spawnImpact } from '../../entities/waterParticle/projectiles/impacts';
 import type { FrenzyController } from './FrenzyController';

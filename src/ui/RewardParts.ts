@@ -78,6 +78,28 @@ export function addGoalPicture(
   return [...frame, image, plate, lock];
 }
 
+const TAP_PAD = 12;
+
+/**
+ * An invisible tap zone over a reward's picture, so a gun can be tapped to see
+ * it blast. Add it after the picture (and after any whole-card tap zone) so it
+ * wins the tap.
+ */
+export function addPictureTap(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  onTap: () => void,
+): Phaser.GameObjects.Zone {
+  const zone = scene.add
+    .zone(x, y, width + TAP_PAD, height + TAP_PAD)
+    .setInteractive({ useHandCursor: true });
+  zone.on('pointerup', onTap);
+  return zone;
+}
+
 /** Shrinks `text` so it is no wider than `maxWidth`; wide text is made smaller, never cut. */
 export function fitWidth(text: Phaser.GameObjects.Text, maxWidth: number): void {
   if (text.width > maxWidth) text.setScale(maxWidth / text.width);
