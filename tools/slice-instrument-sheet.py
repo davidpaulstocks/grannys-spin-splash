@@ -270,8 +270,17 @@ def punch_holes(canvas, seeds, factor=1):
     mask = ImageChops.multiply(whitish, a.point(lambda v: 255 if v > 0 else 0))
     for x, y in seeds:
         px, py = round(x * factor), round(y * factor)
-        if 0 <= px < mask.width and 0 <= py < mask.height and mask.getpixel((px, py)) == 255:
-            ImageDraw.floodfill(mask, (px, py), 128)
+        # The big picture is cut from the sheet separately, so a seed can land a pixel or two off a thin gap:
+        # use the nearest white pixel within a few small-picture pixels.
+        best, reach = None, round(3 * factor)
+        for dy in range(-reach, reach + 1):
+            for dx in range(-reach, reach + 1):
+                qx, qy = px + dx, py + dy
+                if 0 <= qx < mask.width and 0 <= qy < mask.height and mask.getpixel((qx, qy)) == 255:
+                    if best is None or dx * dx + dy * dy < best[0]:
+                        best = (dx * dx + dy * dy, qx, qy)
+        if best:
+            ImageDraw.floodfill(mask, (best[1], best[2]), 128)
     hole = mask.point(lambda v: 255 if v == 128 else 0)
     # Grow the hole a touch into the pale fringe, then soften its edge.
     hole = hole.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(max(1, factor * 0.5)))
