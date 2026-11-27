@@ -8,20 +8,34 @@
 
 import type Phaser from 'phaser';
 
+import { GAME_WIDTH } from '../../config';
+
 import { audioOrchestra } from '../../audio/AudioOrchestra';
 import type { Accent } from '../../audio/orchestra/setPieces';
 import * as SFX from '../../audio/SFX';
 import type { GunDef } from '../../entities/gun/gun.types';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { SpinnerState } from '../../entities/spinner/spinner.types';
+import { VISITOR_DEFS } from '../../entities/visitor/visitor.data';
 import {
+  BLOCKER,
   SITTER_HITS,
+  THIEF,
   VISIT_MOTION as M,
   VISIT_PAY,
-  VISITOR_DEFS,
-} from '../../entities/visitor/visitor.data';
-import type { VisitorHit, VisitorId, VisitorKind } from '../../entities/visitor/visitor.types';
-import { Visitor, type VisitorAimPoint } from '../../entities/visitor/Visitor';
+} from '../../entities/visitor/visitorTuning.data';
+import type {
+  VisitorDef,
+  VisitorHit,
+  VisitorId,
+  VisitorKind,
+} from '../../entities/visitor/visitor.types';
+import type { Visitor, VisitorAimPoint } from '../../entities/visitor/Visitor';
+import { BlockerVisitor } from '../../entities/visitor/BlockerVisitor';
+import { pickCluster, type ClusterCandidate } from '../../entities/visitor/blockerCluster';
+import { createVisitor, type PlacedSpec } from '../../entities/visitor/createVisitor';
+import { stealPerTick } from '../../entities/visitor/theft';
+import { ThiefVisitor } from '../../entities/visitor/ThiefVisitor';
 import { castFor, VisitorSchedule, type RandomFn } from '../../entities/visitor/visitorSchedule';
 import { spawnSparks, spawnSplash } from '../../entities/waterParticle/splashVFX';
 import type { WaterParticle } from '../../entities/waterParticle/WaterParticle';
@@ -40,6 +54,8 @@ const TELEGRAPH_ACCENT: Readonly<Record<VisitorKind, Accent>> = {
 };
 /** Where the words float: above the place it happened. */
 const WORD_LIFT_PX = 44;
+/** Treats fly in the top part of the wall only. */
+const TREAT_HEIGHT_SHARE = 0.7;
 /** Coins thrown from where a payout happens spread this wide. */
 const COIN_SPREAD_PX = 24;
 
@@ -81,7 +97,11 @@ export class VisitorDirector {
       liveCount: this._live.length,
     });
     if (id) this._send(id);
-    for (const visitor of this._live) visitor.update(time, deltaMs);
+    for (const visitor of this._live) {
+      visitor.update(time, deltaMs);
+      if (visitor instanceof ThiefVisitor) this._thiefActs(visitor);
+      else if (visitor instanceof BlockerVisitor) this._chargeDropOuts(visitor, time);
+    }
     this._live = this._live.filter((v) => {
       if (!v.done) return true;
       v.destroy();
@@ -101,48 +121,127 @@ export class VisitorDirector {
   }
 
   private _send(id: VisitorId): void {
-    const d = this._d;
     const def = VISITOR_DEFS[id];
-    const area = wallAreaFor(d.world);
-    const dir = this._random() < 0.5 ? 1 : -1;
-    let host: Spinner | null = null;
-    let y = 0;
-    if (def.kind === 'sitter') {
-      host = this._pickHost();
-      if (!host) return this._schedule.retrySoon();
-    } else {
-      const top = area.y + (def.kind === 'treat' ? M.treatArcPx : 0);
-      const bottom = area.y + area.height * (def.kind === 'treat' ? 0.7 : 1);
-      y = top + this._random() * Math.max(0, bottom - top);
-    }
-    const tiers = Math.max(0, d.gun.tier - 1);
-    const hitsNeeded = Math.max(
-      SITTER_HITS.min,
-      Math.round(SITTER_HITS.base / (1 + SITTER_HITS.speedupPerTier * tiers)),
-    );
-    this._live.push(new Visitor(d.scene, { def, dir, y, host, hitsNeeded }));
+    const placed = this._place(def);
+    if (!placed) return this._schedule.retrySoon();
+    const visitor = createVisitor(this._d.scene, placed);
+    this._live.push(visitor);
     audioOrchestra.accent(TELEGRAPH_ACCENT[def.kind]);
+    if (visitor instanceof ThiefVisitor) {
+      const host = visitor.occupied[0];
+      if (host) this._say(host, THIEF.arrivalWord, COLOUR_HEX.heatOrange);
+    }
   }
 
-  /** A spinning instrument for a sitter: one at full speed if there is one, never one already sat on. */
-  private _pick(spinners: readonly Spinner[]): Spinner | null {
-    return (
-      spinners[Math.min(spinners.length - 1, Math.floor(this._random() * spinners.length))] ?? null
-    );
+  /** Decides where a visitor goes: a cluster for a blocker, one instrument for a thief, a height for a treat. */
+  private _place(def: VisitorDef): PlacedSpec | null {
+    const d = this._d;
+    const area = wallAreaFor(d.world);
+    if (def.kind === 'sitter') {
+      const host = this._pickHost();
+      if (!host) return null;
+      const tiers = Math.max(0, d.gun.tier - 1);
+      const hitsNeeded = Math.max(
+        SITTER_HITS.min,
+        Math.round(SITTER_HITS.base / (1 + SITTER_HITS.speedupPerTier * tiers)),
+      );
+      return { kind: 'sitter', spec: { def, dir: this._side(), host, hitsNeeded } };
+    }
+    if (def.kind === 'blocker') {
+      const cluster = pickCluster(this._freeCandidates(), this._random);
+      if (!cluster) return null;
+      return {
+        kind: 'blocker',
+        spec: {
+          def,
+          dir: cluster.x < GAME_WIDTH / 2 ? 1 : -1,
+          park: { x: cluster.x, y: cluster.y, radius: cluster.radius },
+          covered: cluster.members.map((m) => m.spinner),
+          hitsNeeded: BLOCKER.baseHits + BLOCKER.hitsPerGigIndex * d.gig.index,
+          fitToCluster: true,
+        },
+      };
+    }
+    const top = area.y + M.treatArcPx;
+    const bottom = area.y + area.height * TREAT_HEIGHT_SHARE;
+    const y = top + this._random() * Math.max(0, bottom - top);
+    return { kind: 'treat', spec: { def, dir: this._side(), y } };
   }
 
+  private _side(): 1 | -1 {
+    return this._random() < 0.5 ? 1 : -1;
+  }
+
+  /** Instruments nothing is sitting on or covering. */
+  private _free(): Spinner[] {
+    const taken = new Set(this._live.flatMap((v) => v.occupied));
+    return this._d.spinners().filter((s) => !s.silenced && !taken.has(s));
+  }
+
+  private _freeCandidates(): (ClusterCandidate & { spinner: Spinner })[] {
+    return this._free().map((s) => ({
+      x: s.x,
+      y: s.y,
+      r: s.def.r * s.scaleX,
+      spinning: s.currentState !== SpinnerState.STOPPED,
+      spinner: s,
+    }));
+  }
+
+  /** A spinning instrument for a thief: one at full speed if there is one, never one already taken. */
   private _pickHost(): Spinner | null {
-    const taken = new Set(this._live.map((v) => v.host));
-    const free = this._d.spinners().filter((s) => !s.silenced && !taken.has(s));
+    const free = this._free();
     const full = free.filter((s) => s.currentState === SpinnerState.FULL);
     const spinning = free.filter((s) => s.currentState !== SpinnerState.STOPPED);
-    return this._pick(full.length > 0 ? full : spinning);
+    const pool = full.length > 0 ? full : spinning;
+    return pool[Math.min(pool.length - 1, Math.floor(this._random() * pool.length))] ?? null;
   }
 
   /** Coins for an outcome: a share of the gig's third star target, never less than a couple. */
   private _coins(fraction: number): number {
     const third = starTargets(this._d.gig)[2];
     return Math.max(VISIT_PAY.minCoins, Math.round(third * fraction));
+  }
+
+  /** A thief's half-second: take its coins (counter to thief), and say so if it just flew off with them. */
+  private _thiefActs(thief: ThiefVisitor): void {
+    const at = { x: thief.x, y: thief.y };
+    const per = stealPerTick(starTargets(this._d.gig)[2]);
+    for (let i = thief.consumeSteals(); i > 0; i--) {
+      const taken = this._d.reward.steal(per, at);
+      if (taken <= 0) continue;
+      if (thief.loot === 0) audioOrchestra.accent('goldenMissed');
+      thief.addLoot(taken);
+      this._say(at, `-${taken}`, COLOUR_HEX.heatOrange);
+    }
+    const escaped = thief.takeEscape();
+    if (escaped > 0) this._say(at, `-${escaped}`, COLOUR_HEX.heatOrange);
+  }
+
+  /** Instruments under a blocker that have wound down out of full speed cost groove, as they would have uncovered. */
+  private _chargeDropOuts(blocker: BlockerVisitor, time: number): void {
+    for (const spinner of blocker.consumeDropOuts()) {
+      this._d.reward.onSpinnerStateChange(spinner, SpinnerState.FULL, SpinnerState.MEDIUM, time);
+    }
+  }
+
+  /** A shooed thief drops everything: the loot flies back to the counter with the usual bonus. */
+  private _returnLoot(thief: ThiefVisitor, at: { x: number; y: number }): void {
+    const d = this._d;
+    const loot = thief.loot;
+    const bonus = this._coins(VISIT_PAY.shooFraction);
+    thief.clearLoot();
+    d.reward.payBurst(
+      Array.from({ length: THIEF.returnCoinThrows }, () => ({
+        x: at.x + (this._random() - 0.5) * COIN_SPREAD_PX,
+        y: at.y + (this._random() - 0.5) * COIN_SPREAD_PX,
+      })),
+      loot + bonus,
+    );
+    spawnSparks(d.scene, at.x, at.y, COLOUR.mintGreen);
+    const word = loot > 0 ? THIEF.returnWord : thief.def.word;
+    this._say(at, `${word} +${loot + bonus}`, COLOUR_HEX.mintGreen);
+    audioOrchestra.accent(loot > 0 ? 'golden' : 'spin');
   }
 
   private _onHit(visitor: Visitor, hit: VisitorHit, x: number, y: number): void {
@@ -155,6 +254,9 @@ export class VisitorDirector {
         SFX.playDeflect();
       }
       return;
+    }
+    if (hit === 'shoo' && visitor instanceof ThiefVisitor) {
+      return this._returnLoot(visitor, { x: visitor.x, y: visitor.y });
     }
     const at = hit === 'treat' ? { x: visitor.x, y: visitor.y } : { x, y };
     const spread = (): number => (this._random() - 0.5) * COIN_SPREAD_PX;

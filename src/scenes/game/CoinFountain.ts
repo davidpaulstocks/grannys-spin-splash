@@ -25,6 +25,8 @@ const COIN_RIM_SHADE = 0.72;
 /** Coin scale by how much the instrument pays: SLOW 1, MEDIUM 2, FULL 4. */
 const SCALE_BY_PAY: Readonly<Record<number, number>> = { 1: 0.55, 2: 0.78, 4: 1.05 };
 const DEFAULT_SCALE = 0.55;
+/** Coins stolen or sent back fly as full-speed coins. */
+const FULL_PAY = 4;
 /** The pop up off the instrument, then the flight to the counter. */
 const POP_RISE_PX = 28;
 const POP_MS = 100;
@@ -82,7 +84,24 @@ export class CoinFountain {
     this._cursor = (this._cursor + count) % payers.length;
   }
 
-  private _launch(coin: PooledCoin, payer: Payer, delayMs: number): void {
+  /** Flies `count` coins from `from` to `to` (the counter to a thief), from the same pool. */
+  flyCoins(
+    from: { readonly x: number; readonly y: number },
+    to: { readonly x: number; readonly y: number },
+    count: number,
+  ): void {
+    const free = this._pool.filter((c) => !c.busy).slice(0, count);
+    free.forEach((coin, i) =>
+      this._launch(coin, { x: from.x, y: from.y, pay: FULL_PAY }, (SPRAY_MS * i) / free.length, to),
+    );
+  }
+
+  private _launch(
+    coin: PooledCoin,
+    payer: Payer,
+    delayMs: number,
+    to: { readonly x: number; readonly y: number } = { x: SCORE_COIN_X, y: SCORE_COIN_Y },
+  ): void {
     const scene = this._scene;
     const scale = SCALE_BY_PAY[payer.pay] ?? DEFAULT_SCALE;
     coin.busy = true;
@@ -102,8 +121,8 @@ export class CoinFountain {
       onComplete: () => {
         scene.tweens.add({
           targets: coin.gfx,
-          x: SCORE_COIN_X,
-          y: SCORE_COIN_Y,
+          x: to.x,
+          y: to.y,
           scale: scale * 0.7,
           duration: FLIGHT_MS,
           ease: EASE.standardIn,

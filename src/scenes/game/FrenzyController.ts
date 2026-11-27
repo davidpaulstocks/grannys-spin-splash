@@ -126,6 +126,12 @@ export class FrenzyController {
     }
   }
 
+  /** Ends the window at once, for the final whistle: banner away, spinners unlocked. */
+  cutShort(): void {
+    this._endAt = 0;
+    this.updateWindow(0);
+  }
+
   /**
    * Keeps the encore loud: nothing can level up while the whole band is
    * locked at full, so without this the climax would be the one stretch of

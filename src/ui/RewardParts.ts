@@ -7,9 +7,10 @@ import type Phaser from 'phaser';
 
 import { SPRITE_KEYS } from '../assets/keys';
 import type { NextReward } from '../systems/Rewards';
-import { COLOUR } from '../utils/colour';
+import { COLOUR, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 import { EASE } from '../utils/tween';
+import { drawLockIcon } from './icons';
 
 /** The gun's 0-degree sprite or the granny's front pose. */
 export function rewardTextureKey(reward: Pick<NextReward, 'kind' | 'id'>): string {
@@ -32,6 +33,52 @@ export function addRewardPicture(
   const image = scene.add.image(x, y, key);
   image.setScale(Math.min(maxWidth / image.width, maxHeight / image.height));
   return image;
+}
+
+const LOCKED_TINT = shade(COLOUR.cloud, 0.5);
+const LOCKED_ALPHA = 0.85;
+const LOCK_SIZE = 20;
+const LOCK_PLATE_RADIUS = 18;
+const LOCK_CORNER_INSET = 14;
+
+/**
+ * The picture of a goal: in full colour when it can be had now, dimmed with a
+ * small padlock in its corner while it is still being saved for. Returns every
+ * object it made (picture, plate and padlock) so the caller can add them.
+ */
+export function addGoalPicture(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxHeight: number,
+  reward: Pick<NextReward, 'kind' | 'id'>,
+  locked: boolean,
+): Phaser.GameObjects.GameObject[] {
+  const image = addRewardPicture(scene, x, y, maxWidth, maxHeight, reward);
+  if (!image) return [];
+  if (!locked) return [image];
+  image.setTint(LOCKED_TINT).setAlpha(LOCKED_ALPHA);
+  const plate = scene.add.graphics({
+    x: x + maxWidth / 2 - LOCK_CORNER_INSET,
+    y: y + maxHeight / 2 - LOCK_CORNER_INSET,
+  });
+  plate.fillStyle(COLOUR.ink, 0.85);
+  plate.fillCircle(0, 0, LOCK_PLATE_RADIUS);
+  const lock = scene.add.graphics({ x: plate.x, y: plate.y + 1 });
+  drawLockIcon(lock, LOCK_SIZE, COLOUR.cloud);
+  return [image, plate, lock];
+}
+
+/** Shrinks `text` so it is no wider than `maxWidth`; wide text is made smaller, never cut. */
+export function fitWidth(text: Phaser.GameObjects.Text, maxWidth: number): void {
+  if (text.width > maxWidth) text.setScale(maxWidth / text.width);
+}
+
+/** Wraps `text` at `maxWidth` and, if it still stands taller than `maxHeight`, shrinks it to fit. */
+export function wrapFit(text: Phaser.GameObjects.Text, maxWidth: number, maxHeight: number): void {
+  text.setWordWrapWidth(maxWidth, true);
+  if (text.height > maxHeight) text.setScale(maxHeight / text.height);
 }
 
 export interface RewardBarConfig {

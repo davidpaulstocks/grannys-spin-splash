@@ -15,7 +15,7 @@ import {
   drawTrophy,
   drawWateringCan,
 } from './treatDrawings';
-import { BALLOON_KNOT, BALLOON_LAYOUT } from './visitor.data';
+import { BALLOON_KNOT, BALLOON_LAYOUT } from './visitorTuning.data';
 import type { VisitorId } from './visitor.types';
 
 /** What can change about a drawing while it is on screen. */

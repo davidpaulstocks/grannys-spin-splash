@@ -4,7 +4,7 @@ import type Phaser from 'phaser';
 
 import { COLOUR } from '../../utils/colour';
 import type { Spinner } from '../spinner/Spinner';
-import { VISIT_MOTION as M } from './visitor.data';
+import { VISIT_MOTION as M } from './visitorTuning.data';
 
 const SHADOW_LOW_ALPHA = 0.5;
 const SHADOW_DROP_FRACTION = 0.4;

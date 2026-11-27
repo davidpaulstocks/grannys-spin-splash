@@ -13,10 +13,11 @@ import { audioOrchestra } from '../../audio/AudioOrchestra';
 import type { GunDef } from '../../entities/gun/gun.types';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { SpinnerState } from '../../entities/spinner/spinner.types';
+import { THIEF } from '../../entities/visitor/visitorTuning.data';
 import { starTargets, type GigDef } from '../../entities/world/gigs.data';
 import { Groove } from '../../systems/Groove';
 import { spawnFloatingText } from '../../ui/FloatingText';
-import { COLOUR_HEX } from '../../utils/colour';
+import { SCORE_COIN_X, SCORE_COIN_Y } from '../../ui/ScoreBar';
 import { CoinFountain, COIN_TRAVEL_MS } from './CoinFountain';
 import { GigScore, payFor, type StarTargets } from './GigScore';
 
@@ -26,8 +27,6 @@ const DROP_OUT_GRACE_MS = 1000;
 const AFTER_FRENZY_GRACE_MS = 2500;
 /** A visitor's coins fly as full-speed coins. */
 const COIN_BURST_PAY = 4;
-/** Where the "x2" of a drop-out floats, above the instrument that dropped. */
-const DROP_TEXT_LIFT_PX = 12;
 
 /** What the loop needs to know about the rest of the scene. */
 export interface RewardLoopDeps {
@@ -130,22 +129,30 @@ export class RewardLoop {
   /**
    * A spinner changed state. Falling out of full speed costs a groove level —
    * except during or just after Frenzy, and in the first moment of the gig.
+   * The badge shows the fall (GrooveBadge) and the groove's `levelDown` sounds it.
    */
-  onSpinnerStateChange(spinner: Spinner, from: SpinnerState, to: SpinnerState, time: number): void {
+  onSpinnerStateChange(
+    _spinner: Spinner,
+    from: SpinnerState,
+    to: SpinnerState,
+    time: number,
+  ): void {
     if (from !== SpinnerState.FULL || to === SpinnerState.FULL) return;
     if (this._d.frenzyActive() || time < this._dropOutsAllowedAt) return;
-    const before = this.groove.level;
     this.groove.dropOut(this._d.spinners().length);
     this._dropOuts++;
-    if (this.groove.level < before) {
-      spawnFloatingText(
-        this._d.scene,
-        spinner.x,
-        spinner.y - spinner.def.r - DROP_TEXT_LIFT_PX,
-        `×${this.groove.level}`,
-        COLOUR_HEX.heatOrange,
-      );
+  }
+
+  /**
+   * A thief's take: removes up to `amount` coins from the total and flies
+   * them from the counter to `to`. Returns what was actually taken.
+   */
+  steal(amount: number, to: { readonly x: number; readonly y: number }): number {
+    const taken = this._score.steal(amount);
+    if (taken > 0) {
+      this._fountain.flyCoins({ x: SCORE_COIN_X, y: SCORE_COIN_Y }, to, THIEF.stealFlyCoins);
     }
+    return taken;
   }
 
   /**

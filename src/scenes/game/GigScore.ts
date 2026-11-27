@@ -86,6 +86,16 @@ export class GigScore {
   }
 
   /**
+   * Takes coins away (a thief's loot). The total never goes below 0 and stars
+   * already locked in stay locked. Returns the coins actually taken.
+   */
+  steal(amount: number): number {
+    const taken = Math.max(0, Math.min(Math.round(amount), this._coins));
+    this._coins -= taken;
+    return taken;
+  }
+
+  /**
    * Advances the pay clock by `deltaMs`. Each time it passes a pay tick, every
    * instrument in `pays` (one entry per instrument, see `payFor`) pays at
    * `multiplier`, rounded to whole coins. Returns the coins paid by this call:

@@ -105,3 +105,37 @@ describe('GigScore reset', () => {
     expect(score.stars).toBe(1);
   });
 });
+
+describe('GigScore steal', () => {
+  it('takes coins away and says how many it took', () => {
+    const { score } = makeScore();
+    score.addCoins(8);
+    expect(score.steal(5)).toBe(5);
+    expect(score.coins).toBe(3);
+  });
+
+  it('never takes the total below zero', () => {
+    const { score } = makeScore();
+    score.addCoins(3);
+    expect(score.steal(10)).toBe(3);
+    expect(score.coins).toBe(0);
+    expect(score.steal(10)).toBe(0);
+  });
+
+  it('leaves stars already locked in', () => {
+    const { score } = makeScore([10, 20, 40]);
+    score.addCoins(25);
+    expect(score.stars).toBe(2);
+    score.steal(25);
+    expect(score.coins).toBe(0);
+    expect(score.stars).toBe(2);
+  });
+
+  it('lets the coins be earned back past the next target', () => {
+    const { score } = makeScore([10, 20, 40]);
+    score.addCoins(25);
+    score.steal(15);
+    score.addCoins(30);
+    expect(score.stars).toBe(3);
+  });
+});

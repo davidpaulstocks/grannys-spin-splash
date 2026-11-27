@@ -17,7 +17,7 @@ import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
 import { claimDailyGift, dailyGift } from '../systems/DailyGift';
 import { currentGig, frontier, totalStars } from '../systems/Progress';
-import { nextReward } from '../systems/Rewards';
+import { nextReward, shopHasNews } from '../systems/Rewards';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
@@ -30,7 +30,7 @@ import { drawTourIcon } from '../ui/icons';
 import { createSavingForStrip } from '../ui/SavingForStrip';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { createVenueStrip, type VenueStrip } from '../ui/VenueStrip';
-import { COLOUR_HEX } from '../utils/colour';
+import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 
@@ -48,6 +48,11 @@ const STARS_PILL_X = 264;
 const PILLS_Y = 50;
 const SHOP_X = 440;
 const SHOP_Y = 52;
+/** The gold "something to buy" dot on the SHOP button's top-right corner. */
+const SHOP_DOT_RADIUS = 10;
+const SHOP_DOT_INSET = 4;
+const SHOP_DOT_OUTLINE = 3;
+const SHOP_DOT_DEPTH = 10;
 
 const GIFT_X = GAME_WIDTH - 176;
 const GIFT_Y = 54;
@@ -113,7 +118,7 @@ export class HomeScene extends Phaser.Scene {
       onTap: () => this._goTo('ShopScene'),
     });
 
-    createButton(this, {
+    const shopButton = createButton(this, {
       x: SHOP_X,
       y: SHOP_Y,
       label: 'SHOP',
@@ -121,6 +126,19 @@ export class HomeScene extends Phaser.Scene {
       size: 'sm',
       onClick: () => this._goTo('ShopScene'),
     });
+    if (shopHasNews(save)) {
+      // A gold dot on the button's corner: something in there can be bought now.
+      const edge = shopButton.getBounds();
+      this.add
+        .circle(
+          edge.right - SHOP_DOT_INSET,
+          edge.top + SHOP_DOT_INSET,
+          SHOP_DOT_RADIUS,
+          COLOUR.sunnyGold,
+        )
+        .setStrokeStyle(SHOP_DOT_OUTLINE, COLOUR.ink)
+        .setDepth(SHOP_DOT_DEPTH);
+    }
     createButton(this, {
       x: CARD_X,
       y: PLAY_Y,

@@ -1,8 +1,8 @@
 /**
  * The groove badge: a round badge reading x1 to x5 — the multiplier on every
  * coin — with a ring around it filling toward the next level (docs/REWARD_LOOP.md).
- * It bumps when the level goes up; on a drop-out it shakes and flashes Heat
- * Orange; during Splash Frenzy it goes gold and says JACKPOT.
+ * It bumps when the level goes up; on a drop-out it shakes hard, flashes Heat
+ * Orange and a falling "x3 → x2" drops away from it; during Splash Frenzy it goes gold and says JACKPOT.
  */
 
 import Phaser from 'phaser';
@@ -19,10 +19,14 @@ const RING_TRACK_ALPHA = 0.2;
 const LABEL_OFFSET_Y = 52;
 const BUMP_SCALE = 1.35;
 const BUMP_MS = 200;
-const SHAKE_PX = 7;
-const SHAKE_MS = 45;
-const SHAKE_REPEATS = 3;
-const DROP_FLASH_MS = 380;
+const SHAKE_PX = 12;
+const SHAKE_MS = 40;
+const SHAKE_REPEATS = 4;
+const DROP_FLASH_MS = 400;
+/** The "x3 → x2" that falls away from the badge when a level is lost. */
+const FALL_START_Y = BADGE_RADIUS + 14;
+const FALL_PX = 40;
+const FALL_MS = 450;
 /** Jackpot breathes slowly so the gold badge reads as alive, not just recoloured. */
 const JACKPOT_PULSE_HZ = 2;
 const JACKPOT_PULSE_DEPTH = 0.07;
@@ -60,7 +64,7 @@ export class GrooveBadge {
   update(level: number, ring: number, jackpot: boolean): void {
     const now = this._scene.time.now;
     if (level > this._level) this._bump();
-    else if (level < this._level) this._drop(now);
+    else if (level < this._level) this._drop(now, this._level, level);
     if (level !== this._level) this._number.setText(`×${level}`);
     this._level = level;
 
@@ -95,8 +99,24 @@ export class GrooveBadge {
     this._scene.tweens.add({ targets: this._box, scale: 1, duration: BUMP_MS, ease: EASE.bouncy });
   }
 
-  private _drop(now: number): void {
+  private _drop(now: number, from: number, to: number): void {
     this._flashUntil = now + DROP_FLASH_MS;
+    const fall = this._scene.add
+      .text(
+        this._x,
+        this._box.y + FALL_START_Y,
+        `×${from} → ×${to}`,
+        textStyle('bodyL', COLOUR_HEX.heatOrange, COLOUR_HEX.ink),
+      )
+      .setOrigin(0.5);
+    this._scene.tweens.add({
+      targets: fall,
+      y: fall.y + FALL_PX,
+      alpha: 0,
+      duration: FALL_MS,
+      ease: EASE.standardIn,
+      onComplete: () => fall.destroy(),
+    });
     this._scene.tweens.killTweensOf(this._box);
     this._box.setScale(1).setX(this._x);
     this._scene.tweens.add({

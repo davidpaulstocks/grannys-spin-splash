@@ -62,7 +62,8 @@ export class UrgencyOverlay {
 
   private _drawVignette(secondsRemaining: number, seconds: number): void {
     this._vignette.clear();
-    if (seconds > URGENT_COUNTDOWN_SECONDS) return;
+    // Nothing once the whistle has gone: the Big Finish plays on a clean screen.
+    if (secondsRemaining <= 0 || seconds > URGENT_COUNTDOWN_SECONDS) return;
 
     const intensity = Phaser.Math.Clamp((URGENT_COUNTDOWN_SECONDS - secondsRemaining) / 10, 0, 1);
     const thickness = VIGNETTE_BASE_THICKNESS + intensity * VIGNETTE_MAX_EXTRA_THICKNESS;

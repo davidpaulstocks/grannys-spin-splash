@@ -1,8 +1,7 @@
 /**
  * How the wall answers the music: each note kicks its own spinner, now and
- * then floats a note glyph off it, and the first time a spinner sounds its
- * musician is introduced by name. Also owns the pre-play "NEW" labels over
- * the musicians who join at this gig.
+ * then floats a note glyph off it. Also owns the name pills under the
+ * musicians who join at this gig.
  */
 
 import Phaser from 'phaser';
@@ -12,10 +11,9 @@ import { audioOrchestra } from '../../audio/AudioOrchestra';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { newMusicianCount, type GigDef } from '../../entities/world/gigs.data';
 import type { WorldDef } from '../../entities/world/world.types';
-import { spawnFloatingText } from '../../ui/FloatingText';
-import { COLOUR_HEX } from '../../utils/colour';
+import { COLOUR, COLOUR_HEX } from '../../utils/colour';
+import { pillRadius } from '../../utils/math';
 import { textStyle } from '../../utils/typography';
-import { EASE } from '../../utils/tween';
 import { NoteFountain } from './NoteFountain';
 
 /** How hard a spinner kicks when it is sprayed into sounding, and on its own written notes. */
@@ -25,20 +23,19 @@ const NOTE_PULSE = 0.6;
 const BEAT_PULSE = 0.35;
 /** A beat phase that falls by more than this has wrapped round to the next beat. */
 const BEAT_WRAP_DROP = 0.5;
-/** Gap below a spinner for its musician's name, clear of the "+N ★" text that rises from above it. */
-const MUSICIAN_NAME_OFFSET = 18;
 
 const INTRO_LABEL_GAP = 14;
 const INTRO_LABEL_DEPTH = 165;
-const INTRO_TAG_BOB_PX = 8;
-const INTRO_TAG_BOB_MS = 520;
-const INTRO_FADE_MS = 260;
+/** The pills show this long after the gig opens, then fade over INTRO_FADE_MS. */
+const INTRO_SHOW_MS = 2000;
+const INTRO_FADE_MS = 400;
+const PILL_HEIGHT = 32;
+const PILL_PADDING_X = 12;
+const PILL_TAG_GAP = 8;
+const PILL_NUDGE_GAP = 4;
+const PILL_ALPHA = 0.88;
 
 export class MusicReactions {
-  /** The "NEW" tags and names over this gig's new musicians, shown until the first squirt. */
-  private _introLabels: Phaser.GameObjects.Text[] = [];
-  /** Spinners whose musician has already been introduced by name this round. */
-  private readonly _joined = new Set<number>();
   private readonly _fountain: NoteFountain;
   private _lastBeatPhase = 0;
 
@@ -51,67 +48,73 @@ export class MusicReactions {
   }
 
   /**
-   * Before the first squirt, the musicians who are new at this gig are
-   * labelled on their own spinners — "NEW" above, their name below. At the
-   * first gig that is the whole trio, which is also how a first-time player
-   * learns that the spinners are a band.
+   * When the gig opens, each musician who is new at this gig gets one small
+   * pill under their instrument: their name, with a tiny gold "NEW". It shows
+   * for about two seconds and fades. At the first gig that is the whole trio,
+   * which is also how a first-time player learns that the spinners are a
+   * band. Pills that would overlap are nudged down so none covers another.
    */
   showGigIntro(spinners: readonly Spinner[]): void {
     const joining = newMusicianCount(this._world, this._gig.index);
     const firstNew = this._gig.band - joining;
     const names = musiciansJoining(this._world.id, firstNew, this._gig.band);
+    const placed: Phaser.Geom.Rectangle[] = [];
     names.forEach((name, i) => {
       const spinner = spinners[firstNew + i];
       if (!spinner) return;
-      const tag = this._scene.add
-        .text(
-          spinner.x,
-          spinner.y - spinner.def.r - INTRO_LABEL_GAP,
-          'NEW',
-          textStyle('buttonS', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
-        )
-        .setOrigin(0.5, 1)
-        .setDepth(INTRO_LABEL_DEPTH);
-      const label = this._scene.add
-        .text(
-          spinner.x,
-          spinner.y + spinner.def.r + INTRO_LABEL_GAP,
-          name,
-          textStyle('buttonS', COLOUR_HEX.cloud, COLOUR_HEX.ink),
-        )
-        .setOrigin(0.5, 0)
-        .setDepth(INTRO_LABEL_DEPTH);
+      const top = spinner.y + spinner.def.r + INTRO_LABEL_GAP;
+      const { pill, width } = this._buildPill(name, spinner.x, top);
+      const box = new Phaser.Geom.Rectangle(spinner.x - width / 2, top, width, PILL_HEIGHT);
+      while (placed.some((other) => Phaser.Geom.Rectangle.Overlaps(other, box))) {
+        pill.y += PILL_HEIGHT + PILL_NUDGE_GAP;
+        box.y += PILL_HEIGHT + PILL_NUDGE_GAP;
+      }
+      placed.push(box);
       this._scene.tweens.add({
-        targets: tag,
-        y: tag.y - INTRO_TAG_BOB_PX,
-        duration: INTRO_TAG_BOB_MS,
-        ease: EASE.standardOut,
-        yoyo: true,
-        repeat: -1,
+        targets: pill,
+        alpha: 0,
+        delay: INTRO_SHOW_MS,
+        duration: INTRO_FADE_MS,
+        onComplete: () => pill.destroy(),
       });
-      this._introLabels.push(tag, label);
     });
   }
 
-  /** Fades the intro labels out — called on the first squirt. */
-  dismissGigIntro(): void {
-    for (const label of this._introLabels) {
-      this._scene.tweens.killTweensOf(label);
-      this._scene.tweens.add({
-        targets: label,
-        alpha: 0,
-        duration: INTRO_FADE_MS,
-        onComplete: () => label.destroy(),
-      });
-    }
-    this._introLabels = [];
+  /** One pill, top-centred on (x, y): a dark rounded plate with the name in Cloud and "NEW" in gold. */
+  private _buildPill(
+    name: string,
+    x: number,
+    y: number,
+  ): { pill: Phaser.GameObjects.Container; width: number } {
+    const scene = this._scene;
+    const label = scene.add
+      .text(0, 0, name, textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
+      .setOrigin(0, 0.5);
+    const tag = scene.add
+      .text(0, 0, 'NEW', textStyle('caption', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink))
+      .setOrigin(0, 0.5);
+    const width = PILL_PADDING_X * 2 + label.width + PILL_TAG_GAP + tag.width;
+    label.setX(-width / 2 + PILL_PADDING_X);
+    tag.setX(label.x + label.width + PILL_TAG_GAP);
+    const plate = scene.add.graphics();
+    plate.fillStyle(COLOUR.ink, PILL_ALPHA);
+    plate.fillRoundedRect(
+      -width / 2,
+      -PILL_HEIGHT / 2,
+      width,
+      PILL_HEIGHT,
+      pillRadius(width, PILL_HEIGHT),
+    );
+    const pill = scene.add
+      .container(x, y + PILL_HEIGHT / 2, [plate, label, tag])
+      .setDepth(INTRO_LABEL_DEPTH);
+    return { pill, width };
   }
 
   /**
    * Makes the wall move with the music: each note a musician plays kicks its
    * own spinner and throws a visual from its instrument, landing on the note.
-   * The first time a spinner sounds in a round, its musician is introduced by
-   * name. In Splash Frenzy the fountain turns gold and the whole wall pulses
+   * In Splash Frenzy the fountain turns gold and the whole wall pulses
    * on every beat.
    */
   react(time: number, spinners: readonly Spinner[], frenzy: boolean): void {
@@ -122,16 +125,6 @@ export class MusicReactions {
       if (!spinner || spinner.silenced) continue; // a sat-on instrument makes no sound
       spinner.pulse(note.spray ? SPRAY_PULSE : NOTE_PULSE * note.velocity);
 
-      if (!this._joined.has(spinner.id)) {
-        this._joined.add(spinner.id);
-        spawnFloatingText(
-          this._scene,
-          spinner.x,
-          spinner.y + spinner.def.r + MUSICIAN_NAME_OFFSET,
-          audioOrchestra.seatName(note.spinner),
-          COLOUR_HEX.cloud,
-        );
-      }
       this._fountain.note(spinner, note, centre, frenzy);
     }
     this._pulseOnBeat(spinners, frenzy);

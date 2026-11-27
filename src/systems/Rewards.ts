@@ -1,7 +1,8 @@
 /**
  * What the player is saving for — docs/REWARD_LOOP.md. Pure functions over
- * `SaveData`: the cheapest gun or granny not yet owned (with the plain-words
- * line that says what it does), and the next venue still locked. The results
+ * `SaveData`: the next gun or granny not yet owned in price order (with the
+ * plain-words line that says what it does), whether an upgrade is affordable,
+ * and the next venue still locked. The results
  * screen, Home and the Shop all read the same answer.
  */
 
@@ -37,6 +38,8 @@ const TWO_JETS = 2;
 const STARTER_PERK = 'Starter gun';
 const MAX_DECIMALS = 2;
 const GRANNY_PERK = 'New look';
+/** A particle at least this size reads as a wider jet. */
+const WIDE_JET_SIZE = 10;
 
 /** "1,120" — thousands separated, so a big total reads at a glance. */
 export function formatCount(value: number): string {
@@ -57,6 +60,16 @@ export function gunEffect(gun: GunDef, level = 1): string {
   return parts.length > 0 ? parts.join(' · ') : STARTER_PERK;
 }
 
+/** The headline on the goal card, in plain words: "Coins ×1.5 · Wider jet". */
+export function gunHeadline(gun: GunDef): string {
+  const parts: string[] = [];
+  if (gun.coinBoost > 1) parts.push(`Coins ×${trimmed(gun.coinBoost)}`);
+  if (gun.streams === TWO_JETS) parts.push('Two jets');
+  else if (gun.type === 'fire') parts.push('Fire jet');
+  else if (gun.sz >= WIDE_JET_SIZE) parts.push('Wider jet');
+  return parts.length > 0 ? parts.join(' · ') : STARTER_PERK;
+}
+
 /** The gun's perk line: "Coins ×1.5" at level 1, "Level 3 · Coins ×1.95" above it. */
 export function gunPerk(gun: GunDef, level = 1): string {
   const effect = gunEffect(gun, level);
@@ -66,29 +79,21 @@ export function gunPerk(gun: GunDef, level = 1): string {
 type Candidate = Omit<NextReward, 'have' | 'canAfford' | 'progress'>;
 
 /**
- * The cheapest of the next upgrade for the equipped gun and every gun or
- * granny not yet owned, or null when nothing is left. Ties go to the upgrade,
- * then the gun: they are what changes the next gig.
+ * The next thing the player does not own, in price order across guns and
+ * grannies, or null when they own everything. Never an upgrade: upgrades are
+ * a smaller, separate thing bought in the Shop (`affordableUpgrade`). Ties go
+ * to the gun, which changes the next gig.
  */
 export function nextReward(save: SaveData): NextReward | null {
-  const equipped = GUN_DEFS.find((g) => g.id === save.selectedGunId);
-  const level = gunLevelIn(save.gunLevels, save.selectedGunId);
-  const upgrade = equipped ? upgradeCost(equipped, level) : null;
   const candidates: Candidate[] = [
-    ...(equipped && upgrade !== null && save.unlockedGuns.includes(equipped.id)
-      ? [
-          {
-            kind: 'upgrade',
-            id: equipped.id,
-            name: `${equipped.name} · Level ${level + 1}`,
-            cost: upgrade,
-            level: level + 1,
-            perk: gunEffect(equipped, level + 1),
-          } satisfies Candidate,
-        ]
-      : []),
     ...GUN_DEFS.filter((g) => !save.unlockedGuns.includes(g.id)).map(
-      (g): Candidate => ({ kind: 'gun', id: g.id, name: g.name, cost: g.cost, perk: gunPerk(g) }),
+      (g): Candidate => ({
+        kind: 'gun',
+        id: g.id,
+        name: g.name,
+        cost: g.cost,
+        perk: gunHeadline(g),
+      }),
     ),
     ...GRANNY_DEFS.filter((g) => !save.unlockedGrannies.includes(g.id)).map(
       (g): Candidate => ({
@@ -111,6 +116,20 @@ export function nextReward(save: SaveData): NextReward | null {
     canAfford: save.vault >= cheapest.cost,
     progress: cheapest.cost <= 0 ? 1 : Math.min(1, Math.max(0, save.vault / cheapest.cost)),
   };
+}
+
+/** The cost of the equipped gun's next level when the player can pay it now, else null (also null at the top level). */
+export function affordableUpgrade(save: SaveData): number | null {
+  const gun = GUN_DEFS.find((g) => g.id === save.selectedGunId);
+  if (!gun || !save.unlockedGuns.includes(gun.id)) return null;
+  const cost = upgradeCost(gun, gunLevelIn(save.gunLevels, gun.id));
+  return cost !== null && save.vault >= cost ? cost : null;
+}
+
+/** True when the Shop has something the player can buy now: a gun they do not own, or an upgrade for the equipped gun. Drives the dot on Home's SHOP button. */
+export function shopHasNews(save: SaveData): boolean {
+  const newGun = GUN_DEFS.some((g) => !save.unlockedGuns.includes(g.id) && save.vault >= g.cost);
+  return newGun || affordableUpgrade(save) !== null;
 }
 
 /** The next venue still locked and how many more stars it needs, or null when all are open. */

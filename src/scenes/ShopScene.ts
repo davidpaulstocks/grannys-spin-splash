@@ -4,8 +4,9 @@
  * job, and choosing a loadout is not it.
  *
  * The middle stage previews the chosen granny and gun in the venue the
- * player is touring. The between-runs ad gate does not live here; nothing on
- * this screen starts a gig.
+ * player is touring. Under it the gun rack lists every gun in price order, so
+ * it is plain there are more guns and which one to save for. The between-runs
+ * ad gate does not live here; nothing on this screen starts a gig.
  */
 
 import Phaser from 'phaser';
@@ -17,6 +18,7 @@ import { GUN_DEFS } from '../entities/gun/gun.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { GunShopping } from './shop/GunShopping';
+import { buildShopTitle } from './shop/shopTitle';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
 import { frontier } from '../systems/Progress';
@@ -24,12 +26,12 @@ import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
 import type { CarouselItem } from '../ui/Carousel';
+import { createGunRack, type GunRack, type GunRackItem } from '../ui/GunRack';
 import { LoadoutStage } from '../ui/LoadoutStage';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { ThumbnailSelector } from '../ui/ThumbnailSelector';
 import { showToast } from '../ui/Toast';
-import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { textStyle } from '../utils/typography';
+import { COLOUR } from '../utils/colour';
 
 /** Placeholder swatch colours standing in for real world backdrop thumbnails — one hero colour per world's vibe. */
 const WORLD_SWATCH: Readonly<Record<string, number>> = {
@@ -42,70 +44,30 @@ const WORLD_SWATCH: Readonly<Record<string, number>> = {
 
 /**
  * Vertical composition, top to bottom: wordmark (ends 170), the loadout row
- * (stage 340 tall, so 195-535), DONE (large: 84 face + 9 lip, 546-639), the
- * rewarded button (small: 52 + 6, 646-704). The row sits higher than it used
- * to because the coin readout moved to a pill in the top-left corner, which
- * freed the band it occupied and let the two buttons below it have room.
+ * (stage 340 tall, so 195-535), the gun rack (538-642), then DONE and the
+ * rewarded button side by side (646-717). The gun card fills the right column
+ * under the gun thumbnail (498-698). The coin readout is a pill top-left.
  */
 const CAROUSEL_Y = 365;
-/**
- * 2026-09-12, second pass: moved in from 170/1110 alongside CompactSelector
- * and LoadoutStage switching their arrows to an inset design. With three
- * flanking arrow-clusters, 1280px only fits them without overlap once each
- * cluster's own footprint shrinks to its component's own width (see both
- * components' doc comments) — these values leave a genuine ~35px gap on
- * every seam, confirmed live via screenshot after the fix (the previous
- * values had the Granny/Gun selectors' inner arrows physically overlapping
- * the World stage's own arrows, hiding whichever was added to the scene
- * first — this was the literal cause of the reported "no button to switch
- * world").
- */
+/** Inset arrows keep each selector's footprint at its own width, so the three never overlap (2026-09-12). */
 const GRANNY_CAROUSEL_X = 150;
 const WORLD_CAROUSEL_X = GAME_WIDTH * 0.5;
 const GUN_CAROUSEL_X = GAME_WIDTH - 150;
 /** Random-unlock reward pool cap — a random gun at or below the player's current highest tier (CLAUDE.md §11.1). */
 const REWARD_MAX_TIER = 4;
-
-/** Where unlock/select feedback toasts appear — a shared anchor above PLAY, not per-carousel (CLAUDE.md §10). */
+/** Where unlock/select feedback toasts appear — a shared anchor above the rack. */
 const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
-
-/**
- * Title lockup — the illustrated flourish wreath sits behind the drippy
- * wordmark, both centred at the same point (CLAUDE.md §3 rule 6 bans
- * studio splash screens, not the game's own stylised title on its own
- * menu). Re-sized 2026-09-12 on direct user feedback: the flourish now
- * reads as a real background element (~520px wide) instead of a small
- * tight frame — everything below it (vault, carousels, buttons) got
- * pushed down/enlarged to match the bigger carousel cards.
- */
-const TITLE_CENTRE_Y = 110;
-const TITLE_WORDMARK_HEIGHT = 120;
 const VAULT_PILL_X = 104;
 const VAULT_PILL_Y = 50;
-const PLAY_Y = 588;
-/**
- * The row under PLAY holds exactly one thing. For a first-time player it's
- * CLAUDE.md §6.5's hint; for everyone after, the rewarded-ad offer. They
- * swap rather than stack because there is no free band left between the
- * loadout card (ends at 535) and the bottom edge — squeezing both in put the
- * hint on top of PLAY's own edge and pushed the ad row flush against the
- * canvas edge. Swapping also makes the first impression a line telling a
- * new player what to do, rather than an ad offer for a gun they have no
- * context for yet.
- */
-const BOTTOM_ROW_Y = 672;
-/** The gun card: under the gun's thumbnail card, inside the right column (y 500-650). */
-const GUN_CARD_Y = 575;
-/**
- * CLAUDE.md §11.3: the standard continue button must be "larger or equal"
- * to the rewarded button beside/above it. The reward button's own label —
- * "Watch an ad for a free gun" — plus its new video icon is wider than
- * PLAY's own short label would naturally render, so PLAY needs an explicit
- * floor rather than relying on its text to win that comparison (found by
- * spec audit: PLAY's old 300 was narrower than the reward button's 340).
- */
-const PLAY_BUTTON_MIN_WIDTH = 360;
-const REWARD_BUTTON_MIN_WIDTH = 340;
+const RACK_Y = 590;
+const BUTTONS_Y = 678;
+const DONE_X = 470;
+const AD_X = 830;
+/** The gun card: under the gun's thumbnail, inside the right column (498-698). */
+const GUN_CARD_Y = 598;
+/** CLAUDE.md §11.3: the standard continue button must be larger or equal to the rewarded one beside it. */
+const BUTTON_MIN_WIDTH = 340;
+const AD_TOAST_RISE = 50;
 
 export class ShopScene extends Phaser.Scene {
   private _unlocks = new UnlockManager(saveManager);
@@ -114,22 +76,22 @@ export class ShopScene extends Phaser.Scene {
   private _gunSelector!: ThumbnailSelector;
   private _vaultPill!: StatPill;
   private _gunShopping!: GunShopping;
+  private _rack!: GunRack;
 
   constructor() {
     super('ShopScene');
   }
 
   create(): void {
-    // Phaser REUSES the scene instance, so every `private _x = ...` field
-    // initialiser runs once at construction and never again — `create()` is
-    // the only per-visit reset. Without this line `_isStartingRun` stayed
-    // true after the first run for the lifetime of the page, and PLAY did
-    // nothing at all from the second visit onward: the game was a one-round
-    // game (direct user report, 2026-09-12: "the play button after having
-    // played once does not work").
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.cloud).setOrigin(0);
-    this._buildTitle();
-    this._buildVaultDisplay();
+    // Phaser REUSES the scene instance, so `private _x = ...` initialisers run once; create() is the per-visit reset.
+    buildShopTitle(this);
+    this._vaultPill = createStatPill(
+      this,
+      VAULT_PILL_X,
+      VAULT_PILL_Y,
+      'coins',
+      this._unlocks.getVault(),
+    );
 
     this._grannySelector = new ThumbnailSelector(
       this,
@@ -158,7 +120,6 @@ export class ShopScene extends Phaser.Scene {
     this._loadoutStage.setGrannyTexture(
       SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front'),
     );
-    this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
 
     this._gunShopping = new GunShopping({
       scene: this,
@@ -168,18 +129,27 @@ export class ShopScene extends Phaser.Scene {
       toastY: SELECT_TOAST_Y,
       onChanged: () => {
         this._gunSelector.setItems(this._gunItems());
-        this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
-        this._refreshVaultText();
+        this._refreshGunViews();
+        this._vaultPill.setValue(this._unlocks.getVault());
       },
     });
-    this._gunShopping.show(this._gunSelector.getSelectedId());
+    this._rack = createGunRack(this, {
+      x: WORLD_CAROUSEL_X,
+      y: RACK_Y,
+      onPick: (id) => {
+        this._gunSelector.selectId(id);
+        this._onTapGun(id);
+      },
+    });
+    this._refreshGunViews();
+
     createButton(this, {
-      x: GAME_WIDTH / 2,
-      y: PLAY_Y,
+      x: DONE_X,
+      y: BUTTONS_Y,
       label: 'DONE',
       variant: 'primary',
-      size: 'lg',
-      minWidth: PLAY_BUTTON_MIN_WIDTH,
+      size: 'md',
+      minWidth: BUTTON_MIN_WIDTH,
       onClick: () => this.scene.start('HomeScene'),
     });
     this._buildRewardButton();
@@ -228,141 +198,75 @@ export class ShopScene extends Phaser.Scene {
     });
   }
 
-  /** CLAUDE.md §10: tapping a locked item spends vault stars to unlock it if affordable, else nudges to earn more. */
+  /** CLAUDE.md §10: tapping a locked granny spends coins to unlock it if affordable, else says how many more are needed. */
   private _onTapGranny(id: string): void {
     const def = GRANNY_DEFS.find((g) => g.id === id);
     if (!def) return;
-    this._attemptUnlock({
-      alreadyUnlocked: this._unlocks.isGrannyUnlocked(id),
-      cost: def.unlockCost,
-      name: def.name,
-      unlock: () => this._unlocks.unlockGranny(id),
-      select: () => this._unlocks.selectGranny(id),
-      refresh: () => this._grannySelector.setItems(this._grannyItems()),
-    });
-    // Always re-derive from the authoritative selection, not the tapped id
-    // — an unaffordable locked tap doesn't actually change what's equipped.
+    if (this._unlocks.isGrannyUnlocked(id)) {
+      this._unlocks.selectGranny(id);
+    } else if (this._unlocks.unlockGranny(id)) {
+      this._unlocks.selectGranny(id);
+      this._grannySelector.setItems(this._grannyItems());
+      this._vaultPill.setValue(this._unlocks.getVault());
+      showToast(this, GAME_WIDTH / 2, SELECT_TOAST_Y, `Unlocked ${def.name}!`);
+    } else {
+      const short = def.unlockCost - this._unlocks.getVault();
+      showToast(
+        this,
+        GAME_WIDTH / 2,
+        SELECT_TOAST_Y,
+        `${short} more ${short === 1 ? 'coin' : 'coins'} to unlock ${def.name}`,
+      );
+    }
+    // Re-derive from the authoritative selection: an unaffordable tap does not change what is equipped.
     this._loadoutStage.setGrannyTexture(
       SPRITE_KEYS.grannyPose(this._unlocks.getSelectedGrannyId(), 'front'),
     );
   }
 
+  /**
+   * A gun was picked (arrows, thumbnail or rack). An owned gun is equipped; a
+   * locked one is only shown: it is bought with the card's BUY button, whose
+   * price is printed on it, never by stepping past it.
+   */
   private _onTapGun(id: string): void {
-    const def = GUN_DEFS.find((g) => g.id === id);
-    if (!def) return;
-    this._attemptUnlock({
-      alreadyUnlocked: this._unlocks.isGunUnlocked(id),
-      cost: def.cost,
-      name: def.name,
-      unlock: () => this._unlocks.unlockGun(id),
-      select: () => this._unlocks.selectGun(id),
-      refresh: () => this._gunSelector.setItems(this._gunItems()),
-    });
+    if (this._unlocks.isGunUnlocked(id)) this._unlocks.selectGun(id);
+    this._refreshGunViews();
+  }
+
+  /** Redraws everything that follows the equipped or shown gun: stage, card and rack. */
+  private _refreshGunViews(): void {
     this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
     this._gunShopping.show(this._gunSelector.getSelectedId());
+    this._rack.setItems(this._rackItems());
   }
 
-  /**
-   * Shared by all three carousels: an already-unlocked item just gets
-   * selected. A locked one is an unlock *attempt* — spend vault stars and
-   * select on success, or show how many more stars are needed.
-   */
-  private _attemptUnlock(item: {
-    readonly alreadyUnlocked: boolean;
-    readonly cost: number;
-    readonly name: string;
-    readonly unlock: () => boolean;
-    readonly select: () => void;
-    readonly refresh: () => void;
-  }): void {
-    if (item.alreadyUnlocked) {
-      item.select();
-      return;
-    }
-    if (item.unlock()) {
-      item.select();
-      item.refresh();
-      this._refreshVaultText();
-      showToast(this, GAME_WIDTH / 2, SELECT_TOAST_Y, `Unlocked ${item.name}!`);
-      return;
-    }
-    const short = item.cost - this._unlocks.getVault();
-    showToast(
-      this,
-      GAME_WIDTH / 2,
-      SELECT_TOAST_Y,
-      `${short} more ${short === 1 ? 'coin' : 'coins'} to unlock ${item.name}`,
-    );
+  /** Every gun in price order, flagged for what the rack draws. */
+  private _rackItems(): GunRackItem[] {
+    const equipped = this._unlocks.getSelectedGunId();
+    const ordered = [...GUN_DEFS].sort((a, b) => a.cost - b.cost);
+    const next = ordered.find((g) => !this._unlocks.isGunUnlocked(g.id));
+    return ordered.map((g) => ({
+      id: g.id,
+      owned: this._unlocks.isGunUnlocked(g.id),
+      equipped: g.id === equipped,
+      level: this._unlocks.getGunLevel(g.id),
+      price: g.cost,
+      isNext: g.id === next?.id,
+    }));
   }
 
-  /**
-   * The flourish wreath is the page's frame (2026-09-12 redesign, direct
-   * user feedback — "make it the framing for the entire landscape screen,
-   * everything else lives within it"): scaled to fill the whole 1280×720
-   * canvas, sitting behind every other element as one continuous decorative
-   * border. Its own painted ring occupies roughly the outer ~13-18% on each
-   * edge with a large soft-transparent centre (by design, since it was
-   * composed as a wreath) — every opaque card/button drawn on top of it
-   * (Carousel's cloud-coloured cards, the pill buttons) simply masks the
-   * art directly behind it, so legibility is never at risk; the wreath
-   * shows through only in what would otherwise be empty cream margin,
-   * which is exactly the "too much dead white space" complaint this also
-   * answers. The wordmark sits near the top, independently sized, as the
-   * actual title lockup. Falls back to plain styled text if either image
-   * failed to load, rather than showing nothing.
-   */
-  private _buildTitle(): void {
-    const hasArt =
-      this.textures.exists(SPRITE_KEYS.titleFlourish) &&
-      this.textures.exists(SPRITE_KEYS.titleWordmark);
-    if (!hasArt) {
-      this.add
-        .text(
-          GAME_WIDTH / 2,
-          TITLE_CENTRE_Y + 10,
-          "GRANNY'S SPIN SPLASH",
-          textStyle('displayXL', COLOUR_HEX.grannyPink, COLOUR_HEX.ink),
-        )
-        .setOrigin(0.5);
-      return;
-    }
-
-    const frame = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, SPRITE_KEYS.titleFlourish);
-    frame.setScale(Math.max(GAME_WIDTH / frame.width, GAME_HEIGHT / frame.height));
-
-    const wordmark = this.add.image(GAME_WIDTH / 2, TITLE_CENTRE_Y, SPRITE_KEYS.titleWordmark);
-    wordmark.setScale(TITLE_WORDMARK_HEIGHT / wordmark.height);
-  }
-
-  private _buildVaultDisplay(): void {
-    this._vaultPill = createStatPill(
-      this,
-      VAULT_PILL_X,
-      VAULT_PILL_Y,
-      'coins',
-      this._unlocks.getVault(),
-    );
-  }
-
-  private _refreshVaultText(): void {
-    this._vaultPill.setValue(this._unlocks.getVault());
-  }
-
-  /** CLAUDE.md §11.1/§11.3: rewarded button must never be Mint Green, must be visible alongside PLAY, one reward per ad. */
+  /** CLAUDE.md §11.1/§11.3: rewarded button must never be Mint Green, must be visible alongside DONE, one reward per ad. */
   private _buildRewardButton(): void {
     createButton(this, {
-      x: GAME_WIDTH / 2,
-      y: BOTTOM_ROW_Y,
+      x: AD_X,
+      y: BUTTONS_Y,
       label: 'Watch an ad for a free gun',
       variant: 'reward',
       size: 'sm',
-      minWidth: REWARD_BUTTON_MIN_WIDTH,
+      minWidth: BUTTON_MIN_WIDTH,
       showPlayIcon: true,
-      // The only button in the game that keeps its hit zone at its drawn
-      // size. PLAY sits directly above with an expanded (88px) zone, and an
-      // expanded zone here would overlap it — and win, because this button is
-      // added later. A child aiming at PLAY and landing low would get a
-      // full-screen rewarded ad instead of a game (spec audit, 2026-09-12).
+      // Keeps its hit zone at its drawn size: DONE sits beside it and an expanded zone could steal its taps.
       expandHitArea: false,
       onClick: () => void this._onWatchAdForGun(),
     });
@@ -371,7 +275,12 @@ export class ShopScene extends Phaser.Scene {
   private async _onWatchAdForGun(): Promise<void> {
     const reward = this._unlocks.pickRandomLockedGun(REWARD_MAX_TIER);
     if (!reward) {
-      showToast(this, GAME_WIDTH / 2, BOTTOM_ROW_Y - 50, 'All eligible guns already unlocked!');
+      showToast(
+        this,
+        GAME_WIDTH / 2,
+        BUTTONS_Y - AD_TOAST_RISE,
+        'All eligible guns already unlocked!',
+      );
       return;
     }
 
@@ -380,8 +289,8 @@ export class ShopScene extends Phaser.Scene {
 
     this._unlocks.grantGun(reward);
     this._gunSelector.setItems(this._gunItems());
-    this._gunShopping.show(this._gunSelector.getSelectedId());
+    this._refreshGunViews();
     const unlockedName = GUN_DEFS.find((g) => g.id === reward)?.name ?? reward;
-    showToast(this, GAME_WIDTH / 2, BOTTOM_ROW_Y - 50, `Unlocked ${unlockedName}!`);
+    showToast(this, GAME_WIDTH / 2, BUTTONS_Y - AD_TOAST_RISE, `Unlocked ${unlockedName}!`);
   }
 }

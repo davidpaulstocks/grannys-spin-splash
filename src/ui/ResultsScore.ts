@@ -1,9 +1,9 @@
 /**
- * The first beat of the results screen: the coin total as the hero number,
- * counting up large; the three stars landing one at a time, each as the
- * count passes its target; then the first-time star bonus joining the total,
- * a "NEW BEST!" tag or the best to beat, and one line saying how far the next
- * star is. The whole thing is one panel.
+ * The first beat of the results screen, said once and quickly: the coin total
+ * counting up (about 0.6 s) on the left, the three stars landing one after
+ * another on the right, and one line underneath about what the next star
+ * needs. A missed gig is "Almost!" with empty stars, never a red screen. The
+ * Big Finish has already shown the stars on the wall, so this is not a show.
  */
 
 import Phaser from 'phaser';
@@ -20,6 +20,7 @@ import { DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 import { drawCoinIcon, drawStarIcon } from './icons';
 import { createPanel } from './Panel';
+import { nextStarLine } from './resultsLines';
 
 export interface ResultsScoreConfig {
   /** Centre of the panel. */
@@ -30,25 +31,31 @@ export interface ResultsScoreConfig {
 }
 
 export const RESULTS_SCORE_WIDTH = 760;
-export const RESULTS_SCORE_HEIGHT = 208;
+export const RESULTS_SCORE_HEIGHT = 176;
 
-/** Offsets from the panel's centre. */
-const NUMBER_Y = -36;
-const COIN_RADIUS = 24;
-const COIN_GAP = 30;
-const STARS_Y = 36;
-const STAR_SPACING = 90;
-const STAR_RADIUS = 26;
-const STAR_OUTLINE_PX = 5;
-const SIDE_TEXT_OFFSET_X = 260;
-const MESSAGE_Y = 81;
-const TAG_X = 265;
-const TAG_WIDTH = 150;
-const TAG_HEIGHT = 40;
+/** Offsets from the panel's centre (the ribbon takes the top 27 px of its middle). */
+const MAIN_ROW_Y = -4;
+const MESSAGE_Y = 62;
+const LEFT_COLUMN_X = -170;
+const STARS_CENTRE_X = 205;
+const NUMBER_MAX_WIDTH = 330;
+const COIN_RADIUS = 22;
+const COIN_GAP = 26;
+const STAR_SPACING = 72;
+const STAR_RADIUS = 22;
+const STAR_OUTLINE_PX = 4;
+const SLOT_X = 185;
+const SLOT_MAX_WIDTH = 340;
+const TAG_X = -250;
+const TAG_Y = -62;
+const TAG_WIDTH = 130;
+const TAG_HEIGHT = 32;
+const TAG_OUTLINE_PX = 4;
 
-const FIRST_DELAY_MS = 350;
-const COUNT_MS = 1500;
-const BONUS_COUNT_MS = 450;
+const FIRST_DELAY_MS = 150;
+const COUNT_MS = 600;
+const STAR_STAGGER_MS = 130;
+const BONUS_COUNT_MS = 300;
 const TICK_EVERY_MS = 90;
 const UNEARNED_STAR = 0xd8d4c6;
 const CONFETTI_COLOURS = [COLOUR.grannyPink, COLOUR.sunnyGold, COLOUR.waterBlue, COLOUR.mintGreen];
@@ -58,9 +65,9 @@ export class ResultsScore {
   private readonly _data: GigResultData;
   private readonly _x: number;
   private readonly _y: number;
+  private readonly _missed: boolean;
   private readonly _number: Phaser.GameObjects.Text;
   private readonly _coin: Phaser.GameObjects.Graphics;
-  private readonly _landed = new Set<number>();
   private readonly _slots: Phaser.GameObjects.Graphics[] = [];
 
   constructor(scene: Phaser.Scene, config: ResultsScoreConfig) {
@@ -68,6 +75,7 @@ export class ResultsScore {
     this._data = config.data;
     this._x = config.x;
     this._y = config.y;
+    this._missed = config.data.stars <= 0;
     createPanel(scene, {
       x: config.x,
       y: config.y,
@@ -77,54 +85,55 @@ export class ResultsScore {
     });
     this._number = scene.add
       .text(
-        config.x,
-        config.y + NUMBER_Y,
-        '0',
-        textStyle('displayXL', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
+        config.x + LEFT_COLUMN_X,
+        config.y + MAIN_ROW_Y,
+        this._missed ? 'Almost!' : '0',
+        textStyle(
+          'displayXL',
+          this._missed ? COLOUR_HEX.grannyPink : COLOUR_HEX.sunnyGold,
+          COLOUR_HEX.ink,
+        ),
       )
       .setOrigin(0.5);
     this._coin = scene.add.graphics();
     drawCoinIcon(this._coin, COIN_RADIUS + 4, COLOUR.ink, COLOUR.ink);
     drawCoinIcon(this._coin, COIN_RADIUS, COLOUR.sunnyGold, shade(COLOUR.sunnyGold, 0.72));
-    this._setNumber(0);
+    this._coin.setVisible(!this._missed);
+    if (!this._missed) this._setNumber(0);
     this._buildStarSlots();
-    this._buildBestLabel();
   }
 
-  /** Runs the sequence; `onDone` fires once the number is final and the message is up. */
+  /** Runs the sequence; `onDone` fires once the stars have landed and the line is up. */
   start(onDone: () => void): void {
-    const { score, starCoins } = this._data;
+    const { score, starCoins, stars } = this._data;
+    const finish = (): void => {
+      this._showLine();
+      onDone();
+    };
     const afterCount = (): void => {
-      for (let i = 0; i < this._data.stars; i++) this._landStar(i);
-      this._joinBonus(starCoins, () => {
-        this._showTagAndMessage();
-        onDone();
-      });
+      for (let i = 0; i < stars; i++) {
+        this._scene.time.delayedCall(i * STAR_STAGGER_MS, () => this._landStar(i));
+      }
+      this._scene.time.delayedCall(stars * STAR_STAGGER_MS, () =>
+        this._joinBonus(starCoins, finish),
+      );
     };
     this._scene.time.delayedCall(FIRST_DELAY_MS, () => {
-      if (score <= 0) return afterCount();
-      this.countTo(0, score, COUNT_MS, (value) => this._landPassedStars(value), afterCount);
+      if (this._missed || score <= 0) return afterCount();
+      this._countTo(0, score, COUNT_MS, afterCount);
     });
   }
 
-  /** Counts the big number from one total to another, with ticks; used for the opening count and for doubling. */
-  countTo(
-    from: number,
-    to: number,
-    durationMs: number,
-    onValue?: (value: number) => void,
-    onDone?: () => void,
-  ): void {
+  private _countTo(from: number, to: number, durationMs: number, onDone: () => void): void {
     const counter = { value: from };
     let lastTickAt = 0;
     this._scene.tweens.add({
       targets: counter,
       value: to,
-      duration: to > from ? durationMs : 0,
+      duration: durationMs,
       ease: EASE.standardOut,
       onUpdate: (tween) => {
         this._setNumber(counter.value);
-        onValue?.(counter.value);
         if (tween.elapsed - lastTickAt >= TICK_EVERY_MS) {
           lastTickAt = tween.elapsed;
           SFX.playTick(false);
@@ -132,107 +141,97 @@ export class ResultsScore {
       },
       onComplete: () => {
         this._setNumber(to);
-        onDone?.();
+        onDone();
       },
     });
   }
 
   private _setNumber(value: number): void {
     this._number.setText(formatCount(value));
-    this._coin.setPosition(this._x - this._number.width / 2 - COIN_GAP, this._y + NUMBER_Y);
+    this._number.setScale(1);
+    if (this._number.width > NUMBER_MAX_WIDTH)
+      this._number.setScale(NUMBER_MAX_WIDTH / this._number.width);
+    this._coin.setPosition(
+      this._number.x - this._number.displayWidth / 2 - COIN_GAP,
+      this._number.y,
+    );
   }
 
   private _starX(i: number): number {
-    return this._x + (i - 1) * STAR_SPACING;
+    return this._x + STARS_CENTRE_X + (i - 1) * STAR_SPACING;
+  }
+
+  private _starY(): number {
+    return this._y + MAIN_ROW_Y;
   }
 
   private _buildStarSlots(): void {
     for (let i = 0; i < MAX_STARS_PER_GIG; i++) {
-      const slot = this._scene.add.graphics({ x: this._starX(i), y: this._y + STARS_Y });
+      const slot = this._scene.add.graphics({ x: this._starX(i), y: this._starY() });
       drawStarIcon(slot, STAR_RADIUS + STAR_OUTLINE_PX, shade(UNEARNED_STAR, 0.8));
       drawStarIcon(slot, STAR_RADIUS, UNEARNED_STAR);
       this._slots.push(slot);
     }
   }
 
-  private _landPassedStars(value: number): void {
-    for (let i = 0; i < this._data.stars; i++) {
-      if ((this._data.targets[i] ?? 0) <= value) this._landStar(i);
-    }
-  }
-
   private _landStar(i: number): void {
-    if (this._landed.has(i) || i >= MAX_STARS_PER_GIG) return;
-    this._landed.add(i);
-    const star = this._scene.add.graphics({ x: this._starX(i), y: this._y + STARS_Y }).setScale(0);
+    const star = this._scene.add.graphics({ x: this._starX(i), y: this._starY() }).setScale(0);
     drawStarIcon(star, STAR_RADIUS + STAR_OUTLINE_PX, COLOUR.ink);
     drawStarIcon(star, STAR_RADIUS, COLOUR.sunnyGold);
     playStarChime(i);
     this._scene.tweens.add({
       targets: star,
       scale: 1,
-      duration: DURATION.celebration,
+      duration: DURATION.stateChange * 2,
       ease: EASE.bouncy,
     });
     if (i === MAX_STARS_PER_GIG - 1) {
       this._scene.cameras.main.shake(160, 0.006);
-      spawnConfetti(this._scene, this._starX(1), this._y + STARS_Y, CONFETTI_COLOURS);
+      spawnConfetti(this._scene, this._starX(1), this._starY(), CONFETTI_COLOURS);
     }
   }
 
-  /** "Best 2,340" to the left of the stars, for a returning player who did not beat it. */
-  private _buildBestLabel(): void {
-    const { previousBest, isNewBest } = this._data;
-    if (previousBest <= 0 || isNewBest) return;
-    this._scene.add
-      .text(
-        this._x - SIDE_TEXT_OFFSET_X,
-        this._y + STARS_Y,
-        `Best ${formatCount(previousBest)}`,
-        textStyle('bodyL', COLOUR_HEX.softSlate, COLOUR_HEX.cloud),
-      )
-      .setOrigin(0, 0.5);
-  }
-
-  /** The first-time star bonus pops in to the right of the stars and the total grows to include it. */
+  /** The first-time star bonus joins the total; its words go in the line below. */
   private _joinBonus(starCoins: number, onDone: () => void): void {
     if (starCoins <= 0) return onDone();
-    const bonus = this._scene.add
-      .text(
-        this._x + SIDE_TEXT_OFFSET_X - 120,
-        this._y + STARS_Y,
-        `+${formatCount(starCoins)} star bonus`,
-        textStyle('bodyL', COLOUR_HEX.sunnyGold, COLOUR_HEX.ink),
-      )
-      .setOrigin(0, 0.5)
-      .setScale(0);
-    this._scene.tweens.add({
-      targets: bonus,
-      scale: 1,
-      duration: DURATION.stateChange,
-      ease: EASE.bouncy,
-    });
-    this.countTo(this._data.score, this._data.score + starCoins, BONUS_COUNT_MS, undefined, onDone);
+    this._countTo(this._data.score, this._data.score + starCoins, BONUS_COUNT_MS, onDone);
   }
 
-  /** "NEW BEST!" beside the number for a returning player, and the one line about what is next. */
-  private _showTagAndMessage(): void {
-    const { previousBest, isNewBest, stars, score, targets } = this._data;
+  /** One line under the main row: what was earned or beaten on the left, what the next star needs on the right. */
+  private _showLine(): void {
+    const { previousBest, isNewBest, score, starCoins } = this._data;
     if (isNewBest && previousBest > 0) this._popTag();
-    const missing = stars < MAX_STARS_PER_GIG ? Math.max(1, (targets[stars] ?? 0) - score) : 0;
-    const text =
-      missing > 0 ? `${formatCount(missing)} more for the next star` : 'All three stars!';
-    const message = this._scene.add
-      .text(
-        this._x,
-        this._y + MESSAGE_Y,
-        text,
-        textStyle('bodyL', missing > 0 ? COLOUR_HEX.grannyPink : COLOUR_HEX.ink, COLOUR_HEX.cloud),
-      )
+    const next = nextStarLine(this._data, formatCount);
+    const done = this._missed ? null : 'All three stars!';
+    const left = this._missed
+      ? { text: `You still earned ${formatCount(score)} coins`, hex: COLOUR_HEX.ink }
+      : starCoins > 0
+        ? { text: `+${formatCount(starCoins)} star bonus`, hex: COLOUR_HEX.sunnyGold }
+        : previousBest > 0 && !isNewBest
+          ? { text: `Best ${formatCount(previousBest)}`, hex: COLOUR_HEX.softSlate }
+          : null;
+    const right = next
+      ? { text: next, hex: COLOUR_HEX.grannyPink }
+      : done
+        ? { text: done, hex: COLOUR_HEX.ink }
+        : null;
+    if (left && right) {
+      this._line(left.text, left.hex, -SLOT_X);
+      this._line(right.text, right.hex, SLOT_X);
+    } else if (right ?? left) {
+      const only = right ?? left;
+      if (only) this._line(only.text, only.hex, 0);
+    }
+  }
+
+  private _line(text: string, hex: string, offsetX: number): void {
+    const label = this._scene.add
+      .text(this._x + offsetX, this._y + MESSAGE_Y, text, textStyle('bodyL', hex, COLOUR_HEX.cloud))
       .setOrigin(0.5)
       .setAlpha(0);
+    if (label.width > SLOT_MAX_WIDTH) label.setScale(SLOT_MAX_WIDTH / label.width);
     this._scene.tweens.add({
-      targets: message,
+      targets: label,
       alpha: 1,
       duration: DURATION.stateChange,
       ease: EASE.standardOut,
@@ -240,26 +239,15 @@ export class ResultsScore {
   }
 
   private _popTag(): void {
-    const tag = this._scene.add.container(this._x + TAG_X, this._y + NUMBER_Y);
+    const tag = this._scene.add.container(this._x + TAG_X, this._y + TAG_Y);
     const body = this._scene.add.graphics();
+    const radius = pillRadius(TAG_WIDTH, TAG_HEIGHT);
     body.fillStyle(COLOUR.grannyPink, 1);
-    body.fillRoundedRect(
-      -TAG_WIDTH / 2,
-      -TAG_HEIGHT / 2,
-      TAG_WIDTH,
-      TAG_HEIGHT,
-      pillRadius(TAG_WIDTH, TAG_HEIGHT),
-    );
-    body.lineStyle(4, COLOUR.ink, 1);
-    body.strokeRoundedRect(
-      -TAG_WIDTH / 2,
-      -TAG_HEIGHT / 2,
-      TAG_WIDTH,
-      TAG_HEIGHT,
-      pillRadius(TAG_WIDTH, TAG_HEIGHT),
-    );
+    body.fillRoundedRect(-TAG_WIDTH / 2, -TAG_HEIGHT / 2, TAG_WIDTH, TAG_HEIGHT, radius);
+    body.lineStyle(TAG_OUTLINE_PX, COLOUR.ink, 1);
+    body.strokeRoundedRect(-TAG_WIDTH / 2, -TAG_HEIGHT / 2, TAG_WIDTH, TAG_HEIGHT, radius);
     const label = this._scene.add
-      .text(0, 0, 'NEW BEST!', textStyle('bodyL', COLOUR_HEX.cloud, COLOUR_HEX.ink))
+      .text(0, 0, 'NEW BEST!', textStyle('bodyM', COLOUR_HEX.cloud, COLOUR_HEX.ink))
       .setOrigin(0.5);
     tag.add([body, label]);
     tag.setScale(0);

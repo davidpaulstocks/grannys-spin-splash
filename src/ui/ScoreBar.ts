@@ -5,34 +5,55 @@
  * it the groove badge. It replaced the band meter, which counted musicians
  * awake; what the player earns now is coins, so coins are what it shows.
  *
- * Logical 1280x720 layout: the coin and number at y 34, the bar centred on
- * y 78, the badge to the left of the bar.
+ * One Cloud plate backs all of it, so it reads as a single HUD element and
+ * never fights the painted backdrop. Logical 1280x720 layout: the plate spans
+ * x 296 to 984, y 4 to 140; the coin and number sit at y 40, the bar centred on
+ * y 88, the badge to the left of the bar, each star's coin target in small
+ * type under the star, and in the last seconds an "N to go!" chase to the
+ * right of the bar.
  */
 
 import Phaser from 'phaser';
 
+import { URGENT_COUNTDOWN_SECONDS } from '../config';
+import { coinsToNextStar } from '../scenes/game/bigFinishRules';
 import type { HudRefreshData } from '../types/hud';
-import { COLOUR } from '../utils/colour';
+import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 import { EASE } from '../utils/tween';
+import { textStyle } from '../utils/typography';
 import { GrooveBadge } from './GrooveBadge';
 import { drawStarIcon } from './icons';
+import { createPanel } from './Panel';
 import { ScoreCounter } from './ScoreCounter';
 
 /** Where the coin beside the number sits — the coin fountain flies its coins here. */
 export const SCORE_COIN_X = 556;
-export const SCORE_COIN_Y = 34;
+export const SCORE_COIN_Y = 32;
+
+/** The plate behind the whole score bar. */
+const PLATE_LEFT = 296;
+const PLATE_TOP = 4;
+const PLATE_WIDTH = 688;
+const PLATE_HEIGHT = 112;
+const PLATE_ALPHA = 0.95;
+/** Where the plate ends, so the goal headline can sit just under it. */
+export const SCORE_PLATE_BOTTOM = PLATE_TOP + PLATE_HEIGHT;
 
 const BAR_LEFT = 440;
 const BAR_WIDTH = 400;
 const BAR_HEIGHT = 16;
-const BAR_Y = 78;
+const BAR_Y = 72;
 const BAR_OUTLINE_PX = 4;
 const BAR_FILL_INSET = 3;
 /** How quickly the fill catches up with the coins, per second. */
 const BAR_CATCH_UP_RATE = 10;
-const BADGE_X = 372;
-const BADGE_Y = 44;
+const BADGE_X = 352;
+const BADGE_Y = PLATE_TOP + PLATE_HEIGHT / 2;
+/** Each star's coin target, centred under the star. */
+const TARGET_OFFSET_Y = 24;
+/** The last-seconds chase, left-aligned just right of the bar's last star. */
+const TO_GO_X = BAR_LEFT + BAR_WIDTH + 36;
 
 const STAR_RADIUS = 14;
 const STAR_OUTLINE_PX = 3;
@@ -46,12 +67,21 @@ export class ScoreBar {
   private readonly _fill: Phaser.GameObjects.Graphics;
   private readonly _badge: GrooveBadge;
   private _stars: Phaser.GameObjects.Graphics[] = [];
+  private readonly _toGo: Phaser.GameObjects.Text;
+  private _lastToGo = -1;
   private _litStars = 0;
   private _frac = 0;
   private _drawnFrac = -1;
 
   constructor(scene: Phaser.Scene) {
     this._scene = scene;
+    createPanel(scene, {
+      x: PLATE_LEFT + PLATE_WIDTH / 2,
+      y: PLATE_TOP + PLATE_HEIGHT / 2,
+      width: PLATE_WIDTH,
+      height: PLATE_HEIGHT,
+      alpha: PLATE_ALPHA,
+    });
     const track = scene.add.graphics();
     const radius = pillRadius(BAR_WIDTH, BAR_HEIGHT);
     track.fillStyle(COLOUR.cloud, 0.94);
@@ -61,6 +91,10 @@ export class ScoreBar {
     this._fill = scene.add.graphics();
     this._counter = new ScoreCounter(scene, SCORE_COIN_X, SCORE_COIN_Y, 'bare');
     this._badge = new GrooveBadge(scene, BADGE_X, BADGE_Y);
+    this._toGo = scene.add
+      .text(TO_GO_X, BAR_Y, '', textStyle('bodyM', COLOUR_HEX.heatOrange, COLOUR_HEX.ink))
+      .setOrigin(0, 0.5)
+      .setVisible(false);
   }
 
   /** Call once per frame with the HUD's snapshot and the time since the last call. */
@@ -83,6 +117,17 @@ export class ScoreBar {
     this._lightStars(lit);
 
     this._badge.update(data.grooveLevel, data.grooveRing, data.jackpot);
+    this._updateToGo(data);
+  }
+
+  /** In the last seconds, while a star is within reach, how many coins it still needs. */
+  private _updateToGo(data: HudRefreshData): void {
+    const chasing = data.secondsRemaining > 0 && data.secondsRemaining <= URGENT_COUNTDOWN_SECONDS;
+    const toGo = chasing ? coinsToNextStar(data.coins, data.starTargets, data.stars) : 0;
+    if (toGo === this._lastToGo) return;
+    this._lastToGo = toGo;
+    this._toGo.setVisible(toGo > 0);
+    if (toGo > 0) this._toGo.setText(`${toGo} to go!`);
   }
 
   private _drawFill(): void {
@@ -110,6 +155,14 @@ export class ScoreBar {
       const x = BAR_LEFT + (third > 0 ? (BAR_WIDTH * mark) / third : BAR_WIDTH);
       const star = this._scene.add.graphics({ x, y: BAR_Y });
       this._drawStar(star, false);
+      this._scene.add
+        .text(
+          x,
+          BAR_Y + TARGET_OFFSET_Y,
+          String(mark),
+          textStyle('bodyM', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+        )
+        .setOrigin(0.5);
       return star;
     });
   }

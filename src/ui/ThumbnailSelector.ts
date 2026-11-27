@@ -111,6 +111,14 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
     return this._items[this._index].id;
   }
 
+  /** Moves the selection to `id` without calling `onSelect`; ignored when the id is not in the list. */
+  selectId(id: string): void {
+    const found = this._items.findIndex((i) => i.id === id);
+    if (found < 0) return;
+    this._index = found;
+    this._refresh();
+  }
+
   /** Replaces the item list wholesale (e.g. after an unlock) and keeps the same selection if still present. */
   setItems(items: readonly CarouselItem[]): void {
     const currentId = this.getSelectedId();

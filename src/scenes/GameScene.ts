@@ -45,6 +45,7 @@ import { spawnFloatingText } from '../ui/FloatingText';
 import { createPauseButton } from '../ui/PauseButton';
 import { COLOUR_HEX } from '../utils/colour';
 import { bankGig } from './game/bankGig';
+import { BigFinish } from './game/BigFinish';
 import { CountdownUrgency } from './game/CountdownUrgency';
 import { FireControl } from './game/FireControl';
 import { FirstRunGuide } from './game/FirstRunGuide';
@@ -217,7 +218,7 @@ export class GameScene extends Phaser.Scene {
 
     this._music.showGigIntro(this._spinners);
     this._goalCard = new GoalCard(this);
-    this._goalCard.show(this._gig);
+    this._goalCard.show();
     this._guide.maybeShowGhostFinger(this._spinners);
     this._guide.maybeStartTutorial();
 
@@ -389,7 +390,6 @@ export class GameScene extends Phaser.Scene {
     this._intro?.skip();
     this._intro = null;
     this._guide.dismissGhostFinger();
-    this._music.dismissGigIntro();
     this._goalCard.dismiss();
     this._reward.start(this.time.now);
     const save = saveManager.load();
@@ -413,15 +413,45 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch('PauseScene');
   }
 
+  /**
+   * Time is up: input and water stop and the Big Finish plays on the wall
+   * (game/BigFinish.ts). It closes the music with the chord, banks the gig
+   * with the bow coins in it and starts the results screen.
+   */
   private _endRound(): void {
     this._roundOver = true;
-    // Resolve on a closing chord rather than cutting the music dead; the
-    // SHUTDOWN handler's stop() leaves a finishing orchestra to ring.
-    audioOrchestra.finish();
-    waterSound.setFiring(false);
+    this._frenzy.cutShort();
+    this._quietWater();
     poki.gameplayStop();
     adManager.recordRunCompleted();
+    new BigFinish({
+      scene: this,
+      spinners: () => this._spinners,
+      reward: this._reward,
+      coinBoost: this._gun.coinBoost,
+      refreshHud: () => this._refreshHud(),
+      quietWater: () => this._quietWater(),
+      bank: () => this._bankAndLeave(),
+    }).run();
+  }
 
+  /** Nothing fires and no water keeps flying once the whistle has gone. */
+  private _quietWater(): void {
+    waterSound.setFiring(false);
+    this._granny.setFiring(false);
+    this._fire.showCursor();
+    for (const drop of this._waterPool.getChildren()) this._waterPool.killAndHide(drop);
+    this._jet.update(
+      this.time.now,
+      this._gunSprite.getNozzleWorldPosition(),
+      false,
+      this._gun.particleColour,
+      this._gun.sz,
+    );
+  }
+
+  /** Banks the finished gig, bow coins included, and hands over to the results screen. */
+  private _bankAndLeave(): void {
     const resultData = bankGig({
       world: this._world,
       gig: this._gig,

@@ -4,7 +4,15 @@ import { GRANNY_DEFS } from '../../src/entities/granny/granny.data';
 import { GUN_DEFS } from '../../src/entities/gun/gun.data';
 import { WORLD_DEFS } from '../../src/entities/world/world.data';
 import { recordGig, venueBests, venueJustOpened } from '../../src/systems/Progress';
-import { formatCount, gunPerk, nextReward, nextVenue } from '../../src/systems/Rewards';
+import {
+  affordableUpgrade,
+  formatCount,
+  gunHeadline,
+  gunPerk,
+  nextReward,
+  nextVenue,
+  shopHasNews,
+} from '../../src/systems/Rewards';
 import { SaveManager } from '../../src/systems/SaveManager';
 import type { SaveData } from '../../src/types/save';
 
@@ -13,37 +21,46 @@ function fresh(): SaveData {
   return new SaveManager().load();
 }
 
-describe('gun upgrades in the next reward', () => {
-  it('offers the next upgrade of the equipped gun when it is the cheapest thing', () => {
-    const reward = nextReward({ ...fresh(), vault: 1600 });
-    expect(reward?.kind).toBe('upgrade');
-    expect(reward?.id).toBe('pistol');
-    expect(reward?.name).toBe('Drip Pistol · Level 2');
-    expect(reward?.level).toBe(2);
-    expect(reward?.cost).toBe(1500);
-    expect(reward?.perk).toBe('Coins ×1.15');
+describe('the goal is always the next thing not owned', () => {
+  it('is never an upgrade, even when an upgrade is the cheapest thing to buy', () => {
+    const reward = nextReward({ ...fresh(), vault: 23456 });
+    expect(reward?.kind).toBe('gun');
+    expect(reward?.id).toBe('hose');
+    expect(reward?.cost).toBe(6000);
     expect(reward?.canAfford).toBe(true);
   });
 
-  it('follows the gun that is equipped and its level', () => {
-    const save = { ...fresh(), selectedGunId: 'squirter', gunLevels: { squirter: 3 } };
-    const reward = nextReward(save);
-    expect(reward?.id).toBe('squirter');
-    expect(reward?.level).toBe(4);
-    expect(reward?.cost).toBe(6000);
-    expect(reward?.perk).toBe('Coins ×1.45');
+  it('goes up the price ladder across guns and grannies as they are bought', () => {
+    const base = fresh();
+    const afterHose = { ...base, unlockedGuns: [...base.unlockedGuns, 'hose'] };
+    const ladder = [
+      ...GUN_DEFS.filter((g) => !afterHose.unlockedGuns.includes(g.id)).map((g) => ({
+        id: g.id,
+        cost: g.cost,
+      })),
+      ...GRANNY_DEFS.filter((g) => !base.unlockedGrannies.includes(g.id)).map((g) => ({
+        id: g.id,
+        cost: g.unlockCost,
+      })),
+    ].sort((a, b) => a.cost - b.cost);
+    expect(nextReward(afterHose)?.id).toBe(ladder[0]?.id);
   });
 
-  it('gives way to a cheaper unowned item, and to nothing at max level', () => {
-    const expensive = { ...fresh(), gunLevels: { pistol: 4 } }; // 12,000 > 6,000 hose
-    expect(nextReward(expensive)?.id).toBe('hose');
-    const maxed = {
-      ...fresh(),
-      gunLevels: { pistol: 5 },
-      unlockedGuns: GUN_DEFS.map((g) => g.id),
-      unlockedGrannies: GRANNY_DEFS.map((g) => g.id),
-    };
-    expect(nextReward(maxed)).toBeNull();
+  it('ignores the equipped gun and its level entirely', () => {
+    const a = nextReward({ ...fresh(), gunLevels: { pistol: 1 } });
+    const b = nextReward({ ...fresh(), gunLevels: { pistol: 4 }, selectedGunId: 'squirter' });
+    expect(b?.id).toBe(a?.id);
+    expect(b?.kind).not.toBe('upgrade');
+  });
+
+  it('is null once every gun and granny is owned', () => {
+    expect(
+      nextReward({
+        ...fresh(),
+        unlockedGuns: GUN_DEFS.map((g) => g.id),
+        unlockedGrannies: GRANNY_DEFS.map((g) => g.id),
+      }),
+    ).toBeNull();
   });
 
   it('words a gun by level, with at most two decimals', () => {
@@ -55,6 +72,37 @@ describe('gun upgrades in the next reward', () => {
     expect(gunPerk(hose, 5)).toBe('Level 5 · Coins ×2.4');
     expect(gunPerk(jr, 2)).toBe('Level 2 · Coins ×2.3 · Two jets');
   });
+
+  it('gives the goal card a headline in plain words', () => {
+    const headline = (id: string): string | undefined => {
+      const gun = GUN_DEFS.find((g) => g.id === id);
+      return gun ? gunHeadline(gun) : undefined;
+    };
+    expect(headline('hose')).toBe('Coins ×1.5 · Wider jet');
+    expect(headline('splashjr')).toBe('Coins ×2 · Two jets');
+    expect(headline('inferno')).toBe('Coins ×5 · Fire jet');
+    expect(headline('pistol')).toBe('Starter gun');
+  });
+});
+
+describe('affordable upgrade and the SHOP dot', () => {
+  it('names the price of the next level only when it can be paid', () => {
+    expect(affordableUpgrade({ ...fresh(), vault: 1499 })).toBeNull();
+    expect(affordableUpgrade({ ...fresh(), vault: 1500 })).toBe(1500);
+  });
+
+  it('is null at the top level and for a gun not owned', () => {
+    expect(affordableUpgrade({ ...fresh(), vault: 999999, gunLevels: { pistol: 5 } })).toBeNull();
+    expect(affordableUpgrade({ ...fresh(), vault: 999999, selectedGunId: 'hose' })).toBeNull();
+  });
+
+  it('lights the dot for a new gun or an upgrade, and not otherwise', () => {
+    expect(shopHasNews({ ...fresh(), vault: 100 })).toBe(false);
+    expect(shopHasNews({ ...fresh(), vault: 1500 })).toBe(true);
+    const maxed = { ...fresh(), gunLevels: { pistol: 5 } };
+    expect(shopHasNews({ ...maxed, vault: 5999 })).toBe(false);
+    expect(shopHasNews({ ...maxed, vault: 6000 })).toBe(true);
+  });
 });
 
 describe('next reward', () => {
@@ -64,7 +112,7 @@ describe('next reward', () => {
   });
 
   it('is the cheapest thing not owned, across guns and grannies', () => {
-    const reward = nextReward({ ...save, vault: 120, gunLevels: { pistol: 5 } });
+    const reward = nextReward({ ...save, vault: 120 });
     const unowned = [
       ...GUN_DEFS.filter((g) => !save.unlockedGuns.includes(g.id)).map((g) => g.cost),
       ...GRANNY_DEFS.filter((g) => !save.unlockedGrannies.includes(g.id)).map((g) => g.unlockCost),
@@ -75,11 +123,7 @@ describe('next reward', () => {
   });
 
   it('moves on to the granny when every gun is owned', () => {
-    const reward = nextReward({
-      ...save,
-      unlockedGuns: GUN_DEFS.map((g) => g.id),
-      gunLevels: { pistol: 5 },
-    });
+    const reward = nextReward({ ...save, unlockedGuns: GUN_DEFS.map((g) => g.id) });
     expect(reward?.kind).toBe('granny');
     expect(reward?.perk).toBe('New look');
   });
@@ -88,16 +132,6 @@ describe('next reward', () => {
     const reward = nextReward({ ...save, vault: 1_000_000 });
     expect(reward?.canAfford).toBe(true);
     expect(reward?.progress).toBe(1);
-  });
-
-  it('is null once everything is owned', () => {
-    const all = {
-      ...save,
-      gunLevels: { pistol: 5 },
-      unlockedGuns: GUN_DEFS.map((g) => g.id),
-      unlockedGrannies: GRANNY_DEFS.map((g) => g.id),
-    };
-    expect(nextReward(all)).toBeNull();
   });
 
   it('describes a gun by its coin boost and jets', () => {

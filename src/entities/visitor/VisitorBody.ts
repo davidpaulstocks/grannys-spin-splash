@@ -16,6 +16,9 @@ export class VisitorBody extends Phaser.GameObjects.Container {
   private readonly _dir: 1 | -1;
   private readonly _baseScale: number;
   private _shrink = 1;
+  private _fit = 1;
+  private _swell = 1;
+  private _squash = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -37,7 +40,7 @@ export class VisitorBody extends Phaser.GameObjects.Container {
       this.add(this._gfx);
     }
     this._baseScale = painted ? 1 : _def.drawScale;
-    this._applyScale(1);
+    this._applyScale();
     this.redraw(false, []);
   }
 
@@ -58,17 +61,31 @@ export class VisitorBody extends Phaser.GameObjects.Container {
 
   /** Swells to `swell` times its size (a pop). */
   swell(swell: number): void {
-    this._applyScale(swell);
+    this._swell = swell;
+    this._applyScale();
+  }
+
+  /** Sizes the whole body to `fit` times its natural size (a blocker made to cover a cluster). */
+  setFit(fit: number): void {
+    this._fit = fit;
+    this._applyScale();
+  }
+
+  /** Squashes it flat and wide by `amount` (0 is none), the way a shoved blocker gives. */
+  squash(amount: number): void {
+    if (amount === this._squash) return;
+    this._squash = amount;
+    this._applyScale();
   }
 
   /** Gets a tenth smaller — how a painted bunch of balloons shows a pop. */
   shrinkBit(): void {
     this._shrink *= 0.9;
-    this._applyScale(1);
+    this._applyScale();
   }
 
-  private _applyScale(swell: number): void {
-    const s = this._baseScale * this._shrink * swell;
-    this.setScale(this._dir * s, s);
+  private _applyScale(): void {
+    const s = this._baseScale * this._shrink * this._fit * this._swell;
+    this.setScale(this._dir * s * (1 + this._squash), s * (1 - this._squash));
   }
 }

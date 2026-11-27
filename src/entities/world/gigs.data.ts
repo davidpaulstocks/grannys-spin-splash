@@ -143,12 +143,14 @@ export function awakeNeededForStars(band: number): readonly [number, number, num
 /**
  * Coin targets for one, two and three stars (docs/REWARD_LOOP.md). They are
  * fractions of "par": the whole band at full speed for the whole gig with no
- * groove. Three stars is above par on purpose, so it cannot be reached
- * without building the groove multiplier.
+ * groove. One star is 0.8 of par, three stars 6 times it (raised from
+ * 0.5 / 1.8 / 3.2 after a play-test took three stars on every gig without
+ * trying), so three cannot be reached without building the groove high and
+ * keeping it.
  */
 const PAY_TICKS_PER_SECOND = 2;
 const FULL_SPEED_PAY = 4;
-const STAR_TARGET_FRACTIONS = [0.5, 1.8, 3.2] as const;
+const STAR_TARGET_FRACTIONS = [0.8, 3.0, 6.0] as const;
 /**
  * Later venues ask for more, because by then the player owns a gun that
  * multiplies coins. Each step is smaller than the gun a player would
