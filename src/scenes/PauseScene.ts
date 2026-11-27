@@ -34,8 +34,15 @@ const QUIT_Y = CENTRE_Y + 66;
 const BUTTON_MIN_WIDTH = 320;
 
 export class PauseScene extends Phaser.Scene {
+  /** False when paused during the count-in, before gameplay has started: resuming must not announce it. */
+  private _gameplayLive = true;
+
   constructor() {
     super('PauseScene');
+  }
+
+  init(data: { gameplayLive?: boolean }): void {
+    this._gameplayLive = data.gameplayLive ?? true;
   }
 
   create(): void {
@@ -73,7 +80,7 @@ export class PauseScene extends Phaser.Scene {
     this.scene.resume('GameScene');
     audioBus.fadeIn(DURATION.stateChange);
     audioOrchestra.start();
-    poki.gameplayStart();
+    if (this._gameplayLive) poki.gameplayStart();
     this.scene.stop();
   }
 

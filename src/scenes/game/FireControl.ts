@@ -110,9 +110,9 @@ export class FireControl {
     // out of reach (direct user feedback: "I seem to be nowhere near getting
     // a splash frenzy going... it feels like I don't have the power").
     //
-    // Still gated on `started` so the round clock and gameplayStart() begin
-    // on a real first input (§3), not on an idle mouse drifting over the wall.
-    const firing = !introPlaying && started;
+    // Still gated on `started` (GO of the count-in, see CountIn.ts), and on
+    // Space not having switched it off (the accessibility toggle).
+    const firing = !introPlaying && started && d.input.isFiring();
     d.granny.setFiring(firing);
     d.cannon.update(time, {
       firing,
@@ -143,7 +143,9 @@ export class FireControl {
   private _updateAim(): AimResult {
     const d = this._d;
     const touch = d.input.isTouchAim();
-    const raw = d.input.getPointer();
+    // Until a pointer or finger has moved, aim at the wall's bottom-centre so
+    // the nearest instrument is playing and paying from the first second.
+    const raw = d.input.hasAimed() ? d.input.getPointer() : AIM_REACH_PIVOT;
     const point = touch
       ? raw
       : scaleAboutPivot(raw, AIM_REACH_PIVOT, AIM_REACH_GAIN, GAME_WIDTH, GAME_HEIGHT);

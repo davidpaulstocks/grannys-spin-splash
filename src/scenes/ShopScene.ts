@@ -16,8 +16,8 @@ import { SPRITE_KEYS } from '../assets/keys';
 import { GRANNY_DEFS } from '../entities/granny/granny.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
 import { WORLD_DEFS } from '../entities/world/world.data';
-import { worldBackgroundKey } from '../entities/world/worldBackgrounds';
 import { GunShopping } from './shop/GunShopping';
+import { grannyItems, gunItems, worldItems } from './shop/shopItems';
 import { buildShopTitle } from './shop/shopTitle';
 import { adManager } from '../systems/AdManager';
 import { AD_MUTE_HOOKS } from '../audio/AudioBus';
@@ -25,23 +25,12 @@ import { frontier } from '../systems/Progress';
 import { saveManager } from '../systems/SaveManager';
 import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
-import type { CarouselItem } from '../ui/Carousel';
 import { createGunRack, type GunRack, type GunRackItem } from '../ui/GunRack';
 import { powerText } from '../ui/gunRarity';
 import { LoadoutStage } from '../ui/LoadoutStage';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { ThumbnailSelector } from '../ui/ThumbnailSelector';
 import { showToast } from '../ui/Toast';
-import { COLOUR } from '../utils/colour';
-
-/** Placeholder swatch colours standing in for real world backdrop thumbnails — one hero colour per world's vibe. */
-const WORLD_SWATCH: Readonly<Record<string, number>> = {
-  garden: COLOUR.mintGreen,
-  workshop: COLOUR.heatOrange,
-  kitchen: COLOUR.sunnyGold,
-  funfair: COLOUR.grannyPink,
-  disco: COLOUR.waterBlue,
-};
 
 /**
  * Vertical composition, top to bottom: wordmark (ends 170), the loadout row
@@ -98,7 +87,7 @@ export class ShopScene extends Phaser.Scene {
       this,
       GRANNY_CAROUSEL_X,
       CAROUSEL_Y,
-      this._grannyItems(),
+      grannyItems(this._unlocks),
       this._unlocks.getSelectedGrannyId(),
       (id) => this._onTapGranny(id),
     );
@@ -106,7 +95,7 @@ export class ShopScene extends Phaser.Scene {
       this,
       WORLD_CAROUSEL_X,
       CAROUSEL_Y,
-      this._worldItems(),
+      worldItems(),
       frontier(saveManager.load(), WORLD_DEFS).venueId,
       () => undefined,
     );
@@ -114,7 +103,7 @@ export class ShopScene extends Phaser.Scene {
       this,
       GUN_CAROUSEL_X,
       CAROUSEL_Y,
-      this._gunItems(),
+      gunItems(this._unlocks),
       this._unlocks.getSelectedGunId(),
       (id) => this._onTapGun(id),
     );
@@ -129,7 +118,7 @@ export class ShopScene extends Phaser.Scene {
       y: GUN_CARD_Y,
       toastY: SELECT_TOAST_Y,
       onChanged: () => {
-        this._gunSelector.setItems(this._gunItems());
+        this._gunSelector.setItems(gunItems(this._unlocks));
         this._refreshGunViews();
         this._vaultPill.setValue(this._unlocks.getVault());
       },
@@ -161,54 +150,6 @@ export class ShopScene extends Phaser.Scene {
     this._gunShopping.sync(this._gunSelector.getSelectedId());
   }
 
-  private _grannyItems(): CarouselItem[] {
-    return GRANNY_DEFS.map((g) => ({
-      id: g.id,
-      label: g.name,
-      unlocked: this._unlocks.isGrannyUnlocked(g.id),
-      cost: g.unlockCost,
-      swatchColour: COLOUR.grannyPink,
-      swatchTextureKey: SPRITE_KEYS.grannyPose(g.id, 'front'),
-    }));
-  }
-
-  private _gunItems(): CarouselItem[] {
-    return GUN_DEFS.map((g) => ({
-      id: g.id,
-      label: g.name,
-      unlocked: this._unlocks.isGunUnlocked(g.id),
-      cost: g.cost,
-      swatchColour: COLOUR.waterBlue,
-      swatchTextureKey: SPRITE_KEYS.gun(g.id),
-      silhouette: this._isSilhouette(g.id, g.cost),
-    }));
-  }
-
-  /** A locked gun beyond the next one to save for that cannot be afforded yet: shown as a dark shape. */
-  private _isSilhouette(id: string, cost: number): boolean {
-    if (this._unlocks.isGunUnlocked(id) || cost <= this._unlocks.getVault()) return false;
-    const next = [...GUN_DEFS]
-      .sort((a, b) => a.cost - b.cost)
-      .find((g) => !this._unlocks.isGunUnlocked(g.id));
-    return id !== next?.id;
-  }
-
-  /** The stage shows one venue: the one being toured. Venues are chosen on the tour, not in the shop. */
-  private _worldItems(): CarouselItem[] {
-    const venueId = frontier(saveManager.load(), WORLD_DEFS).venueId;
-    return WORLD_DEFS.filter((w) => w.id === venueId).map((w) => {
-      const bgKey = worldBackgroundKey(w.id);
-      return {
-        id: w.id,
-        label: w.name,
-        unlocked: true,
-        cost: 0,
-        swatchColour: WORLD_SWATCH[w.id] ?? COLOUR.softSlate,
-        ...(bgKey ? { swatchTextureKey: bgKey } : {}),
-      };
-    });
-  }
-
   /** CLAUDE.md §10: tapping a locked granny spends coins to unlock it if affordable, else says how many more are needed. */
   private _onTapGranny(id: string): void {
     const def = GRANNY_DEFS.find((g) => g.id === id);
@@ -217,7 +158,7 @@ export class ShopScene extends Phaser.Scene {
       this._unlocks.selectGranny(id);
     } else if (this._unlocks.unlockGranny(id)) {
       this._unlocks.selectGranny(id);
-      this._grannySelector.setItems(this._grannyItems());
+      this._grannySelector.setItems(grannyItems(this._unlocks));
       this._vaultPill.setValue(this._unlocks.getVault());
       showToast(this, GAME_WIDTH / 2, SELECT_TOAST_Y, `Unlocked ${def.name}!`);
     } else {
@@ -307,7 +248,7 @@ export class ShopScene extends Phaser.Scene {
     if (!watched) return;
 
     this._unlocks.grantGun(reward);
-    this._gunSelector.setItems(this._gunItems());
+    this._gunSelector.setItems(gunItems(this._unlocks));
     this._refreshGunViews();
     const unlockedName = GUN_DEFS.find((g) => g.id === reward)?.name ?? reward;
     showToast(this, GAME_WIDTH / 2, BUTTONS_Y - AD_TOAST_RISE, `Unlocked ${unlockedName}!`);

@@ -18,6 +18,7 @@ import Phaser from 'phaser';
 
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { showTutorialCaption } from './TutorialCaption';
+import { usesTouchControls } from './touchControls';
 
 /**
  * Below the permanent Frenzy readout (whose label sits at ~y 99) and above
@@ -27,12 +28,16 @@ import { showTutorialCaption } from './TutorialCaption';
  */
 const CAPTION_Y = GAME_HEIGHT * 0.23;
 
+const HOW_TO_PLAY_MOUSE = 'Point at an instrument to make it play!';
+const HOW_TO_PLAY_TOUCH = 'Tap an instrument to make it play!';
+
 export class TutorialSequence {
   private _shownPurpose = false;
 
-  /** Round start: the "how to play" beat. */
+  /** The count-in: the "how to play" beat. The water fires by itself, so the verb is point or tap. */
   playHowToPlay(scene: Phaser.Scene): void {
-    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, 'Squirt an instrument to make it play!');
+    const message = usesTouchControls(scene.game) ? HOW_TO_PLAY_TOUCH : HOW_TO_PLAY_MOUSE;
+    showTutorialCaption(scene, GAME_WIDTH / 2, CAPTION_Y, message);
   }
 
   /** First spinner this run to reach FULL: the "purpose of the game" beat. Fires once per round, ever. */

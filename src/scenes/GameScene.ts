@@ -32,20 +32,22 @@ import { FrenzyMeter } from '../systems/FrenzyMeter';
 import { InputManager } from '../systems/InputManager';
 import { saveManager } from '../systems/SaveManager';
 import { adManager } from '../systems/AdManager';
-import { audioBus } from '../audio/AudioBus';
 import { audioOrchestra } from '../audio/AudioOrchestra';
+import { audioBus } from '../audio/AudioBus';
+import { resolveScore } from '../audio/scores';
 import type { Accent } from '../audio/orchestra/setPieces';
 import { waterSound } from '../audio/WaterSound';
 import { WaterJet } from '../entities/waterParticle/WaterJet';
 import type { GunDef } from '../entities/gun/gun.types';
-import type { HudRefreshData } from '../types/hud';
 import type { GameSceneData } from '../types/sceneData';
 import { SpinnerState } from '../entities/spinner/spinner.types';
 import { spawnFloatingText } from '../ui/FloatingText';
 import { createPauseButton } from '../ui/PauseButton';
 import { COLOUR_HEX } from '../utils/colour';
 import { bankGig } from './game/bankGig';
+import { buildHudData } from './game/hudSnapshot';
 import { BigFinish } from './game/BigFinish';
+import { CountIn } from './game/CountIn';
 import { CountdownUrgency } from './game/CountdownUrgency';
 import { FireControl } from './game/FireControl';
 import { FirstRunGuide } from './game/FirstRunGuide';
@@ -86,6 +88,8 @@ export class GameScene extends Phaser.Scene {
   private _gig!: GigDef;
   private _jet!: WaterJet;
   private _started = false;
+  /** Whether a real click led here (see GameSceneData.playerClicked). */
+  private _playerClicked = false;
   private _roundOver = false;
   private readonly _urgency = new CountdownUrgency(this);
   // Frenzy's start/window/flourish (see game/FrenzyController.ts); starting it is the jackpot.
@@ -103,6 +107,8 @@ export class GameScene extends Phaser.Scene {
   private _flair!: LevelUpFlair;
   private _collisions!: WaterCollisions;
   private _fire!: FireControl;
+  /** How the gig opens: the band's count-in, or TAP TO START first (see game/CountIn.ts). */
+  private _countIn!: CountIn;
   private _visitors!: VisitorDirector;
 
   // Bonus Golden Spinner — spawns outside the fixed grid, own lifetime, not part of `_spinners`/FrenzyMeter.
@@ -126,6 +132,7 @@ export class GameScene extends Phaser.Scene {
    * the cache by the time a round starts.
    */
   init(data: Partial<GameSceneData>): void {
+    this._playerClicked = data.playerClicked === true;
     const worldId = data.worldId ?? DEFAULT_WORLD_ID;
     this._world = WORLD_DEFS.find((w) => w.id === worldId) ?? WORLD_DEFS[0];
     this._grannyId = data.grannyId ?? DEFAULT_GRANNY_ID;
@@ -203,15 +210,14 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch('HUDScene');
     this._hud = this.scene.get('HUDScene') as HUDScene;
 
-    this._input.on('first-input', () => this._onFirstInput());
+    this._input.on('first-input', () => this._countIn.tap());
     this._input.on('pause', () => this._pauseGame());
     this._frenzyMeter.on('full', () => this._frenzy.start());
     // At 80% of the band at full the orchestra leans in toward the Frenzy drop.
     this._frenzyMeter.on('miniHigh', () => audioOrchestra.onFrenzyNear());
 
-    // A brief turn-to-face-the-wall before play, skipped by any input. The
-    // round clock doesn't start until first input, so this costs the player
-    // no time (CLAUDE.md §12 item 13: all cutscenes skippable).
+    // A brief turn-to-face-the-wall before play, skipped at GO. The round
+    // clock doesn't start until GO, so this costs the player no time.
     this._intro = playRoundIntro(this, this._granny, this._gunSprite, () => {
       this._intro = null;
     });
@@ -219,13 +225,23 @@ export class GameScene extends Phaser.Scene {
     this._music.showGigIntro(this._spinners);
     this._goalCard = new GoalCard(this);
     this._goalCard.show();
-    this._guide.maybeShowGhostFinger(this._spinners);
-    this._guide.maybeStartTutorial();
+    this._countIn = new CountIn({
+      scene: this,
+      worldId: this._world.id,
+      bpm: resolveScore(this._world.id).bpm,
+      pans: this._spinners.map((s) => (s.x / GAME_WIDTH) * 2 - 1),
+      spinners: () => this._spinners,
+      playerClicked: this._playerClicked,
+      onBegin: () => {
+        this._guide.maybeShowGhostFinger(this._spinners);
+        this._guide.maybeStartTutorial();
+      },
+      onGo: () => this._beginGig(),
+    });
+    this._countIn.open();
 
-    // Fingers can lift on either side of a pause boundary, and a paused scene
-    // never sees those releases at all — so held pointer state is dropped
-    // going both ways. Without this, one two-finger pause permanently
-    // soft-locked the rest of the run (see InputManager.resetPointerState).
+    // A paused scene never sees fingers lift, so held pointer state is dropped both ways
+    // (see InputManager.resetPointerState).
     this.events.on(Phaser.Scenes.Events.PAUSE, () => {
       this._input.resetPointerState();
       this._fire.showCursor();
@@ -368,33 +384,23 @@ export class GameScene extends Phaser.Scene {
     audioOrchestra.accent('golden');
   }
 
-  private _onFirstInput(): void {
+  /** GO: the clock, pay tick, visitors and groove start, and Poki is told gameplay has begun (after a real click). */
+  private _beginGig(): void {
     if (this._started) return;
     this._started = true;
-    // AudioContext creation/resume must happen on a real user gesture
-    // (browser autoplay policy) — first-input is that gesture. Also
-    // guarantees the gain is back at full even if a previous round was
-    // quit mid-pause-fade without ever resuming.
-    audioBus.init();
-    audioBus.resume();
-    audioBus.fadeIn(0);
-    // The orchestra can only start once there's an AudioContext, which is
-    // this gesture — so the run's music begins on the player's first shot
-    // rather than on scene load (CLAUDE.md §9).
-    // Seated where the spinners are: each musician is panned to its own
-    // spinner's position across the wall.
-    audioOrchestra.start(
-      this._world.id,
-      this._spinners.map((s) => (s.x / GAME_WIDTH) * 2 - 1),
-    );
     this._intro?.skip();
     this._intro = null;
-    this._guide.dismissGhostFinger();
+    this._guide.onGo();
     this._goalCard.dismiss();
     this._reward.start(this.time.now);
     const save = saveManager.load();
     if (!save.hasPlayed) saveManager.save({ ...save, hasPlayed: true });
     poki.gameplayStart();
+  }
+
+  /** Starts the gig at once with no count-in. Used by the dev balance bot (src/dev/botSim.ts); play goes through CountIn. */
+  _onFirstInput(): void {
+    this._countIn.skipToGo();
   }
 
   /**
@@ -404,13 +410,15 @@ export class GameScene extends Phaser.Scene {
    * resuming — its Resume button calls `this.scene.resume('GameScene')`.
    */
   private _pauseGame(): void {
-    if (!this._started || this._roundOver || this.scene.isPaused()) return;
-    poki.gameplayStop();
+    if ((!this._started && !this._countIn.counting) || this._roundOver || this.scene.isPaused()) {
+      return;
+    }
+    if (this._started) poki.gameplayStop();
     audioBus.fadeOut(100);
     audioOrchestra.stop();
     waterSound.setFiring(false);
     this.scene.pause();
-    this.scene.launch('PauseScene');
+    this.scene.launch('PauseScene', { gameplayLive: this._started });
   }
 
   /**
@@ -460,24 +468,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private _refreshHud(): void {
-    const data: HudRefreshData = {
-      secondsRemaining: this._timeRemainingMs / 1000,
-      waterPct: (this._cannon.tank / this._gun.tank) * 100,
-      isPumping: this._cannon.isPumping,
-      spinners: this._spinners.map((s) => ({
-        x: s.x,
-        y: s.y,
-        r: s.def.r,
-        currentSpeed: s.playingSpeed,
-        currentState: s.playingState,
-      })),
-      coins: this._reward.displayedCoins(this.time.now),
-      starTargets: this._reward.targets,
-      stars: this._reward.stars,
-      grooveLevel: this._reward.groove.level,
-      grooveRing: this._reward.groove.ring,
-      jackpot: this._reward.jackpot,
-    };
-    this._hud.refresh(data);
+    this._hud.refresh(
+      buildHudData({
+        timeRemainingMs: this._timeRemainingMs,
+        now: this.time.now,
+        cannon: this._cannon,
+        gun: this._gun,
+        spinners: this._spinners,
+        reward: this._reward,
+      }),
+    );
   }
 }

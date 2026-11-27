@@ -274,8 +274,8 @@ export class HomeScene extends Phaser.Scene {
       worldId: venueId,
       gig,
     };
-    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, () =>
-      this.scene.start('GameScene', next),
+    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, (click) =>
+      this.scene.start('GameScene', { ...next, ...click }),
     );
   }
 

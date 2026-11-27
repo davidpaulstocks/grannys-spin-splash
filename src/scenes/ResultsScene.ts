@@ -210,8 +210,8 @@ export class ResultsScene extends Phaser.Scene {
       gig: stop.gig,
     };
     this._unlocks.selectWorld(stop.venueId);
-    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, () =>
-      this.scene.start('GameScene', next),
+    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, (click) =>
+      this.scene.start('GameScene', { ...next, ...click }),
     );
   }
 

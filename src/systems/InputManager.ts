@@ -45,10 +45,12 @@ export class InputManager extends EventEmitter {
 
   private _pointerX = 0;
   private _pointerY = 0;
-  private _pointerDown = false;
+  /** False until a pointer or finger has moved or touched down — until then the aim is the scene's default. */
+  private _hasAimed = false;
   /** Whether the latest aim input was a finger — decides if the mouse reach assist applies. */
   private _lastWasTouch: boolean;
-  private _autoFire = false;
+  /** The water fires by itself from the start of a gig; Space switches it off and on (§6.2, accessibility). */
+  private _firing = true;
   private _hasFiredFirstInput = false;
   /**
    * Pointer ids held down on an on-screen control (the pause button). The
@@ -58,8 +60,6 @@ export class InputManager extends EventEmitter {
    * id in this set is excluded from both.
    */
   private readonly _excludedPointerIds = new Set<number>();
-  /** Which pointer started the current fire — only it may end it (see the pointerup handler). */
-  private _firingPointerId: number | null = null;
 
   constructor(scene: Phaser.Scene) {
     super();
@@ -87,7 +87,8 @@ export class InputManager extends EventEmitter {
     };
 
     this._keys.space.on('down', () => {
-      this._autoFire = !this._autoFire;
+      // The press that is the player's first input only starts the gig; it must not also switch the water off.
+      if (this._hasFiredFirstInput) this._firing = !this._firing;
       this._registerFirstInput();
     });
     this._keys.esc.on('down', () => this.emit('pause'));
@@ -104,6 +105,7 @@ export class InputManager extends EventEmitter {
       // water at the floor. `pointerdown` had this guard; `pointermove` did not.
       if (this._excludedPointerIds.has(pointer.id)) return;
       this._lastWasTouch = pointer.wasTouch;
+      this._hasAimed = true;
       this._pointerX = pointer.worldX;
       this._pointerY = pointer.worldY;
     });
@@ -113,29 +115,16 @@ export class InputManager extends EventEmitter {
       // real gameplay input for "has the player started," but must never
       // register as aim/fire or count toward the two-finger pause gesture.
       if (this._excludedPointerIds.has(pointer.id)) return;
-      this._pointerDown = true;
-      this._firingPointerId = pointer.id;
       this._lastWasTouch = pointer.wasTouch;
+      this._hasAimed = true;
       this._pointerX = pointer.worldX;
       this._pointerY = pointer.worldY;
     });
     scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      // Checked AND cleared here, atomically, rather than by
-      // a button calling `releasePointer` from its own
-      // zone-level handler: that handler fires before this scene-wide one
-      // for the same native event (same ordering the claim on pointerdown
-      // relies on), so releasing there first would make this id look
-      // un-excluded by the time this check runs — and releasing a move
-      // button's finger would then wrongly clear `_pointerDown` for
-      // whatever OTHER finger is genuinely holding fire. Confirmed live.
-      if (this._excludedPointerIds.delete(pointer.id)) return;
-      // Only the finger that STARTED the fire can stop it. Clearing on any
-      // pointerup meant a left thumb that drifted off a move button and
-      // lifted killed the right thumb's held fire mid-spray.
-      if (this._firingPointerId === null || pointer.id === this._firingPointerId) {
-        this._firingPointerId = null;
-        this._pointerDown = false;
-      }
+      // The scene-wide listener, not the button's own zone handler, clears a
+      // claimed finger: the zone's handler fires first for the same native
+      // event, so releasing there would make the id look un-excluded here.
+      this._excludedPointerIds.delete(pointer.id);
     });
   }
 
@@ -153,8 +142,6 @@ export class InputManager extends EventEmitter {
    */
   resetPointerState(): void {
     this._excludedPointerIds.clear();
-    this._firingPointerId = null;
-    this._pointerDown = false;
   }
 
   /**
@@ -189,9 +176,14 @@ export class InputManager extends EventEmitter {
     return this._lastWasTouch;
   }
 
-  /** True while the gun should be firing — held pointer/touch, or auto-fire toggled on (§6.2). */
+  /** True once a pointer or finger has moved or touched down; before that the scene aims by default. */
+  hasAimed(): boolean {
+    return this._hasAimed;
+  }
+
+  /** True while the gun should be firing: always, unless Space has switched it off. Holding or clicking does nothing extra. */
   isFiring(): boolean {
-    return this._pointerDown || this._autoFire;
+    return this._firing;
   }
 
   /** Detaches every listener — call from the owning scene's shutdown handler. */

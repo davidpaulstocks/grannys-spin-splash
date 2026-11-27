@@ -9,6 +9,13 @@ export interface GameSceneData {
   readonly worldId: string;
   /** 0-based gig on the venue's ladder. Omitted = the first gig not yet passed. */
   readonly gig?: number;
+  /**
+   * True when the player has just clicked or tapped something to get here
+   * (set by `startRoundAfterAdGate`): the gig then counts itself in. Absent on
+   * a first-ever launch and on a review link, which arrive with no click, so
+   * the scene asks for a tap first.
+   */
+  readonly playerClicked?: boolean;
 }
 
 /** GameScene → ResultsScene: the just-finished run's result. */

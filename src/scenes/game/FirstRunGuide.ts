@@ -1,6 +1,6 @@
 /**
  * First-run onboarding (CLAUDE.md §6.5), which is deliberately not a
- * tutorial: a ghost finger that taps a spinner until the player fires, and
+ * tutorial: a ghost finger that taps a spinner from the count-in until just after GO, and
  * the scripted-moments captions. Both are gated on the player's very first
  * run and dismissed or advanced by what the player actually does.
  */
@@ -14,6 +14,9 @@ import { saveManager } from '../../systems/SaveManager';
 import { showGhostFinger } from '../../ui/GhostFinger';
 import { TutorialSequence } from '../../ui/TutorialSequence';
 import { distance } from '../../utils/math';
+
+/** The ghost finger stays this long after GO: long enough to see where to point, then it gets out of the way. */
+const GHOST_LINGER_MS = 2500;
 
 export class FirstRunGuide {
   /** First-run onboarding gesture (CLAUDE.md §6.5) — null unless this is the player's very first run. */
@@ -56,7 +59,12 @@ export class FirstRunGuide {
     this._tutorial.playHowToPlay(this._scene);
   }
 
-  /** The player's first real input — the ghost finger has done its job. */
+  /** GO: the water is firing by itself now; the ghost finger lingers a moment, then leaves. */
+  onGo(): void {
+    this._scene.time.delayedCall(GHOST_LINGER_MS, () => this.dismissGhostFinger());
+  }
+
+  /** The ghost finger has done its job. */
   dismissGhostFinger(): void {
     this._dismissGhostFinger?.();
     this._dismissGhostFinger = null;

@@ -5,12 +5,20 @@
  * requires `commercialBreak()` between runs with audio muted for its
  * duration, whichever button started the next one.
  *
+ * `startRound` is handed `PLAYER_CLICKED` to merge into the scene's start data;
+ * that is how GameScene knows a real click led here (it counts the gig in
+ * by itself) rather than a launch with no input.
+ *
  * Callers own their own "already starting" flag (reset in `create()`, since
  * Phaser reuses scene instances) — this function only guarantees the round
  * starts exactly once per call, even if the ad call throws.
  */
 
+import type { GameSceneData } from '../types/sceneData';
 import type { AdHooks } from './AdManager';
+
+/** Spread into the next GameScene's start data: the player has clicked, so the gig may count itself in. */
+export const PLAYER_CLICKED: Pick<GameSceneData, 'playerClicked'> = { playerClicked: true };
 
 /** The slice of AdManager this needs — a structural type so tests can pass a fake. */
 export interface CommercialBreakGate {
@@ -21,7 +29,7 @@ export interface CommercialBreakGate {
 export async function startRoundAfterAdGate(
   ads: CommercialBreakGate,
   hooks: AdHooks,
-  startRound: () => void,
+  startRound: (click: typeof PLAYER_CLICKED) => void,
 ): Promise<void> {
   if (ads.shouldShowCommercialBreak()) {
     try {
@@ -31,5 +39,5 @@ export async function startRoundAfterAdGate(
       // before this guard a rejection left PLAY permanently dead.
     }
   }
-  startRound();
+  startRound(PLAYER_CLICKED);
 }
