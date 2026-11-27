@@ -95,6 +95,8 @@ export class DemoRange {
     this._baseScale = _image.scaleX;
     this._gfx = _scene.add.graphics();
     root.add(this._gfx);
+    // Behind the gun, so the stream comes out of the muzzle instead of sitting across it.
+    root.moveBelow(this._gfx as Phaser.GameObjects.GameObject, _image);
     for (let i = 0; i < MAX_SHOTS; i++) {
       this._shots.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, seq: 0, stream: 0 });
     }

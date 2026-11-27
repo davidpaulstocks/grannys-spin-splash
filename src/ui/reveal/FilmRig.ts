@@ -82,6 +82,8 @@ export class FilmRig {
     this._sheen = this._makeSheen(textureKey);
     if (this._sheen) root.add(this._sheen.image);
     this._fire = new CloseUpFire(scene, root, gun, GAME_WIDTH);
+    // Behind the gun, so the stream comes out of the muzzle instead of sitting across it.
+    root.moveBelow(this._fire.gfx as Phaser.GameObjects.GameObject, this.image);
     this._vignetteKey = `film_vignette_${scene.time.now}`;
     this._vignette = this._makeVignette();
     root.add(this._vignette);
