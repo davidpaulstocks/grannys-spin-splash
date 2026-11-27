@@ -141,7 +141,7 @@ The shark, ice, trident and Inferno shots had not been looked at on screen when 
 
 ### Grannies: talents and star milestones (`src/entities/granny/`, `src/systems/GrannyJoining.ts`)
 
-A granny is never bought. She **joins the band when the player's total stars reach her milestone** (stars are a rating and are never spent), and each has one **talent**, a named multiplier on one mechanic that is read once by the module that owns the mechanic (`talents.ts`). Balance in this document was measured **without any talent**; the starting granny's Steady hands makes every gig slightly easier. A granny with no painting is left out of the game (`GRANNY_ART_READY`): Nani Priya's pictures arrived after `150dccd` (in the working tree, uncommitted when this was written) and Grandma Mei is not yet painted.
+A granny is never bought. She **joins the band when the player's total stars reach her milestone** (stars are a rating and are never spent), and each has one **talent**, a named multiplier on one mechanic that is read once by the module that owns the mechanic (`talents.ts`). Balance in this document was measured **without any talent**; the starting granny's Steady hands makes every gig slightly easier. A granny with no painting is left out of the game (`GRANNY_ART_READY`): Nani Priya's pictures arrived after `150dccd` ((`8f9b8bd`)) and Grandma Mei is not yet painted.
 
 | Granny                    | Joins at (total stars) | Talent        | Constant                    | Effect                                                                            |
 | ------------------------- | ---------------------: | ------------- | --------------------------- | --------------------------------------------------------------------------------- |
