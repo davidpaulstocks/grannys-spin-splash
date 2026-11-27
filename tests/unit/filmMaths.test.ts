@@ -18,6 +18,11 @@ import {
   lerpZoom,
   panStartFocus,
   recoilAt,
+  flashAlphaAt,
+  FLASH_END_MS,
+  FLASH_MAX_ALPHA,
+  FLASH_PEAK_MS,
+  TENSE_PX,
   screenPointOf,
   shakeAt,
   sineInOut,
@@ -26,8 +31,8 @@ import {
 const SCREEN = { w: 1280, h: 720 };
 const PLACE = { x: 330, y: 207 };
 const RARITIES = ['common', 'rare', 'epic', 'legendary'] as const;
-/** A 768x512 hero picture with the nozzle near the right edge, a little above centre. */
-const geometry = () => filmGeometry(768, 512, { x: 706, y: 206 }, SCREEN, PLACE, 0.48);
+/** A 1152x768 hero picture with the nozzle near the right edge, a little above centre. */
+const geometry = () => filmGeometry(1152, 768, { x: 1059, y: 309 }, SCREEN, PLACE, 0.48);
 
 describe('filmCues', () => {
   it('runs pan, fire, pull-back, hero hold, shrink in order', () => {
@@ -70,14 +75,14 @@ describe('filmGeometry', () => {
 
   it('measures the nozzle from the picture centre', () => {
     const g = geometry();
-    expect(g.nozzle).toEqual({ x: 706 - 384, y: 206 - 256 });
+    expect(g.nozzle).toEqual({ x: 1059 - 576, y: 309 - 384 });
   });
 
   it('scales a small picture to a hero picture by plain multiplication (the anchor maps across)', () => {
     const small = filmGeometry(384, 256, { x: 353, y: 103 }, SCREEN, PLACE, 0.97);
-    const hero = filmGeometry(768, 512, { x: 706, y: 206 }, SCREEN, PLACE, 0.485);
-    expect(hero.nozzle.x).toBeCloseTo(small.nozzle.x * 2, 5);
-    expect(hero.nozzle.y).toBeCloseTo(small.nozzle.y * 2, 5);
+    const hero = filmGeometry(1152, 768, { x: 1059, y: 309 }, SCREEN, PLACE, 0.485);
+    expect(hero.nozzle.x).toBeCloseTo(small.nozzle.x * 3, 5);
+    expect(hero.nozzle.y).toBeCloseTo(small.nozzle.y * 3, 5);
     // The same gun fills the same share of the screen at the same shot, whichever picture it is.
     expect(hero.imageW * hero.closeZoom).toBeCloseTo(small.imageW * small.closeZoom, 5);
   });
@@ -181,16 +186,18 @@ describe('filmPose', () => {
       expect(end.x).toBeCloseTo(PLACE.x, 3);
       expect(end.y).toBeCloseTo(PLACE.y, 3);
       expect(end.zoom).toBeCloseTo(g.placeZoom, 5);
-      expect(filmPose(r, 1e9, g)).toEqual(end);
+      // Everything but the clock readings (charge, sinceFire) is the same however late you ask.
+      expect({ ...filmPose(r, 1e9, g), sinceFire: 0 }).toEqual({ ...end, sinceFire: 0 });
     }
   });
 
-  it('fires only between the fire cues, and the sheen sweeps only during the pan', () => {
+  it('streams the real projectile from the pull-back to the end of the hero hold, and the sheen sweeps only during the pan', () => {
     const g = geometry();
     const c = filmCues('common');
-    expect(filmPose('common', c.fireAt - 1, g).firing).toBe(false);
-    expect(filmPose('common', c.fireAt + 1, g).firing).toBe(true);
-    expect(filmPose('common', c.fireEnd + 1, g).firing).toBe(false);
+    expect(filmPose('common', c.fireAt + 1, g).streaming).toBe(false);
+    expect(filmPose('common', c.pullAt + 1, g).streaming).toBe(true);
+    expect(filmPose('common', c.shrinkAt - 1, g).streaming).toBe(true);
+    expect(filmPose('common', c.shrinkAt + 1, g).streaming).toBe(false);
     expect(filmPose('common', 100, g).sheen).toBeNull();
     expect(filmPose('common', c.panEnd / 2 + 150, g).sheen).toBeGreaterThan(0);
     expect(filmPose('common', c.fireAt, g).sheen).toBeNull();
@@ -218,6 +225,27 @@ describe('shake and recoil', () => {
     expect(recoilAt(RECOIL_MS + 1)).toBe(0);
     expect(recoilAt(RECOIL_MS * 0.12)).toBeLessThan(-20);
     expect(Math.abs(recoilAt(RECOIL_MS * 0.9))).toBeLessThan(Math.abs(recoilAt(RECOIL_MS * 0.3)));
+  });
+});
+
+describe('charge-up and flash', () => {
+  it('charges across the hold and tenses the gun back without a jump at the shot', () => {
+    const g = geometry();
+    const c = filmCues('common');
+    expect(filmPose('common', c.panEnd - 1, g).charge).toBe(0);
+    expect(filmPose('common', c.fireAt - 1, g).charge).toBeGreaterThan(0.99);
+    const before = filmPose('common', c.fireAt - 1, g).recoil;
+    expect(before).toBeLessThan(-TENSE_PX * 0.98);
+    expect(Math.abs(filmPose('common', c.fireAt, g).recoil - before)).toBeLessThan(0.2);
+  });
+
+  it('flashes as a quick pop that never hides the gun', () => {
+    expect(flashAlphaAt(-1)).toBe(0);
+    expect(flashAlphaAt(FLASH_PEAK_MS)).toBeCloseTo(FLASH_MAX_ALPHA, 5);
+    expect(flashAlphaAt(FLASH_END_MS)).toBe(0);
+    for (let t = 0; t < FLASH_END_MS; t++) expect(flashAlphaAt(t)).toBeLessThanOrEqual(0.55);
+    expect(FLASH_PEAK_MS).toBeLessThan(60);
+    expect(FLASH_END_MS).toBeLessThanOrEqual(180);
   });
 });
 

@@ -52,6 +52,14 @@ export function isGigOpen(save: SaveData, venueId: string, gig: number): boolean
   return gig <= 0 || (venueStars(save, venueId)[gig - 1] ?? 0) > 0;
 }
 
+/**
+ * A venue's Jam (the pure-play mode, no clock or score) opens once its last
+ * gig, the Grand Concert, has been passed with at least one star.
+ */
+export function isJamUnlocked(save: SaveData, venueId: string): boolean {
+  return (venueStars(save, venueId)[GIGS_PER_VENUE - 1] ?? 0) > 0;
+}
+
 /** The gig PLAY should start: the first one not yet passed, or the Grand Concert once all are. */
 export function currentGig(save: SaveData, venueId: string): number {
   const unpassed = venueStars(save, venueId).findIndex((stars) => stars === 0);

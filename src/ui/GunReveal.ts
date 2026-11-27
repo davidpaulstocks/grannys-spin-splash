@@ -6,11 +6,11 @@
  *    and the camera glides from the handle to the nozzle while a band of light
  *    sweeps the paintwork (`reveal/filmMaths.ts` is the camera, `FilmRig.ts`
  *    the picture, `Sheen.ts` the light). The rarest guns pan more slowly.
- * 2. At the nozzle it FIRES: its real projectile, drawn large, streams off the
- *    screen with a flash, a shake and a recoil (`CloseUpFire.ts`).
- * 3. A fast pull-back to the whole gun over slow rays in its rarity colour; the
- *    name slams in beneath it with an underline and the rarity tag, and a
- *    shockwave rings out (`HeroShot.ts`, `ImpactBeat.ts`).
+ * 2. At the nozzle a glow charges, then it FIRES: a flash, a bloom, a ring and
+ *    a spray in the gun's colours, a shake and a recoil (`MuzzleBurst.ts`).
+ * 3. A fast pull-back to the whole gun over slow rays in its rarity colour, its
+ *    real projectile now streaming from the nozzle (`CloseUpFire.ts`); the name
+ *    slams in beneath it with the rarity tag and a shockwave (`HeroShot.ts`).
  * 4. It shrinks to its place; the target discs pop in and it blasts them
  *    (`reveal/DemoRange.ts`); then the numbers: POWER counts up and the Coins /
  *    Power / Water rows (a gun just bought, with USE IT and Later), or the price
@@ -40,7 +40,7 @@ import { FilmRig } from './reveal/FilmRig';
 import { SHRINK_MS } from './reveal/filmMaths';
 import { loadHeroArt } from './reveal/HeroArt';
 import { HeroShot } from './reveal/HeroShot';
-import { addRays, burstRays, fireFlash, heroRings } from './reveal/ImpactBeat';
+import { addRays, burstRays, fireSound, heroRings } from './reveal/ImpactBeat';
 import { buildTagRow, showPill } from './reveal/RevealPanels';
 import { RevealEnding } from './reveal/RevealEnding';
 import { RevealTracker, type RevealCtx } from './reveal/RevealTracker';
@@ -77,12 +77,11 @@ export interface GunRevealHandle {
 }
 
 const CENTRE_X = GAME_WIDTH / 2;
-const BACKDROP_ALPHA = 1;
 const STAMP_FROM = 2.4;
 const STAMP_MS = 160;
 const HEADLINE_NEW = 'NEW GUN!';
 const HEADLINE_PREVIEW = 'COMING UP';
-/** The soft rising tones under the pan: where in the pan each plays, and which chord. */
+/** Rising tones under the pan: where each plays, and its chord. */
 const RISE_TONES = [
   { at: 0.05, chord: 1 },
   { at: 0.55, chord: 2 },
@@ -118,7 +117,7 @@ function openReveal(
   const tracker = new RevealTracker(scene);
   const ctx: RevealCtx = { scene, root, tracker };
   const timeline = revealTimeline(gun.rarity);
-  const film = timeline.film;
+  const { film } = timeline;
   const at = { x: REVEAL_LAYOUT.gun.x, y: REVEAL_LAYOUT.gun.y };
   const hero = { x: REVEAL_LAYOUT.hero.x, y: REVEAL_LAYOUT.hero.y };
   let owned = ownedConfig;
@@ -147,7 +146,7 @@ function openReveal(
   };
 
   const backdrop = scene.add
-    .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLOUR.ink, BACKDROP_ALPHA)
+    .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLOUR.ink, 1)
     .setInteractive();
   backdrop.on('pointerup', skip);
   root.add(backdrop);
@@ -164,8 +163,7 @@ function openReveal(
     .setAlpha(0);
   root.add(headline);
 
-  const level = owned?.level ?? 1;
-  const powerTo = powerRatingAt(gun, level);
+  const powerTo = powerRatingAt(gun, owned?.level ?? 1);
   const heroShot = new HeroShot(ctx, gun);
   const tag = buildTagRow(ctx, gun, powerTo);
 
@@ -180,12 +178,11 @@ function openReveal(
     });
   };
 
-  const art = loadHeroArt(scene, tracker, gun.id, (key) => startFilm(key));
-
-  const close = (): void => {
+  const close = (notify = true): void => {
     if (!open) return;
     open = false;
     scene.events.off(Phaser.Scenes.Events.UPDATE, onUpdate);
+    scene.events.off(Phaser.Scenes.Events.SHUTDOWN, onShutdown);
     art.cancel();
     range?.destroy();
     rig?.destroy();
@@ -193,12 +190,14 @@ function openReveal(
     scene.tweens.killTweensOf(root.list);
     root.destroy();
     art.release();
-    owned?.onClosed?.();
+    if (notify) owned?.onClosed?.();
   };
+  const onShutdown = (): void => close(false); // scene gone: tear down, no callbacks
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, onShutdown);
 
   const ending = new RevealEnding(ctx, gun, tag, timeline, at, {
     isOpen: () => open,
-    close,
+    close: () => close(),
     becameOwned: (cfg) => {
       owned = cfg;
       preview = null;
@@ -219,6 +218,9 @@ function openReveal(
       }
     }
   };
+
+  // Last, once everything the film touches exists: a cached picture starts the film at once.
+  const art = loadHeroArt(scene, tracker, gun.id, (key) => startFilm(key));
 
   /** Starts the film once the picture to show is ready (the hero, or the small one after a short wait). */
   function startFilm(key: string): void {
@@ -248,7 +250,7 @@ function openReveal(
       }),
     );
     // Shot 2: it fires at the nozzle.
-    schedule(film.fireAt, () => fireFlash(ctx));
+    schedule(film.fireAt, () => fireSound());
     // Shot 3: the pull-back brings the rays up; the name and tag land as it settles.
     schedule(film.pullAt, () => burstRays(ctx, rays));
     schedule(timeline.nameAt, (instant) => {
@@ -294,5 +296,5 @@ function openReveal(
     schedule(timeline.beat2At + 1, (instant) => showPill(ctx, tag, instant));
   }
 
-  return { close };
+  return { close: () => close() };
 }

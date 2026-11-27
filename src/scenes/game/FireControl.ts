@@ -46,7 +46,8 @@ export interface FireControlDeps {
   readonly cannon: WaterCannon;
   readonly jet: WaterJet;
   readonly gun: GunDef;
-  readonly powerups: PowerUpEffects;
+  /** Power-up windows (the Soaker's wider fire). Absent where there are no pickups (Jam). */
+  readonly powerups?: PowerUpEffects;
   /** The fixed grid plus a live Golden Spinner, if any — for aim/fire only. */
   readonly activeSpinners: () => readonly Spinner[];
   /**
@@ -81,7 +82,7 @@ export class FireControl {
   private _visitorLock = false;
   private _cursorHidden: boolean | null = null;
 
-  constructor(private readonly _d: FireControlDeps) {
+  constructor(private _d: FireControlDeps) {
     this._ring = _d.scene.add
       .circle(0, 0, 1, COLOUR.mintGreen, 0)
       .setStrokeStyle(AIM_RING_STROKE, COLOUR.mintGreen)
@@ -90,6 +91,11 @@ export class FireControl {
       .circle(0, 0, AIM_RETICLE_RADIUS, COLOUR.cloud)
       .setStrokeStyle(AIM_RETICLE_STROKE, COLOUR.ink)
       .setVisible(false);
+  }
+
+  /** Puts a different gun in her hands (Jam's gun button): the sprite, the cannon behind it and the gun's numbers. */
+  swapGun(next: Pick<FireControlDeps, 'gunSprite' | 'cannon' | 'gun'>): void {
+    this._d = { ...this._d, ...next };
   }
 
   /** Gives the OS cursor back — call on pause and when the scene shuts down. */
@@ -134,7 +140,7 @@ export class FireControl {
       target: aim.target
         ? (d.activeSpinners().find((sp) => sp.id === aim.target?.id) ?? null)
         : null,
-      soakerActive: d.powerups.soakerActive(time),
+      soakerActive: d.powerups?.soakerActive(time) ?? false,
       visitorLock: this._visitorLock,
     });
     // The hiss of the jet: on only while water is actually leaving the gun.

@@ -1,23 +1,23 @@
 /**
- * The gun's real projectile in the extreme close-up. It uses the same
- * renderers the demo range does (`JET_RENDERERS[gun.projectile]`), fed shots in
- * "demo pixels" (the units the range draws in), on a layer scaled so that one
- * demo pixel is the right size next to the huge gun picture: the shots look
- * exactly like the demo's, only as big as the gun now is. The shots live in the
- * picture's own space, so when the camera pulls back they pull back with it.
+ * The gun's real projectile, streaming from the nozzle once the camera starts
+ * to pull back and until the hero shot ends. It uses the same renderer the
+ * demo range does (`JET_RENDERERS[gun.projectile]`), on a layer scaled
+ * `STREAM_SCALE` times (about twice the game's, where the shots look right),
+ * with every shot an offset from the nozzle: the stream is a rigid jet that
+ * travels with the gun (never kinked by the camera move) and leaves the nozzle
+ * at every frame of the zoom.
  */
 
 import type Phaser from 'phaser';
 
 import { WATER_PARTICLE_SPEED } from '../../config';
 import type { GunDef } from '../../entities/gun/gun.types';
+import { STREAM_SCALE } from './filmMaths';
 import { BARREL_SPACING_PX, FIRE_DENSITY_SCALE } from '../../entities/waterParticle/fireDensity';
 import { JET_RENDERERS } from '../../entities/waterParticle/projectiles';
 import type { JetPoint } from '../../entities/waterParticle/projectiles/projectile.types';
 
 const MAX_SHOTS = 90;
-/** The close-up's shots fly this share of the demo's speed, so the stream is seen forming. */
-const SPEED_SHARE = 0.25;
 const OFF_SCREEN_MARGIN = 120;
 
 interface Shot {
@@ -49,37 +49,38 @@ export class CloseUpFire {
   }
 
   /**
-   * Advances the shots `dtMs` and draws them. `layer` is where the layer sits and its scale (screen px per
-   * demo px); `nozzle` is the nozzle in the layer's own units; `firing` spawns shots this frame.
+   * Advances the shots `dtMs` and draws them. `nozzleScreen` is where the nozzle is on screen now;
+   * `firing` spawns shots this frame and pins the stream's head to the nozzle.
    */
   step(
     dtMs: number,
     firing: boolean,
-    layer: { readonly x: number; readonly y: number; readonly scale: number },
-    nozzle: { readonly x: number; readonly y: number },
+    nozzleScreen: { readonly x: number; readonly y: number },
   ): void {
     const dt = Math.min(dtMs, 50);
     this._clock += dt;
-    this.gfx.setPosition(layer.x, layer.y).setScale(layer.scale);
-    if (firing && this._clock >= this._nextAt) this._spawn(nozzle);
-    const advance = (WATER_PARTICLE_SPEED * SPEED_SHARE * dt) / 1000;
-    const edge = (this._screenWidth + OFF_SCREEN_MARGIN - layer.x) / layer.scale;
+    this.gfx.setPosition(0, 0).setScale(STREAM_SCALE);
+    const nozzle = { x: nozzleScreen.x / STREAM_SCALE, y: nozzleScreen.y / STREAM_SCALE };
+    if (firing && this._clock >= this._nextAt) this._spawn();
+    const advance = (WATER_PARTICLE_SPEED * dt) / 1000;
+    const edge = (this._screenWidth + OFF_SCREEN_MARGIN) / STREAM_SCALE;
     for (const s of this._shots) {
       if (!s.active) continue;
       s.x += advance;
-      if (s.x > edge) s.active = false;
+      if (nozzle.x + s.x > edge) s.active = false;
     }
     this._draw(firing, nozzle);
   }
 
-  private _spawn(nozzle: { readonly x: number; readonly y: number }): void {
+  /** A shot is born at the nozzle: `x` and `y` are its offset from the nozzle, so the whole stream travels with the gun. */
+  private _spawn(): void {
     const streams = this._gun.streams;
     const spacing = this._gun.barrelSpacing ?? BARREL_SPACING_PX;
     for (let i = 0; i < streams; i++) {
       const shot = this._shots.find((s) => !s.active);
       if (!shot) break;
-      shot.x = nozzle.x;
-      shot.y = nozzle.y + (i - (streams - 1) / 2) * spacing;
+      shot.x = 0;
+      shot.y = (i - (streams - 1) / 2) * spacing;
       shot.seq = this._seq++;
       shot.stream = i;
       shot.active = true;
@@ -101,7 +102,11 @@ export class CloseUpFire {
     const spacing = this._gun.barrelSpacing ?? BARREL_SPACING_PX;
     for (const [stream, list] of byStream) {
       list.sort((a, b) => b.seq - a.seq);
-      const points: JetPoint[] = list.map((s) => ({ x: s.x, y: s.y, seq: s.seq }));
+      const points: JetPoint[] = list.map((s) => ({
+        x: nozzle.x + s.x,
+        y: nozzle.y + s.y,
+        seq: s.seq,
+      }));
       if (firing) {
         const offset = (stream - (this._gun.streams - 1) / 2) * spacing;
         points.unshift({ x: nozzle.x, y: nozzle.y + offset });

@@ -17,6 +17,7 @@ import { ResultsScene } from './scenes/ResultsScene';
 import { GameScene } from './scenes/GameScene';
 import { HomeScene } from './scenes/HomeScene';
 import { HUDScene } from './scenes/HUDScene';
+import { JamScene } from './scenes/JamScene';
 import { PauseScene } from './scenes/PauseScene';
 import { ShopScene } from './scenes/ShopScene';
 import { TourScene } from './scenes/TourScene';
@@ -84,6 +85,7 @@ async function boot(): Promise<void> {
       TourScene,
       ShopScene,
       GameScene,
+      JamScene,
       HUDScene,
       ResultsScene,
       PauseScene,

@@ -55,8 +55,11 @@ export function loadHeroArt(
   }
   return {
     cancel: () => {
+      const stillLoading = !settled && loadedHere;
       settled = true;
       scene.load.off(eventName, onFile);
+      // The picture arrives after the reveal closed: free it then, so it is not left in memory.
+      if (stillLoading) scene.load.once(eventName, () => scene.textures.remove(heroKey));
     },
     release: () => {
       if (loadedHere && scene.textures.exists(heroKey)) scene.textures.remove(heroKey);

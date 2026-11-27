@@ -13,7 +13,14 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
 import type { AnchorJSON, GunDef, GunRarity } from '../../entities/gun/gun.types';
 import { COLOUR_HEX } from '../../utils/colour';
 import { CloseUpFire } from './CloseUpFire';
-import { filmGeometry, filmPose, type FilmGeometry, type FilmPose } from './filmMaths';
+import {
+  filmGeometry,
+  filmPose,
+  screenPointOf,
+  type FilmGeometry,
+  type FilmPose,
+} from './filmMaths';
+import { MuzzleBurst } from './MuzzleBurst';
 import { Sheen } from './Sheen';
 import { REVEAL_LAYOUT, revealGunScale } from './revealTiming';
 import type { RevealCtx } from './RevealTracker';
@@ -38,6 +45,7 @@ export class FilmRig {
   readonly anchor: { readonly x: number; readonly y: number };
   private readonly _sheen: Sheen | null;
   private readonly _fire: CloseUpFire;
+  private readonly _muzzle: MuzzleBurst;
   private readonly _vignette: Phaser.GameObjects.Image;
   private readonly _vignetteKey: string;
   private readonly _demoScale: number;
@@ -77,6 +85,7 @@ export class FilmRig {
     this._vignetteKey = `film_vignette_${scene.time.now}`;
     this._vignette = this._makeVignette();
     root.add(this._vignette);
+    this._muzzle = new MuzzleBurst(scene, root, gun);
     this._pose = filmPose(_rarity, 0, this.geometry);
     this._apply(0);
   }
@@ -108,6 +117,7 @@ export class FilmRig {
     this._finished = true;
     this._sheen?.destroy();
     this._fire.gfx.destroy();
+    this._muzzle.gfx.destroy();
     this._vignette.destroy();
     if (this._ctx.scene.textures.exists(this._vignetteKey)) {
       this._ctx.scene.textures.remove(this._vignetteKey);
@@ -132,9 +142,9 @@ export class FilmRig {
       this._sheen.paint(p.sheen);
       this._sheen.image.setPosition(p.x, p.y).setScale(p.zoom).setAlpha(p.imageAlpha);
     }
-    const d = this._demoScale;
-    const nozzle = { x: this.geometry.nozzle.x * d, y: this.geometry.nozzle.y * d };
-    this._fire.step(dt, p.firing, { x: p.x, y: p.y, scale: p.zoom / d }, nozzle);
+    const spot = screenPointOf({ ...p, x: p.x + p.recoil }, this.geometry.nozzle);
+    this._fire.step(dt, p.streaming, spot);
+    this._muzzle.update(p, spot);
   }
 
   private _makeSheen(textureKey: string): Sheen | null {

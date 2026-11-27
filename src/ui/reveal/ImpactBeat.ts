@@ -1,7 +1,7 @@
 /**
  * The light and shock of the gun reveal's film: the turning rays in the rarity
- * colour that come up behind the gun as the camera pulls back, the Cloud flash
- * when it fires, and the shockwave ring(s) (a second ring and a sparkle burst
+ * colour that come up behind the gun as the camera pulls back, and
+ * the sound of the shot, and the shockwave ring(s) (a second ring and a sparkle burst
  * for the rarest guns) when the hero shot settles. Everything is added to the
  * overlay's container and tracked, so closing early leaves nothing behind.
  */
@@ -12,7 +12,6 @@ import { playStarChime } from '../../audio/ResultsMusic';
 import { playUpgrade } from '../../audio/SFX';
 import type { GunRarity } from '../../entities/gun/gun.types';
 import { COLOUR } from '../../utils/colour';
-import { GAME_HEIGHT, GAME_WIDTH } from '../../config';
 import { EASE } from '../../utils/tween';
 import { rarityColour } from '../gunRarity';
 import { spawnSparkles } from '../sparkle';
@@ -26,9 +25,6 @@ const RAY_ALPHA = 0.16;
 const RAY_BURST_FROM = 0.2;
 const RAY_BURST_MS = 420;
 const RAY_TURN_MS = 26000;
-const FLASH_ALPHA = 0.4;
-const FLASH_OVERSCAN = 2;
-const FLASH_MS = 260;
 const SHOCKWAVE_START_RADIUS = 40;
 const SHOCKWAVE_GROWTH = 11;
 const SHOCKWAVE_OUTLINE_PX = 10;
@@ -88,24 +84,8 @@ export function burstRays(ctx: RevealCtx, rays: Phaser.GameObjects.Graphics): vo
   ctx.tracker.tween({ targets: rays, angle: 360, duration: RAY_TURN_MS, repeat: -1 });
 }
 
-/** A Cloud flash over the whole screen that fades at once: the gun firing in the close-up. */
-export function fireFlash(ctx: RevealCtx): void {
-  const flash = ctx.scene.add.rectangle(
-    GAME_WIDTH / 2,
-    GAME_HEIGHT / 2,
-    GAME_WIDTH * FLASH_OVERSCAN,
-    GAME_HEIGHT * FLASH_OVERSCAN,
-    COLOUR.cloud,
-    FLASH_ALPHA,
-  );
-  ctx.root.add(flash);
-  ctx.tracker.tween({
-    targets: flash,
-    alpha: 0,
-    duration: FLASH_MS,
-    ease: EASE.standardOut,
-    onComplete: () => flash.destroy(),
-  });
+/** The sound of the gun firing in the close-up (the flash itself is drawn by the film's muzzle burst). */
+export function fireSound(): void {
   playUpgrade(UPGRADE_CHORD);
 }
 

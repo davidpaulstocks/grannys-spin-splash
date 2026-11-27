@@ -6,6 +6,7 @@ import {
   COINS_PER_NEW_STAR,
   currentGig,
   isGigOpen,
+  isJamUnlocked,
   isVenueOpen,
   nextLockedVenue,
   nextStop,
@@ -111,5 +112,24 @@ describe('venue tiles on Home', () => {
     expect(currentGig(save, 'workshop')).toBe(0);
     for (let g = 0; g < GIGS_PER_VENUE; g++) save = recordGig(save, 'workshop', g, 1, 0).save;
     expect(currentGig(save, 'workshop')).toBe(GIGS_PER_VENUE - 1);
+  });
+});
+
+describe('jam unlock', () => {
+  it('opens when the last gig has one star, and not before', () => {
+    let save = fresh();
+    expect(isJamUnlocked(save, 'garden')).toBe(false);
+    for (let gig = 0; gig < GIGS_PER_VENUE - 1; gig++)
+      save = recordGig(save, 'garden', gig, 3, 0).save;
+    expect(isJamUnlocked(save, 'garden')).toBe(false);
+    save = recordGig(save, 'garden', GIGS_PER_VENUE - 1, 0, 0).save;
+    expect(isJamUnlocked(save, 'garden')).toBe(false);
+    save = recordGig(save, 'garden', GIGS_PER_VENUE - 1, 1, 0).save;
+    expect(isJamUnlocked(save, 'garden')).toBe(true);
+  });
+
+  it('is per venue', () => {
+    const save = recordGig(fresh(), 'garden', GIGS_PER_VENUE - 1, 3, 0).save;
+    expect(isJamUnlocked(save, 'workshop')).toBe(false);
   });
 });

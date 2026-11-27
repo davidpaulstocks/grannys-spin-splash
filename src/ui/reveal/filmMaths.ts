@@ -2,18 +2,13 @@
  * The pure maths of the gun reveal's "product film" (no Phaser): when each
  * shot of the film starts for a rarity, and where the camera is at any moment.
  *
- * The film is four shots: an extreme close-up that glides from the handle to
- * the nozzle, the gun firing at the nozzle, a fast pull-back to the whole gun
- * (the hero shot, where the name lands), and the gun shrinking to its place for
- * the numbers. Nothing in the picture moves by tweens: the rig asks
- * `filmPose(rarity, elapsedMs, geometry)` for where the gun is NOW, so the
- * motion is a pure function of the clock (no drift, no stutter, and a skip is
- * just "ask for the last pose"). Unit-tested in tests/unit/filmMaths.test.ts.
- *
- * The camera is expressed the way a film camera is: a zoom (screen px per
- * picture px), a focus (a point of the picture) and the place on the screen
- * where that focus is shown. The picture's centre then sits at
- * `view - zoom * focus`.
+ * Four shots: a close-up glide from the handle to the nozzle, the gun firing
+ * there, a fast pull-back to the hero shot (where the name lands), and the gun
+ * shrinking to its place. Nothing moves by tweens: `filmPose(rarity, elapsedMs,
+ * geometry)` says where the gun is NOW, so a skip is just "ask for the last
+ * pose". The camera is a zoom (screen px per picture px), a focus (a picture
+ * point) and where on screen the focus is shown; the picture's centre sits at
+ * `view - zoom * focus`. Unit-tested in tests/unit/filmMaths.test.ts.
  */
 
 import type { GunRarity } from '../../entities/gun/gun.types';
@@ -35,33 +30,35 @@ export const PAN_ZOOM_FROM = 0.94;
 export const PAN_START_INSET_PX = 90;
 /** Where the nozzle is shown at the end of the pan, as a share of the screen's width (left of centre). */
 export const NOZZLE_VIEW_X = 0.37;
-/** The hero shot's gun centre (logical px); the name, underline and tag sit under it. */
+/** The hero shot's gun centre (px); the name and tag sit under it. It drifts in by HERO_DRIFT while it holds. */
 export const HERO_CENTRE_Y = 262;
-/** The hero shot drifts in by this much while it holds, so it is never a frozen frame. */
 export const HERO_DRIFT = 0.025;
 
-/** Seconds of dark before the gun begins to fade up, and how long the fade takes. */
+/** Dark before the gun fades up, the fade, and when the light starts to sweep the paintwork (until the pan ends). */
 export const FADE_START_MS = 150;
 export const FADE_MS = 450;
-/** The light sweeps the paintwork from here until the pan ends. */
 export const SHEEN_START_MS = 300;
-/** The beat at the nozzle before it fires. */
 export const NOZZLE_HOLD_MS = 330;
-/** How long the gun fires in the close-up. */
 export const FIRE_MS = 800;
-/** The pull-back starts this long after the firing starts (the shots are still streaming). */
+/** The pull-back starts this long after the shot. */
 export const PULL_AFTER_FIRE_MS = 600;
 export const PULL_MS = 700;
 export const SHRINK_MS = 550;
-/** The camera shake when it fires. */
 export const SHAKE_MS = 240;
 export const SHAKE_PX = 9;
 export const SHAKE_X_RATE = 0.09;
 export const SHAKE_Y_RATE = 0.13;
-/** The gun's kick when it fires (screen px, backwards) and how long the kick lasts. */
 export const RECOIL_PX = 34;
 export const RECOIL_MS = 380;
 export const RECOIL_PEAK = 0.12;
+/** The charge-up: the gun tenses back this far (px) as the glow swells. */
+export const TENSE_PX = 7;
+/** The muzzle flash is a pop that never hides the gun. */
+export const FLASH_PEAK_MS = 50;
+export const FLASH_END_MS = 170;
+export const FLASH_MAX_ALPHA = 0.45;
+/** The real projectile streams at this scale (about twice the game's) from the pull-back on. */
+export const STREAM_SCALE = 2;
 
 /** How long each rarity's pan takes (the rarest guns pan more slowly) and how long its hero shot holds. */
 export interface FilmTiming {
@@ -150,16 +147,20 @@ export interface FilmPose {
   readonly zoom: number;
   readonly x: number;
   readonly y: number;
-  /** The picture's alpha (the fade up from dark). */
+  /** The picture's alpha. */
   readonly imageAlpha: number;
   /** The vignette's strength, 0 to 1. */
   readonly vignette: number;
-  /** The kick backwards of the gun alone (screen px, negative x). */
+  /** The gun's kick back (screen px, negative x). */
   readonly recoil: number;
   /** The sweep of light across the paintwork, 0 to 1 across the picture, or null when it is not showing. */
   readonly sheen: number | null;
-  /** True while the gun is firing in the close-up. */
-  readonly firing: boolean;
+  /** The charge-up at the nozzle, 0 to 1 across the hold before the shot. */
+  readonly charge: number;
+  /** Ms since the shot (negative before it). */
+  readonly sinceFire: number;
+  /** True while the gun's real projectile streams from the nozzle (the pull-back and the hero shot). */
+  readonly streaming: boolean;
   /** The shot the film is in. */
   readonly shot: 'pan' | 'fire' | 'pull' | 'hero' | 'shrink' | 'done';
 }
@@ -168,7 +169,7 @@ export const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 /** Sine.InOut: slow, smooth, slow. */
 export const sineInOut = (t: number): number => 0.5 - Math.cos(Math.PI * clamp01(t)) / 2;
-/** Cubic.Out: fast, then settling. */
+/** Cubic.Out. */
 export const cubicOut = (t: number): number => 1 - Math.pow(1 - clamp01(t), 3);
 /** Cubic.InOut. */
 export const cubicInOut = (t: number): number => {
@@ -195,7 +196,7 @@ export function panStartFocus(g: FilmGeometry): Point {
   return { x: left + (from.x - PAN_START_INSET_PX) / zoom, y: 0 };
 }
 
-/** The camera shake at `sinceFireMs`: a short, decaying shake (screen px). Zero before the shot and after it. */
+/** The camera shake at `sinceFireMs` (screen px): short and decaying, zero outside the shot. */
 export function shakeAt(sinceFireMs: number): Point {
   if (sinceFireMs < 0 || sinceFireMs > SHAKE_MS) return { x: 0, y: 0 };
   const fade = Math.pow(1 - sinceFireMs / SHAKE_MS, 2);
@@ -211,10 +212,21 @@ export function recoilAt(sinceFireMs: number): number {
   const u = sinceFireMs / RECOIL_MS;
   const kick =
     u < RECOIL_PEAK ? u / RECOIL_PEAK : 1 - cubicOut((u - RECOIL_PEAK) / (1 - RECOIL_PEAK));
-  return -RECOIL_PX * kick;
+  // The kick starts from where the charge-up left the gun, so there is no jump at the shot.
+  return -(RECOIL_PX * kick + TENSE_PX * (1 - clamp01(u / RECOIL_PEAK)));
 }
 
-/** The screen position of a picture point (px from the picture's centre) under a pose. */
+/** The flash's opacity at `sinceFireMs`: up to its peak in `FLASH_PEAK_MS`, gone by `FLASH_END_MS`. */
+export function flashAlphaAt(sinceFireMs: number): number {
+  if (sinceFireMs < 0 || sinceFireMs >= FLASH_END_MS) return 0;
+  const rise = sinceFireMs / FLASH_PEAK_MS;
+  if (rise < 1) return FLASH_MAX_ALPHA * rise;
+  return (
+    FLASH_MAX_ALPHA * (1 - (sinceFireMs - FLASH_PEAK_MS) / (FLASH_END_MS - FLASH_PEAK_MS)) ** 2
+  );
+}
+
+/** Screen position of a picture point (px from the picture's centre) under a pose. */
 export function screenPointOf(pose: FilmPose, local: Point): Point {
   return { x: pose.x + pose.zoom * local.x, y: pose.y + pose.zoom * local.y };
 }
@@ -232,10 +244,13 @@ export function filmPose(rarity: GunRarity, elapsedMs: number, g: FilmGeometry):
   const hero = { x: g.screen.w / 2, y: HERO_CENTRE_Y };
   const imageAlpha = sineInOut((t - FADE_START_MS) / FADE_MS);
   const shake = shakeAt(t - cues.fireAt);
-  const recoil = recoilAt(t - cues.fireAt);
-  const sheenSpan = cues.panEnd - SHEEN_START_MS;
-  const sheen = t >= SHEEN_START_MS && t <= cues.panEnd ? (t - SHEEN_START_MS) / sheenSpan : null;
-  const firing = t >= cues.fireAt && t < cues.fireEnd;
+  const sheen =
+    t >= SHEEN_START_MS && t <= cues.panEnd
+      ? (t - SHEEN_START_MS) / (cues.panEnd - SHEEN_START_MS)
+      : null;
+  const charge = clamp01((t - cues.panEnd) / (cues.fireAt - cues.panEnd));
+  const recoil = t < cues.fireAt ? -TENSE_PX * charge * charge : recoilAt(t - cues.fireAt);
+  const streaming = t >= cues.pullAt && t < cues.shrinkAt;
 
   const place = (
     zoom: number,
@@ -251,7 +266,9 @@ export function filmPose(rarity: GunRarity, elapsedMs: number, g: FilmGeometry):
     vignette,
     recoil,
     sheen,
-    firing,
+    charge,
+    sinceFire: t - cues.fireAt,
+    streaming,
     shot,
   });
 

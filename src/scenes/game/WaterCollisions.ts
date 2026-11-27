@@ -18,29 +18,40 @@ import { FIRE_DENSITY_SCALE } from '../../entities/waterParticle/fireDensity';
 import type { WaterParticle } from '../../entities/waterParticle/WaterParticle';
 import { spawnImpact } from '../../entities/waterParticle/projectiles/impacts';
 import type { FrenzyController } from './FrenzyController';
-import type { VisitorDirector } from './VisitorDirector';
 import type { PowerUpEffects } from './PowerUpEffects';
 
 /** How hard a spinner kicks when water lands on it. */
 const HIT_PULSE = 0.3;
+
+/** Whatever stops or takes water before it reaches the wall: the visitors in a gig; nothing in Jam. */
+export interface WaterBlocker {
+  /** True when the particle was blocked or taken and must not reach the wall. */
+  tryBlock(particle: WaterParticle): boolean;
+}
 
 /** What a collision pass reads from the rest of the scene. */
 export interface WaterCollisionDeps {
   readonly scene: Phaser.Scene;
   readonly pool: Phaser.GameObjects.Group;
   /** Visitors that stop or take water before it reaches the wall. */
-  readonly visitors: VisitorDirector;
+  readonly visitors: WaterBlocker;
   /** The fixed grid only — a hit's musical "seat" is its index here. */
   readonly spinners: readonly Spinner[];
   /** The grid plus a live Golden Spinner, if any — for collision only. */
   readonly activeSpinners: () => readonly Spinner[];
   readonly gun: GunDef;
   readonly frenzy: FrenzyController;
-  readonly powerups: PowerUpEffects;
+  /** Golden Splash's pending boost. Absent where there are no pickups (Jam). */
+  readonly powerups?: PowerUpEffects;
 }
 
 export class WaterCollisions {
-  constructor(private readonly _d: WaterCollisionDeps) {}
+  constructor(private _d: WaterCollisionDeps) {}
+
+  /** The gun the water now comes from (Jam's gun button), so a hit carries its power and splash. */
+  setGun(gun: GunDef): void {
+    this._d = { ...this._d, gun };
+  }
 
   /** Tests every pooled particle against visitors first, then its candidate spinner(s); applies the hits. */
   update(): void {
@@ -60,7 +71,7 @@ export class WaterCollisions {
       // instead of its normal power — still routed through hit() so a
       // whirligig keeps its usual deflect chance (prototype: the effect
       // only ever fires from inside the "not deflected" branch).
-      const usingGoldenSplash = d.powerups.goldenSplashPending;
+      const usingGoldenSplash = d.powerups?.goldenSplashPending === true;
       // FIRE_DENSITY_SCALE: each of the N denser particles carries 1/N the
       // power, so a shot that lands all of them still delivers the exact
       // total the tuned balance expects — see the constant's doc comment.
@@ -72,7 +83,7 @@ export class WaterCollisions {
         SFX.playDeflect(); // whirligig
         continue;
       }
-      if (usingGoldenSplash) d.powerups.consumeGoldenSplash();
+      if (usingGoldenSplash) d.powerups?.consumeGoldenSplash();
 
       waterSound.splash((hitX / GAME_WIDTH) * 2 - 1);
       // The squirt plays the instrument (CLAUDE.md §9): the musician seated

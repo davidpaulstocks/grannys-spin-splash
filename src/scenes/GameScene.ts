@@ -35,7 +35,6 @@ import { adManager } from '../systems/AdManager';
 import { audioOrchestra } from '../audio/AudioOrchestra';
 import { audioBus } from '../audio/AudioBus';
 import { resolveScore } from '../audio/scores';
-import type { Accent } from '../audio/orchestra/setPieces';
 import { waterSound } from '../audio/WaterSound';
 import { WaterJet } from '../entities/waterParticle/WaterJet';
 import type { GunDef } from '../entities/gun/gun.types';
@@ -54,6 +53,7 @@ import { FireControl } from './game/FireControl';
 import { FirstRunGuide } from './game/FirstRunGuide';
 import { FrenzyController } from './game/FrenzyController';
 import { LevelUpFlair } from './game/LevelUpFlair';
+import { LEVEL_UP_ACCENT } from './game/levelUpAccent';
 import { GoalCard } from './game/GoalCard';
 import { MusicReactions } from './game/MusicReactions';
 import { PowerUpEffects } from './game/PowerUpEffects';
@@ -61,14 +61,6 @@ import { RewardLoop } from './game/RewardLoop';
 import { VisitorDirector } from './game/VisitorDirector';
 import { WaterCollisions } from './game/WaterCollisions';
 import type { HUDScene } from './HUDScene';
-
-/** The orchestra's answer to a spinner climbing a tier — bigger for each step up. */
-const LEVEL_UP_ACCENT: Readonly<Record<SpinnerState, Accent>> = {
-  [SpinnerState.STOPPED]: 'wake',
-  [SpinnerState.SLOW]: 'wake',
-  [SpinnerState.MEDIUM]: 'spin',
-  [SpinnerState.FULL]: 'full',
-};
 
 export class GameScene extends Phaser.Scene {
   private _spinners: Spinner[] = [];

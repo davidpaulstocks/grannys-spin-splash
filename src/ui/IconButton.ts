@@ -13,7 +13,10 @@ import { attachPress, BUTTON_STYLE, type ButtonConfig } from './Button';
 
 export type IconDrawer = (g: Phaser.GameObjects.Graphics, size: number, colour: number) => void;
 
-export interface IconButtonConfig extends Pick<ButtonConfig, 'x' | 'y' | 'onClick'> {
+export interface IconButtonConfig extends Pick<
+  ButtonConfig,
+  'x' | 'y' | 'onClick' | 'pointerGuard'
+> {
   /** The glyph on the face. Give this or `text`; `icon` wins if both are set. */
   readonly icon?: IconDrawer;
   /** A short label on the face instead of an icon, e.g. a gig number. */

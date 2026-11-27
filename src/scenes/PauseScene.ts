@@ -36,13 +36,16 @@ const BUTTON_MIN_WIDTH = 320;
 export class PauseScene extends Phaser.Scene {
   /** False when paused during the count-in, before gameplay has started: resuming must not announce it. */
   private _gameplayLive = true;
+  /** The scene this paused: GameScene for a gig, JamScene for a jam. */
+  private _resumeKey = 'GameScene';
 
   constructor() {
     super('PauseScene');
   }
 
-  init(data: { gameplayLive?: boolean }): void {
+  init(data: { gameplayLive?: boolean; sceneKey?: string }): void {
     this._gameplayLive = data.gameplayLive ?? true;
+    this._resumeKey = data.sceneKey ?? 'GameScene';
   }
 
   create(): void {
@@ -77,7 +80,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private _resume(): void {
-    this.scene.resume('GameScene');
+    this.scene.resume(this._resumeKey);
     audioBus.fadeIn(DURATION.stateChange);
     audioOrchestra.start();
     if (this._gameplayLive) poki.gameplayStart();
@@ -85,7 +88,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private _quit(): void {
-    this.scene.stop('GameScene');
+    this.scene.stop(this._resumeKey);
     this.scene.stop('HUDScene');
     this.scene.start('HomeScene');
   }

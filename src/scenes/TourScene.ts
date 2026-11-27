@@ -18,6 +18,7 @@ import {
   currentGig,
   frontier,
   isGigOpen,
+  isJamUnlocked,
   isVenueOpen,
   MAX_STARS_PER_GIG,
   totalStars,
@@ -26,8 +27,9 @@ import {
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
-import type { GameSceneData, TourSceneData } from '../types/sceneData';
+import type { GameSceneData, JamSceneData, TourSceneData } from '../types/sceneData';
 import { createIconButton } from '../ui/IconButton';
+import { createJamTile } from '../ui/JamTile';
 import { drawBackIcon, drawForwardIcon, drawLockIcon } from '../ui/icons';
 import { createPanel } from '../ui/Panel';
 import { createStatPill } from '../ui/StatPill';
@@ -63,6 +65,8 @@ const NODE_COLUMNS = 4;
 const NODE_SPACING_X = 118;
 const NODE_ROW_OFFSET_Y = 86;
 const LOCKED_LINE_Y = CARD_Y + 196 - 8;
+/** A venue's Jam sits under the art, on the left, clear of the node grid and the locked-venue line. */
+const JAM_Y = CARD_Y + 200;
 
 const ARROW_DIAMETER = 64;
 const ARROW_OFFSET_X = CARD_WIDTH / 2 + 54;
@@ -168,6 +172,15 @@ export class TourScene extends Phaser.Scene {
     );
 
     for (let gig = 0; gig < GIGS_PER_VENUE; gig++) this._buildNode(venue, gig, open);
+    this._pageLayer.add(
+      createJamTile(this, {
+        x: ART_X,
+        y: JAM_Y,
+        venueName: venue.name,
+        unlocked: open && isJamUnlocked(save, venue.id),
+        onPlay: () => void this._jam(venue.id),
+      }),
+    );
 
     if (!open) {
       const needed = venue.starsToOpen - totalStars(save);
@@ -247,6 +260,20 @@ export class TourScene extends Phaser.Scene {
     };
     await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, (click) =>
       this.scene.start('GameScene', { ...next, ...click }),
+    );
+  }
+
+  /** Starts a venue's Jam through the same between-runs ad gate as every other way into play. */
+  private async _jam(venueId: string): Promise<void> {
+    if (this._isLeaving) return;
+    this._isLeaving = true;
+    this._unlocks.selectWorld(venueId);
+    const next: JamSceneData = {
+      worldId: venueId,
+      grannyId: this._unlocks.getSelectedGrannyId(),
+    };
+    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, (click) =>
+      this.scene.start('JamScene', { ...next, ...click }),
     );
   }
 

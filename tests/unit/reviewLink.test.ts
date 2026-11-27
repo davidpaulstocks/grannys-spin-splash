@@ -16,7 +16,7 @@ vi.mock('../../src/entities/world/worldBackgrounds', () => ({
 vi.mock('../../src/ui/touchControls', () => ({ usesTouchControls: () => false }));
 vi.mock('../../src/config', () => ({ GAME_WIDTH: 1280, GAME_HEIGHT: 720 }));
 
-const { reviewLink } = await import('../../src/scenes/BootScene');
+const { reviewLink, jamLink } = await import('../../src/scenes/BootScene');
 
 describe('review link', () => {
   it('is off unless a real venue is named', () => {
@@ -33,5 +33,18 @@ describe('review link', () => {
   it('never yields a negative or non-numeric gig', () => {
     expect(reviewLink('?venue=disco&gig=0')?.gig).toBe(0);
     expect(reviewLink('?venue=disco&gig=abc')?.gig).toBe(0);
+  });
+});
+
+describe('jam link', () => {
+  it('is off unless a real venue is named', () => {
+    expect(jamLink('')).toBeNull();
+    expect(jamLink('?jam=moon')).toBeNull();
+    expect(jamLink('?venue=garden')).toBeNull();
+  });
+
+  it('opens the named venue', () => {
+    expect(jamLink('?jam=garden')).toEqual({ worldId: 'garden' });
+    expect(jamLink('?jam=disco')).toEqual({ worldId: 'disco' });
   });
 });

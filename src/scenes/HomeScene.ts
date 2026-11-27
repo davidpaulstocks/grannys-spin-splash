@@ -15,15 +15,14 @@ import { GAME_WIDTH } from '../config';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { drawWorldBackground } from '../entities/world/worldBackgrounds';
 import { adManager } from '../systems/AdManager';
-import { claimDailyGift, dailyGift } from '../systems/DailyGift';
-import { currentGig, frontier, totalStars } from '../systems/Progress';
+import { currentGig, frontier, isJamUnlocked, totalStars } from '../systems/Progress';
 import { nextReward, shopHasNews } from '../systems/Rewards';
 import { saveManager } from '../systems/SaveManager';
 import { startRoundAfterAdGate } from '../systems/startRound';
 import { UnlockManager } from '../systems/UnlockManager';
-import type { GameSceneData, TourSceneData } from '../types/sceneData';
+import type { GameSceneData, JamSceneData, TourSceneData } from '../types/sceneData';
 import { createButton } from '../ui/Button';
-import { spawnFloatingText } from '../ui/FloatingText';
+import { createDailyGiftButton } from '../ui/DailyGiftButton';
 import { createGigCard } from '../ui/GigCard';
 import { createIconButton } from '../ui/IconButton';
 import { drawTourIcon } from '../ui/icons';
@@ -56,9 +55,6 @@ const SHOP_DOT_DEPTH = 10;
 
 const GIFT_X = GAME_WIDTH - 176;
 const GIFT_Y = 54;
-const GIFT_FLOAT_OFFSET_Y = 46;
-const GIFT_PULSE_SCALE = 1.06;
-const GIFT_PULSE_MS = 520;
 
 const GRANNY_X = 380;
 const GRANNY_Y = 350;
@@ -74,6 +70,9 @@ const CARD_X = 890;
 const CARD_Y = 302;
 const PLAY_Y = 524;
 const PLAY_MIN_WIDTH = 420;
+/** JAM: a small secondary button to the right of PLAY, only once the selected venue's Jam is open. */
+const JAM_X = 1190;
+const JAM_MIN_WIDTH = 110;
 
 /** "Saving for" strip: under the pills, above ALL GIGS, clear of Granny's left edge (about 270). */
 const SAVING_X = 136;
@@ -90,6 +89,7 @@ export class HomeScene extends Phaser.Scene {
   private _backdrop: Phaser.GameObjects.GameObject[] = [];
   private _card: Phaser.GameObjects.GameObject[] = [];
   private _strip!: VenueStrip;
+  private _jamButton: Phaser.GameObjects.GameObject | null = null;
 
   constructor() {
     super('HomeScene');
@@ -99,6 +99,7 @@ export class HomeScene extends Phaser.Scene {
     this._isLeaving = false;
     this._backdrop = [];
     this._card = [];
+    this._jamButton = null;
     const save = saveManager.load();
     // Opens on the venue the player is working through; tapping a tile changes it.
     this._venueId = frontier(save, WORLD_DEFS).venueId;
@@ -110,7 +111,11 @@ export class HomeScene extends Phaser.Scene {
     createStatPill(this, STARS_PILL_X, PILLS_Y, 'stars', totalStars(save));
     this._buildGranny();
     this._setCard();
-    this._buildDailyGift();
+    createDailyGiftButton(this, {
+      x: GIFT_X,
+      y: GIFT_Y,
+      onClaimed: (vault) => this._coinsPill.setValue(vault),
+    });
     createSavingForStrip(this, {
       x: SAVING_X,
       y: SAVING_Y,
@@ -156,6 +161,7 @@ export class HomeScene extends Phaser.Scene {
       caption: 'ALL GIGS',
       onClick: () => this._goTo('TourScene'),
     });
+    this._setJam();
     this._strip = createVenueStrip(this, {
       y: STRIP_Y,
       save,
@@ -171,6 +177,23 @@ export class HomeScene extends Phaser.Scene {
     this._strip.setSelected(venueId);
     this._setBackdrop();
     this._setCard();
+    this._setJam();
+  }
+
+  /** Shows JAM beside PLAY when the selected venue's Jam is open, and nothing at all when it is not. */
+  private _setJam(): void {
+    this._jamButton?.destroy();
+    this._jamButton = null;
+    if (!isJamUnlocked(saveManager.load(), this._venueId)) return;
+    this._jamButton = createButton(this, {
+      x: JAM_X,
+      y: PLAY_Y,
+      label: 'JAM',
+      variant: 'secondary',
+      size: 'sm',
+      minWidth: JAM_MIN_WIDTH,
+      onClick: () => void this._jam(),
+    });
   }
 
   /** Paints the selected venue's backdrop, removing whatever the last one drew. */
@@ -226,41 +249,6 @@ export class HomeScene extends Phaser.Scene {
     });
   }
 
-  /** A gift for coming back today. Only there when there is one to take, so it never becomes furniture. */
-  private _buildDailyGift(): void {
-    const gift = dailyGift(saveManager.load(), new Date());
-    if (!gift.available) return;
-    const button = createButton(this, {
-      x: GIFT_X,
-      y: GIFT_Y,
-      label: `DAILY GIFT  +${gift.coins}`,
-      variant: 'reward',
-      size: 'sm',
-      onClick: () => {
-        const claimed = claimDailyGift(saveManager.load(), new Date());
-        saveManager.save(claimed);
-        this._coinsPill.setValue(claimed.vault);
-        spawnFloatingText(
-          this,
-          GIFT_X,
-          GIFT_Y + GIFT_FLOAT_OFFSET_Y,
-          `+${gift.coins}`,
-          COLOUR_HEX.sunnyGold,
-        );
-        this.tweens.killTweensOf(button);
-        button.destroy();
-      },
-    });
-    this.tweens.add({
-      targets: button,
-      scale: GIFT_PULSE_SCALE,
-      duration: GIFT_PULSE_MS,
-      ease: EASE.standardOut,
-      yoyo: true,
-      repeat: -1,
-    });
-  }
-
   /** Starts a gig through the same between-runs ad gate as every other way into play. */
   private async _play(): Promise<void> {
     if (this._isLeaving) return; // double-tap guard while the ad promise is pending
@@ -276,6 +264,21 @@ export class HomeScene extends Phaser.Scene {
     };
     await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, (click) =>
       this.scene.start('GameScene', { ...next, ...click }),
+    );
+  }
+
+  /** Starts the selected venue's Jam through the same between-runs ad gate as a gig. */
+  private async _jam(): Promise<void> {
+    if (this._isLeaving) return;
+    this._isLeaving = true;
+    const venueId = this._venueId;
+    this._unlocks.selectWorld(venueId);
+    const next: JamSceneData = {
+      worldId: venueId,
+      grannyId: this._unlocks.getSelectedGrannyId(),
+    };
+    await startRoundAfterAdGate(adManager, AD_MUTE_HOOKS, (click) =>
+      this.scene.start('JamScene', { ...next, ...click }),
     );
   }
 

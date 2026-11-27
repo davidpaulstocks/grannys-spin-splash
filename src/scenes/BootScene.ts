@@ -23,7 +23,7 @@ import { WORLD_DEFS } from '../entities/world/world.data';
 import { preloadWorldBackground } from '../entities/world/worldBackgrounds';
 import * as poki from '../poki';
 import { saveManager } from '../systems/SaveManager';
-import type { GameSceneData } from '../types/sceneData';
+import type { GameSceneData, JamSceneData } from '../types/sceneData';
 import { usesTouchControls } from '../ui/touchControls';
 import { COLOUR } from '../utils/colour';
 
@@ -46,6 +46,16 @@ export function reviewLink(search: string): { worldId: string; gig: number } | n
   if (!venue) return null;
   const gig = Number.parseInt(params.get('gig') ?? '1', 10);
   return { worldId: venue.id, gig: Number.isFinite(gig) ? Math.max(0, gig - 1) : 0 };
+}
+
+/**
+ * A jam link: `?jam=garden` opens that venue's Jam directly, whether or not it
+ * has been unlocked. Handled like the review link above, and removed with it
+ * before submission.
+ */
+export function jamLink(search: string): { worldId: string } | null {
+  const venue = WORLD_DEFS.find((w) => w.id === new URLSearchParams(search).get('jam'));
+  return venue ? { worldId: venue.id } : null;
 }
 
 export class BootScene extends Phaser.Scene {
@@ -98,6 +108,14 @@ export class BootScene extends Phaser.Scene {
     // how many visitors reach their first input, and a menu before play costs
     // some of them. Everyone else lands on Home.
     const save = saveManager.load();
+    const jam = jamLink(window.location.search);
+    if (jam) {
+      this.scene.start('JamScene', {
+        ...jam,
+        grannyId: save.selectedGrannyId,
+      } satisfies JamSceneData);
+      return;
+    }
     const review = reviewLink(window.location.search);
     if (review) {
       this.scene.start('GameScene', {

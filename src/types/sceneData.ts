@@ -46,3 +46,11 @@ export interface GigResultData {
 export interface TourSceneData {
   readonly venueId?: string;
 }
+
+/** HomeScene / TourScene / the `?jam=` link → JamScene: whose Jam, with which Granny. The gun is the one the save has selected. */
+export interface JamSceneData {
+  readonly worldId: string;
+  readonly grannyId: string;
+  /** True when a real click led here (see GameSceneData.playerClicked). */
+  readonly playerClicked?: boolean;
+}
