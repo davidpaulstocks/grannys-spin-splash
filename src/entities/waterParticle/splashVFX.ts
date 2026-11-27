@@ -5,14 +5,16 @@
  * (2026-09-12, direct user feedback: spinners needed more "juice, momentum,
  * sparks" — a state upgrade is the single most rewarding gameplay moment
  * and previously had zero VFX beyond the SFX + a flat glow-colour swap).
- * Both are fire-and-forget: tiny shapes tweened out and destroyed on
- * completion, nothing pooled, nothing kept alive.
+ * All of it is fire-and-forget: tiny shapes tweened out, drawn from the
+ * scene's one `impactPool` (a hard cap on how many are alive at once; a piece
+ * that finds it busy is dropped).
  */
 
 import Phaser from 'phaser';
 
 import { COLOUR } from '../../utils/colour';
 import { DURATION, EASE } from '../../utils/tween';
+import { impactPoolFor } from './impactPool';
 
 const DROPLET_COUNT = 6;
 /**
@@ -30,10 +32,12 @@ const BURST_DISTANCE = 18;
 
 const SPARK_COUNT = 10;
 const SPARK_LENGTH = 10;
+const SPARK_THICKNESS = 2;
 const SPARK_BURST_DISTANCE = 34;
 
 const CONFETTI_COUNT = 16;
 const CONFETTI_SIZE = 9;
+const CONFETTI_THICKNESS_RATIO = 0.55;
 const CONFETTI_MIN_SPEED = 60;
 const CONFETTI_SPEED_RANGE = 90;
 /** How far below the spawn point the flakes settle — the "fall" half of the arc. */
@@ -55,34 +59,43 @@ export function spawnSplash(
   const now = scene.time.now;
   if (now - _lastSplashAt < SPLASH_MIN_INTERVAL_MS && now >= _lastSplashAt) return false;
   _lastSplashAt = now;
+  const pool = impactPoolFor(scene);
 
   // The ripple: a ring that opens out from the point of impact.
-  const ring = scene.add.circle(x, y, RING_START_RADIUS, colour, 0).setDepth(depth);
-  ring.setStrokeStyle(RING_WIDTH, 0xffffff, 0.9);
-  scene.tweens.add({
-    targets: ring,
-    scale: RING_GROWTH,
-    alpha: 0,
+  pool.play({
+    kind: 'hit',
+    shape: 'ring',
+    size: RING_START_RADIUS,
+    thickness: RING_WIDTH,
+    x,
+    y,
+    colour,
+    strokeColour: 0xffffff,
+    alpha: 0.9,
+    depth,
+    to: { scale: RING_GROWTH },
     duration: DURATION.stateChange,
     ease: EASE.standardOut,
-    onComplete: () => ring.destroy(),
   });
 
   for (let i = 0; i < DROPLET_COUNT; i++) {
     const angle = (i / DROPLET_COUNT) * Math.PI * 2 + Math.random() * 0.4;
-    const targetX = x + Math.cos(angle) * BURST_DISTANCE;
-    const targetY = y + Math.sin(angle) * BURST_DISTANCE;
-
-    const droplet = scene.add.circle(x, y, DROPLET_RADIUS, colour, 0.9).setDepth(depth);
-    scene.tweens.add({
-      targets: droplet,
-      x: targetX,
-      y: targetY,
-      alpha: 0,
-      scale: 0.3,
+    pool.play({
+      kind: 'hit',
+      shape: 'circle',
+      size: DROPLET_RADIUS,
+      x,
+      y,
+      colour,
+      alpha: 0.9,
+      depth,
+      to: {
+        x: x + Math.cos(angle) * BURST_DISTANCE,
+        y: y + Math.sin(angle) * BURST_DISTANCE,
+        scale: 0.3,
+      },
       duration: DURATION.stateChange,
       ease: EASE.standardOut,
-      onComplete: () => droplet.destroy(),
     });
   }
   return true;
@@ -102,25 +115,32 @@ export function spawnConfetti(
   y: number,
   colours: readonly number[],
 ): void {
+  const pool = impactPoolFor(scene);
   for (let i = 0; i < CONFETTI_COUNT; i++) {
     const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1;
     const speed = CONFETTI_MIN_SPEED + Math.random() * CONFETTI_SPEED_RANGE;
-    const colour = colours[i % colours.length];
-
-    const flake = scene.add.rectangle(x, y, CONFETTI_SIZE, CONFETTI_SIZE * 0.55, colour, 1);
-    flake.setRotation(Math.random() * Math.PI);
-    scene.tweens.add({
-      targets: flake,
-      x: x + Math.cos(angle) * speed,
-      // Positive Y is down, so the burst rises then the tween's own ease
-      // settles it lower than it started — a cheap arc without physics.
-      y: y + Math.sin(angle) * speed * 0.6 + CONFETTI_FALL,
-      rotation: flake.rotation + (Math.random() - 0.5) * 6,
-      alpha: 0,
+    const startRotation = Math.random() * Math.PI;
+    const played = pool.play({
+      kind: 'celebration',
+      shape: 'rect',
+      size: CONFETTI_SIZE,
+      thickness: CONFETTI_SIZE * CONFETTI_THICKNESS_RATIO,
+      x,
+      y,
+      colour: colours[i % colours.length] as number,
+      alpha: 1,
+      rotation: startRotation,
+      to: {
+        x: x + Math.cos(angle) * speed,
+        // Positive Y is down, so the burst rises then the tween's own ease
+        // settles it lower than it started — a cheap arc without physics.
+        y: y + Math.sin(angle) * speed * 0.6 + CONFETTI_FALL,
+        rotation: startRotation + (Math.random() - 0.5) * 6,
+      },
       duration: CONFETTI_DURATION_MS,
       ease: EASE.standardIn,
-      onComplete: () => flake.destroy(),
     });
+    if (!played) break;
   }
 }
 
@@ -136,22 +156,27 @@ export function spawnSparks(
   y: number,
   colour: number = COLOUR.sunnyGold,
 ): void {
+  const pool = impactPoolFor(scene);
   for (let i = 0; i < SPARK_COUNT; i++) {
     const angle = (i / SPARK_COUNT) * Math.PI * 2 + Math.random() * 0.3;
-    const targetX = x + Math.cos(angle) * SPARK_BURST_DISTANCE;
-    const targetY = y + Math.sin(angle) * SPARK_BURST_DISTANCE;
-
-    const spark = scene.add.rectangle(x, y, SPARK_LENGTH, 2, colour, 1);
-    spark.setRotation(angle);
-    scene.tweens.add({
-      targets: spark,
-      x: targetX,
-      y: targetY,
-      alpha: 0,
-      scale: 0.4,
+    const played = pool.play({
+      kind: 'celebration',
+      shape: 'rect',
+      size: SPARK_LENGTH,
+      thickness: SPARK_THICKNESS,
+      x,
+      y,
+      colour,
+      alpha: 1,
+      rotation: angle,
+      to: {
+        x: x + Math.cos(angle) * SPARK_BURST_DISTANCE,
+        y: y + Math.sin(angle) * SPARK_BURST_DISTANCE,
+        scale: 0.4,
+      },
       duration: DURATION.stateChange,
       ease: EASE.standardOut,
-      onComplete: () => spark.destroy(),
     });
+    if (!played) break;
   }
 }

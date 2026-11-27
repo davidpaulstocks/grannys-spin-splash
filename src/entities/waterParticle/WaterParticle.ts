@@ -22,6 +22,7 @@ import {
 } from '../../config';
 import { COLOUR } from '../../utils/colour';
 import { distance } from '../../utils/math';
+import { SPINNER_HIT_RING_PADDING, resolveShotLock, spinnersForShot } from '../../utils/shotLock';
 import type { Spinner } from '../spinner/Spinner';
 
 /** How far out of bounds (px) a particle may drift before being recycled. */
@@ -29,8 +30,6 @@ const OUT_OF_BOUNDS_MARGIN = 20;
 /** Extra lifetime padding so gravity droop doesn't cut a shot short before it reaches its target. */
 const LIFE_PADDING_FACTOR = 1.4;
 const LIFE_PADDING_SECONDS = 0.1;
-/** Hit-test ring: a particle registers within `spinner.def.r + this` of the spinner centre. */
-const HIT_RING_PADDING = 8;
 /**
  * Cog-only: the inner "hole" radius (relative to r) where a hit does NOT
  * register — must hit the teeth.
@@ -76,6 +75,8 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
   private _vy = 0;
   private _lifeSeconds = 0;
   private _target: Spinner | null = null;
+  /** Set at launch when the aim was on a visitor: this shot flies over the instruments and only visitors can take it. */
+  private _visitorLock = false;
   /**
    * Which of the gun's streams this shot belongs to, or -1 for loose water
    * (the opening burst, the dying splutter). `WaterJet` joins each stream's
@@ -99,7 +100,8 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
 
   /**
    * (Re)launches this pooled particle from an origin toward an aim point,
-   * optionally locked onto a target. `extraWobble` is a deliberate
+   * optionally locked onto a target (`visitorLock`: aimed at a visitor, so it
+   * skips every instrument). `extraWobble` is a deliberate
    * horizontal shear on top of the random one — Super Soaker's two side
    * streams use ±0.12 here (prototype: `_spawnWater`'s `wobbleExtra`
    * param), not a true angular rotation, matching its exact feel.
@@ -112,8 +114,10 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     target: Spinner | null,
     extraWobble = 0,
     stream = -1,
+    visitorLock = false,
   ): void {
     this.stream = stream;
+    this._visitorLock = visitorLock;
     this.seq = _nextSeq++;
     const aimPoint = resolveFireAimPoint(aimX, aimY, target);
     const dist = Math.max(10, distance(originX, originY, aimPoint.x, aimPoint.y));
@@ -131,9 +135,10 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     this.setVisible(stream < 0);
   }
 
-  /** The locked-on target only, or every live spinner if this shot wasn't snapped to one. */
+  /** The locked-on target only, none if aimed at a visitor, or every live spinner if this shot wasn't snapped to one. */
   getCandidates(allSpinners: readonly Spinner[]): readonly Spinner[] {
-    return this._target ? [this._target] : allSpinners;
+    const lock = resolveShotLock(this._visitorLock, this._target !== null);
+    return spinnersForShot(lock, this._target, allSpinners);
   }
 
   /** Recycles this particle from outside — a visitor's `tryBlock()` calls this when a blocker or sitter intercepts it. */
@@ -150,7 +155,7 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
   checkCollision(candidates: readonly Spinner[]): Spinner | null {
     if (!this.active) return null;
     for (const spinner of candidates) {
-      const outerRadius = spinner.def.r + HIT_RING_PADDING;
+      const outerRadius = spinner.def.r + SPINNER_HIT_RING_PADDING;
       const deadZone = spinner.def.style === 'cog' ? spinner.def.r * COG_DEAD_ZONE_RATIO : 0;
       const d = distance(this.x, this.y, spinner.x, spinner.y);
       if (d < outerRadius && d > deadZone) {
@@ -184,5 +189,6 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     this.setActive(false);
     this.setVisible(false);
     this._target = null;
+    this._visitorLock = false;
   }
 }

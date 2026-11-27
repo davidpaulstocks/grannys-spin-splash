@@ -32,7 +32,15 @@ Then it runs `npm run optimise` (PNG -> WebP, PNG removed) and prints the ids to
 INSTRUMENT_ART_READY (src/entities/spinner/instrumentArt.data.ts) or, for visitors,
 VISITOR_ART_READY (src/entities/visitor/visitorArt.data.ts).
 
-Needs Python 3 with Pillow. Options: --set instruments|visitors  --inbox DIR  --out DIR  --no-optimise
+--set guns also writes public/sprites/guns/<id>/hero.webp: the same crop as the small picture, cut from the
+sheet at its full resolution onto a 768x512 canvas (never squashed) and encoded straight to WebP
+(HERO_QUALITY, written here, not by `npm run optimise`). It is loaded only when a gun reveal opens.
+A sheet entry with "file" (a path from the project root) and "hero_only": true is a single-gun original
+(the six old guns: _reference/guns/<id>_0_raw.jpg); it writes only the hero picture, on a canvas exactly
+twice the size of that gun's existing 0.webp, so the two frame the gun identically. --hero-only skips
+the small pictures and anchors (leaves the shipped 0.webp and anchor.json untouched).
+
+Needs Python 3 with Pillow. Options: --set instruments|visitors|guns  --inbox DIR  --out DIR  --no-optimise  --hero-only
 """
 
 import argparse
@@ -70,11 +78,21 @@ SETS = {
 }
 
 CELLS_PER_SHEET = 6
+HERO_FACTOR = 3  # a hero picture is this many times the small picture, same framing
+HERO_CANVAS = (384 * HERO_FACTOR, 256 * HERO_FACTOR)
+HERO_QUALITY = 78  # WebP quality of hero pictures (about 50 to 90 KB each)
+HERO_ALPHA_QUALITY = 80
+HERO_METHOD = 6
 ROW_GAP_FRACTION = 0.5  # a new row starts when the next blob's centre is this far (x median blob height) below
 GUN_CANVAS = (384, 256)  # guns are wide: fitted into this, centred, never squashed
 NOZZLE_EDGE_PX = 4  # the nozzle is the mean of the opaque pixels within this many px of the right-most one
 NOZZLE_ALPHA = 128
 MAX_SHEET_SIDE = 2048  # bigger sheets are scaled down to this
+CHECKER_COLOUR_SPREAD = 24  # a pixel whose channels differ by more than this is paint, not chequerboard grey
+CHECKER_SPECK = 5  # paint marks smaller than this (JPEG noise, ghost marks) are dropped
+CHECKER_OUTLINE_PX = 10  # the gun's black outline reaches this far (full-resolution px) beyond its paint
+CHECKER_DARK_BELOW = 75  # darker than every light grey square, so it can be outline
+CHECKER_WHITE_FROM = 200  # lighter than every chequerboard square, so it is a highlight on the gun
 WHITE_TOLERANCE = 20  # a pixel is background-white if every channel >= 255 - this
 OUTPUT_SIZE = 256
 CROP_MARGIN = 0.04
@@ -120,6 +138,28 @@ def background_mask(rgb):
             bg[i + w] = 1
             stack.append(i + w)
     return bg
+
+
+def checker_foreground(rgb):
+    """Foreground of an original with a chequerboard baked in as its "transparent" background.
+
+    The dark squares are as dark as the gun's own outline, so colour alone cannot tell them apart. Instead:
+    the gun is where there is colour (not neutral grey); its outline is the black band of CHECKER_OUTLINE_PX
+    around that colour; everything else (grey squares, the holes in a trigger guard or a hose coil, stray marks)
+    is background. Near-white highlights are kept.
+    """
+    r, g, b = rgb.split()
+    top = ImageChops.lighter(ImageChops.lighter(r, g), b)
+    low = ImageChops.darker(ImageChops.darker(r, g), b)
+    coloured = ImageChops.subtract(top, low).point(lambda v: 255 if v > CHECKER_COLOUR_SPREAD else 0)
+    coloured = coloured.filter(ImageFilter.MinFilter(CHECKER_SPECK)).filter(ImageFilter.MaxFilter(CHECKER_SPECK))
+    near = coloured
+    for _ in range(CHECKER_OUTLINE_PX):
+        near = near.filter(ImageFilter.MaxFilter(3))
+    dark = top.point(lambda v: 255 if v < CHECKER_DARK_BELOW else 0)
+    white = low.point(lambda v: 255 if v >= CHECKER_WHITE_FROM else 0)
+    wanted = ImageChops.lighter(ImageChops.lighter(coloured, dark), white)
+    return ImageChops.multiply(near, wanted)
 
 
 def find_blobs(foreground, dilate=GROUP_DILATE):
@@ -185,14 +225,14 @@ def keep_only_blob(tile, box, label, sw, sh, scale_x, scale_y, k):
     return tile
 
 
-def fit_gun(tile, flip, nozzle_override=None):
+def fit_gun(tile, flip, nozzle_override=None, canvas_size=GUN_CANVAS):
     """Fits a cropped gun into the canvas (no squashing) and finds its nozzle. Returns (image, (x, y))."""
     if flip:
         tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
-    cw, ch = GUN_CANVAS
+    cw, ch = canvas_size
     scale = min(cw / tile.width, ch / tile.height)
     tile = tile.resize((max(1, round(tile.width * scale)), max(1, round(tile.height * scale))), Image.LANCZOS)
-    canvas = Image.new("RGBA", GUN_CANVAS, (0, 0, 0, 0))
+    canvas = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
     ox, oy = (cw - tile.width) // 2, (ch - tile.height) // 2
     canvas.paste(tile, (ox, oy))
     alpha = canvas.getchannel("A").tobytes()
@@ -202,22 +242,43 @@ def fit_gun(tile, flip, nozzle_override=None):
     return canvas, (tuple(nozzle_override) if nozzle_override else nozzle)
 
 
-def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None):
-    """Cuts one sheet into its icons. Returns the ids written."""
+def place_like_small(tile, small_path):
+    """Hero canvas of an old gun: twice the existing 0.webp, the gun's tight box scaled and placed at twice where
+    the small picture has it, so the two frame the gun identically whatever margin the small one was cut with."""
+    with Image.open(small_path) as small:
+        small = small.convert("RGBA")
+        sw, sh = small.size
+        sx0, sy0, sx1, sy1 = small.getchannel("A").point(lambda v: 255 if v >= NOZZLE_ALPHA else 0).getbbox()
+    tight = tile.crop(tile.getchannel("A").point(lambda v: 255 if v >= NOZZLE_ALPHA else 0).getbbox())
+    target = ((sx1 - sx0) * HERO_FACTOR, (sy1 - sy0) * HERO_FACTOR)
+    tight = tight.resize(target, Image.LANCZOS)
+    canvas = Image.new("RGBA", (sw * HERO_FACTOR, sh * HERO_FACTOR), (0, 0, 0, 0))
+    canvas.paste(tight, (sx0 * HERO_FACTOR, sy0 * HERO_FACTOR))
+    return canvas
+
+
+def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=False, hero_only=False):
+    """Cuts one sheet into its icons. Returns the ids written.
+
+    hero: write <id>/hero.webp (full-resolution sheet, HERO_CANVAS) instead of the small picture.
+    hero_only: a single-gun original; the canvas is twice the gun's existing 0.webp.
+    """
     sheet = Image.open(path)
     if sheet.mode in ("RGBA", "LA", "P"):
         flat = Image.new("RGB", sheet.size, (255, 255, 255))
         flat.paste(sheet.convert("RGBA"), mask=sheet.convert("RGBA").getchannel("A"))
         sheet = flat
     rgb = sheet.convert("RGB")
-    if max(rgb.size) > MAX_SHEET_SIDE:
+    if max(rgb.size) > MAX_SHEET_SIDE and not hero:
         scale = MAX_SHEET_SIDE / max(rgb.size)
         rgb = rgb.resize((round(rgb.width * scale), round(rgb.height * scale)), Image.LANCZOS)
     w, h = rgb.size
 
-    bg = background_mask(rgb)
-    fg_bytes = bytes(0 if b else 255 for b in bg)
-    foreground = Image.frombytes("L", (w, h), fg_bytes)
+    if hero_only:
+        foreground = checker_foreground(rgb)
+    else:
+        bg = background_mask(rgb)
+        foreground = Image.frombytes("L", (w, h), bytes(0 if b else 255 for b in bg))
     # Soften the cut: pull the edge in 1 px (eats the pale fringe), then blur 1 px.
     alpha = foreground.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1))
     rgba = rgb.convert("RGBA")
@@ -244,9 +305,10 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None):
                         if y < b[1]: b[1] = y
                         if x > b[2]: b[2] = x
                         if y > b[3]: b[3] = y
-    ranked = sorted(range(1, count + 1), key=lambda k: areas[k], reverse=True)[:CELLS_PER_SHEET]
-    if len(ranked) < CELLS_PER_SHEET:
-        raise SystemExit(f"{path}: found only {len(ranked)} instruments, expected {CELLS_PER_SHEET}")
+    wanted = len(icons) if hero_only else CELLS_PER_SHEET
+    ranked = sorted(range(1, count + 1), key=lambda k: areas[k], reverse=True)[:wanted]
+    if len(ranked) < wanted:
+        raise SystemExit(f"{path}: found only {len(ranked)} instruments, expected {wanted}")
     if areas[ranked[-1]] < MIN_BLOB_FRACTION * areas[ranked[0]]:
         print(f"  warning: the smallest instrument found is tiny - check {os.path.basename(path)}")
 
@@ -257,14 +319,24 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None):
     written = []
     for k, icon in zip(ordered, icons):
         x0, y0, x1, y1 = boxes[k]
-        margin = round(max(x1 - x0, y1 - y0) * CROP_MARGIN)
+        margin = 0 if hero_only else round(max(x1 - x0, y1 - y0) * CROP_MARGIN)
         box = (max(0, x0 - margin), max(0, y0 - margin), min(w, x1 + margin + 1), min(h, y1 + margin + 1))
         tile = rgba.crop(box)
         if wide:
             tile = keep_only_blob(tile, box, label, sw, sh, scale_x, scale_y, k)
-            canvas, nozzle = fit_gun(tile, icon in flip, (nozzles or {}).get(icon))
             gun_dir = os.path.join(out_dir, icon)
             os.makedirs(gun_dir, exist_ok=True)
+            if hero:
+                canvas_size = HERO_CANVAS
+                if hero_only:
+                    canvas = place_like_small(tile, os.path.join(gun_dir, "0.webp"))
+                else:
+                    canvas, _ = fit_gun(tile, icon in flip, None, canvas_size)
+                canvas.save(os.path.join(gun_dir, "hero.webp"), "WEBP", quality=HERO_QUALITY,
+                            alpha_quality=HERO_ALPHA_QUALITY, method=HERO_METHOD, exact=False)
+                written.append(icon)
+                continue
+            canvas, nozzle = fit_gun(tile, icon in flip, (nozzles or {}).get(icon))
             canvas.save(os.path.join(gun_dir, "0.png"))
             with open(os.path.join(gun_dir, "anchor.json"), "w") as f:
                 json.dump({"x": nozzle[0], "y": nozzle[1]}, f)
@@ -286,6 +358,8 @@ def main():
                         help="which sheets to cut (default: instruments)")
     parser.add_argument("--inbox", help="where the sheets are (default depends on --set)")
     parser.add_argument("--out", help="where the pictures go (default depends on --set)")
+    parser.add_argument("--hero-only", action="store_true",
+                        help="guns: cut only the hero pictures, leave 0.webp and anchor.json alone")
     parser.add_argument("--no-optimise", action="store_true", help="skip `npm run optimise` (PNG -> WebP)")
     args = parser.parse_args()
     chosen = SETS[args.art_set]
@@ -299,14 +373,25 @@ def main():
         icons, flip = (entry["ids"], entry.get("flip", [])) if isinstance(entry, dict) else (entry, [])
         nozzles = entry.get("nozzle") if isinstance(entry, dict) else None
         # Nano Banana often saves a JPG whatever the file is called, so take any of these.
-        candidates = [os.path.join(args.inbox, name + ext) for ext in (".png", ".jpg", ".jpeg", ".webp")]
+        hero_only_entry = isinstance(entry, dict) and entry.get("hero_only", False)
+        if hero_only_entry:
+            candidates = [os.path.join(ROOT, entry["file"])]
+        else:
+            candidates = [os.path.join(args.inbox, name + ext) for ext in (".png", ".jpg", ".jpeg", ".webp")]
         path = next((c for c in candidates if os.path.isfile(c)), None)
         if path is None:
             print(f"skip {name}: not in {args.inbox}")
             continue
         print(f"slicing {name} ...")
-        written = slice_sheet(path, icons, args.out, chosen.get("wide", False), flip, nozzles)
-        print("  wrote " + ", ".join(written))
+        wide = chosen.get("wide", False)
+        written = []
+        if not hero_only_entry and not args.hero_only:
+            written = slice_sheet(path, icons, args.out, wide, flip, nozzles)
+            print("  wrote " + ", ".join(written))
+        if wide:
+            heroes = slice_sheet(path, icons, args.out, wide, flip, nozzles, hero=True, hero_only=hero_only_entry)
+            print("  hero pictures: " + ", ".join(heroes))
+            written = written or heroes
         done += written
     if not done:
         sys.exit("No sheets found - save them as <sheet name>.png in " + args.inbox)

@@ -6,6 +6,7 @@
 
 import { GUN_SHOW_SCALE_MAX } from '../../entities/gun/gun.data';
 import type { GunRarity } from '../../entities/gun/gun.types';
+import { HERO_CENTRE_Y, filmCues, type FilmCues } from './filmMaths';
 
 export interface Point {
   readonly x: number;
@@ -14,26 +15,16 @@ export interface Point {
 
 export const REVEAL_DEPTH = 1000;
 
-/** How a rarity's impact feels: the held breath before it, the shake, the rings and the sparkle bursts. */
-export interface RarityImpact {
-  readonly anticipationMs: number;
-  readonly shake: number;
-  readonly shockwaves: number;
-}
-
-export const RARITY_IMPACT: Readonly<Record<GunRarity, RarityImpact>> = {
-  common: { anticipationMs: 300, shake: 0.004, shockwaves: 1 },
-  rare: { anticipationMs: 340, shake: 0.006, shockwaves: 1 },
-  epic: { anticipationMs: 440, shake: 0.009, shockwaves: 1 },
-  legendary: { anticipationMs: 700, shake: 0.014, shockwaves: 2 },
+/** How many shockwave rings the hero shot sends out: the rarest guns ring twice. */
+export const RARITY_RINGS: Readonly<Record<GunRarity, number>> = {
+  common: 1,
+  rare: 1,
+  epic: 1,
+  legendary: 2,
 };
 
-/** Beat 1 after the slam: the settle before the gun starts to fire. */
-export const IMPACT_SETTLE_MS = 400;
-/** Beat 2: how long the gun blasts at its targets before the numbers. */
-export const BLAST_BEAT_MS = 2000;
-export const NAME_DELAY_MS = 150;
-export const TAG_DELAY_MS = 450;
+/** After the gun has shrunk to its place: how long the blasting runs before the numbers. */
+export const DEMO_BLAST_MS = 800;
 /** Owned reveal, beat 3. */
 export const POWER_COUNT_MS = 900;
 export const ROWS_OFFSET_MS = 300;
@@ -44,12 +35,21 @@ export const BUTTONS_AFTER_ROWS_MS = 150;
 export const PREVIEW_BUTTONS_AFTER_MS = 350;
 /** Extra shockwave and chime come this long after the first, for the rarest guns. */
 export const SECOND_WAVE_DELAY_MS = 180;
+/** The hero shot's name lands this long before the pull-back has quite settled. */
+export const NAME_LEAD_MS = 60;
+/** The rarity tag lands this long after the name. */
+export const TAG_AFTER_NAME_MS = 260;
 
+/** When each beat starts, in ms from the moment the film starts. */
 export interface RevealTimeline {
-  readonly impactAt: number;
+  /** The film's cues: the pan, the fire at the nozzle, the pull-back, the shrink. */
+  readonly film: FilmCues;
+  /** The hero shot's name and tag landing. */
   readonly nameAt: number;
   readonly tagAt: number;
+  /** The gun is in its place and starts blasting at the targets. */
   readonly beat2At: number;
+  /** The blasting calms and the numbers begin. */
   readonly beat3At: number;
   /** When the USE IT / Later buttons appear for an owned gun. */
   readonly ownedButtonsAt: number;
@@ -57,15 +57,16 @@ export interface RevealTimeline {
   readonly previewButtonsAt: number;
 }
 
-/** When each beat starts, in ms from the moment the overlay opens. */
+/** When each beat starts, in ms from the moment the film starts. */
 export function revealTimeline(rarity: GunRarity): RevealTimeline {
-  const impactAt = RARITY_IMPACT[rarity].anticipationMs;
-  const beat2At = impactAt + IMPACT_SETTLE_MS;
-  const beat3At = beat2At + BLAST_BEAT_MS;
+  const film = filmCues(rarity);
+  const beat2At = film.shrinkEnd;
+  const beat3At = beat2At + DEMO_BLAST_MS;
+  const nameAt = film.pullEnd - NAME_LEAD_MS;
   return {
-    impactAt,
-    nameAt: beat2At + NAME_DELAY_MS,
-    tagAt: beat2At + TAG_DELAY_MS,
+    film,
+    nameAt,
+    tagAt: nameAt + TAG_AFTER_NAME_MS,
     beat2At,
     beat3At,
     ownedButtonsAt:
@@ -74,9 +75,9 @@ export function revealTimeline(rarity: GunRarity): RevealTimeline {
   };
 }
 
-/** A tap skips to the numbers once the impact has landed (from the start of beat 2). */
+/** A tap skips to the numbers once the pull-back has started (so the opening is always seen up to the nozzle shot). */
 export function canSkip(elapsedMs: number, timeline: RevealTimeline): boolean {
-  return elapsedMs >= timeline.beat2At;
+  return elapsedMs >= timeline.film.pullAt;
 }
 
 /** Where everything sits (logical px). Bands are checked for 16 px gaps in the unit test. */
@@ -90,6 +91,8 @@ export const REVEAL_LAYOUT = {
     { x: 1010, y: 236 },
     { x: 1160, y: 160 },
   ] as readonly Point[],
+  /** The hero shot: the gun's centre, then the name, its underline and the rarity tag beneath it. */
+  hero: { x: 640, y: HERO_CENTRE_Y, nameY: 556, underlineY: 606, tagY: 652 },
   nameY: 378,
   nameHeight: 58,
   tagRowY: 442,

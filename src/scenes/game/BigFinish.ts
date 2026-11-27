@@ -116,6 +116,8 @@ export class BigFinish {
     scene.events.on(Phaser.Scenes.Events.UPDATE, this._onUpdate, this);
     scene.input.on('pointerdown', this._onSkip, this);
     scene.input.keyboard?.on('keydown-SPACE', this._onSkip, this);
+    // The scene outlives the gig: a gig that ends any other way must not leave these behind.
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this._removeListeners, this);
   }
 
   private readonly _onUpdate = (): void => {
@@ -246,11 +248,17 @@ export class BigFinish {
   private _complete(): void {
     if (this._done) return;
     this._done = true;
-    const scene = this._d.scene;
-    scene.events.off(Phaser.Scenes.Events.UPDATE, this._onUpdate, this);
-    scene.input.off('pointerdown', this._onSkip, this);
-    scene.input.keyboard?.off('keydown-SPACE', this._onSkip, this);
+    this._removeListeners();
     this._playClosingChord();
     this._d.bank();
+  }
+
+  /** Takes the per-frame refresh and the skip inputs off the scene; safe to call twice. */
+  private _removeListeners(): void {
+    const scene = this._d.scene;
+    scene.events.off(Phaser.Scenes.Events.UPDATE, this._onUpdate, this);
+    scene.events.off(Phaser.Scenes.Events.SHUTDOWN, this._removeListeners, this);
+    scene.input?.off('pointerdown', this._onSkip, this);
+    scene.input?.keyboard?.off('keydown-SPACE', this._onSkip, this);
   }
 }

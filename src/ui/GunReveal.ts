@@ -1,42 +1,50 @@
 /**
- * The gun reveal: a full-screen event any scene can open after a gun is
- * bought, or open as a preview of a gun not owned yet. Three beats.
+ * The gun reveal: a full-screen product film any scene can open after a gun is
+ * bought, or open as a preview of a gun not owned yet.
  *
- * 1. Impact: the screen snaps dark, the gun is a black silhouette growing from
- *    a coloured glow, then a white flash, a camera shake, a shockwave in the
- *    rarity colour and the gun SLAMS in full colour with "NEW GUN!" stamped
- *    above it (the rarest guns hold the breath longer and ring twice).
- * 2. It blasts: the gun turns and fires its real projectile at three spinning
- *    discs (`reveal/DemoRange.ts`); the name and rarity land.
- * 3. The numbers: the blasting calms to an occasional burst; POWER counts up
- *    and the Coins / Power / Water rows count (a gun just bought, with USE IT
- *    and Later), or the price and how far the player is from it (a preview,
- *    with OK, or BUY when it is affordable and then straight on into the
- *    owned gun's numbers).
+ * 1. From black, an extreme close-up: the gun fades up so large only part fits,
+ *    and the camera glides from the handle to the nozzle while a band of light
+ *    sweeps the paintwork (`reveal/filmMaths.ts` is the camera, `FilmRig.ts`
+ *    the picture, `Sheen.ts` the light). The rarest guns pan more slowly.
+ * 2. At the nozzle it FIRES: its real projectile, drawn large, streams off the
+ *    screen with a flash, a shake and a recoil (`CloseUpFire.ts`).
+ * 3. A fast pull-back to the whole gun over slow rays in its rarity colour; the
+ *    name slams in beneath it with an underline and the rarity tag, and a
+ *    shockwave rings out (`HeroShot.ts`, `ImpactBeat.ts`).
+ * 4. It shrinks to its place; the target discs pop in and it blasts them
+ *    (`reveal/DemoRange.ts`); then the numbers: POWER counts up and the Coins /
+ *    Power / Water rows (a gun just bought, with USE IT and Later), or the price
+ *    and how far the player is from it (a preview, with OK, or BUY when it is
+ *    affordable and then straight on into the owned gun's numbers).
  *
- * A tap after the impact skips to beat 3. Nothing here buys or equips
- * anything: the caller's callbacks do. Everything it makes is destroyed when
- * it closes.
+ * A tap once the pull-back has started skips to step 4's numbers. Nothing here
+ * buys or equips anything: the caller's callbacks do. The big hero picture is
+ * loaded when the reveal opens (`reveal/HeroArt.ts`) and everything the film
+ * makes is destroyed when it closes.
  */
 
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
 
 import { playStarChime } from '../audio/ResultsMusic';
+import { playUpgrade } from '../audio/SFX';
 import { SPRITE_KEYS } from '../assets/keys';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
-import type { AnchorJSON } from '../entities/gun/gun.types';
+import type { AnchorJSON, GunDef } from '../entities/gun/gun.types';
 import { powerRatingAt } from '../entities/gun/gunLevels';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
-import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
+import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
-import { fitWidth } from './RewardParts';
 import { DemoRange } from './reveal/DemoRange';
-import { addGlow, addRays, playImpactFx } from './reveal/ImpactBeat';
+import { FilmRig } from './reveal/FilmRig';
+import { SHRINK_MS } from './reveal/filmMaths';
+import { loadHeroArt } from './reveal/HeroArt';
+import { HeroShot } from './reveal/HeroShot';
+import { addRays, burstRays, fireFlash, heroRings } from './reveal/ImpactBeat';
 import { buildTagRow, showPill } from './reveal/RevealPanels';
 import { RevealEnding } from './reveal/RevealEnding';
 import { RevealTracker, type RevealCtx } from './reveal/RevealTracker';
-import { REVEAL_DEPTH, REVEAL_LAYOUT, revealGunScale, revealTimeline } from './reveal/revealTiming';
+import { REVEAL_DEPTH, REVEAL_LAYOUT, revealTimeline } from './reveal/revealTiming';
 
 export interface GunRevealConfig {
   /** The gun just bought. */
@@ -70,17 +78,16 @@ export interface GunRevealHandle {
 
 const CENTRE_X = GAME_WIDTH / 2;
 const BACKDROP_ALPHA = 1;
-const SILHOUETTE_FROM = 0.25;
-const SILHOUETTE_TO = 0.8;
-const SLAM_FROM = 1.7;
-const SLAM_MS = 380;
 const STAMP_FROM = 2.4;
 const STAMP_MS = 160;
-const NAME_FROM = 1.5;
-const NAME_MAX_WIDTH = 900;
-const NAME_Y_RISE = 24;
 const HEADLINE_NEW = 'NEW GUN!';
 const HEADLINE_PREVIEW = 'COMING UP';
+/** The soft rising tones under the pan: where in the pan each plays, and which chord. */
+const RISE_TONES = [
+  { at: 0.05, chord: 1 },
+  { at: 0.55, chord: 2 },
+] as const;
+const FALLBACK_ANCHOR_X = 0.95;
 
 /** Opens the reveal for a gun just bought over `scene` and returns a handle to close it early. */
 export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): GunRevealHandle {
@@ -92,50 +99,48 @@ export function showGunPreview(scene: Phaser.Scene, preview: GunPreviewConfig): 
   return openReveal(scene, preview.gunId, null, preview);
 }
 
+interface Step {
+  at: number;
+  run: (instant: boolean) => void;
+  done: boolean;
+}
+
 function openReveal(
   scene: Phaser.Scene,
   gunId: string,
   ownedConfig: GunRevealConfig | null,
   previewConfig: GunPreviewConfig | null,
 ): GunRevealHandle {
-  const gun = GUN_LADDER_DEFS.find((g) => g.id === gunId);
+  const found = GUN_LADDER_DEFS.find((g) => g.id === gunId);
+  if (!found) return { close: () => undefined };
+  const gun: GunDef = found;
   const root = scene.add.container(0, 0).setDepth(REVEAL_DEPTH);
-  if (!gun) {
-    root.destroy();
-    return { close: () => undefined };
-  }
   const tracker = new RevealTracker(scene);
   const ctx: RevealCtx = { scene, root, tracker };
   const timeline = revealTimeline(gun.rarity);
+  const film = timeline.film;
   const at = { x: REVEAL_LAYOUT.gun.x, y: REVEAL_LAYOUT.gun.y };
+  const hero = { x: REVEAL_LAYOUT.hero.x, y: REVEAL_LAYOUT.hero.y };
   let owned = ownedConfig;
   let preview = previewConfig;
   let open = true;
+  let started = false;
   let beat3Started = false;
+  let startMs = 0;
   let range: DemoRange | null = null;
+  let rig: FilmRig | null = null;
+  const steps: Step[] = [];
 
-  const steps: {
-    at: number;
-    run: (instant: boolean) => void;
-    done: boolean;
-    timer?: Phaser.Time.TimerEvent;
-  }[] = [];
-  const startMs = scene.time.now;
+  /** Steps are run from the frame update against the film's own clock, so they can never drift from the picture. */
   const schedule = (when: number, run: (instant: boolean) => void): void => {
-    const step: (typeof steps)[number] = { at: when, run, done: false };
-    step.timer = tracker.delay(when, () => {
-      step.done = true;
-      run(false);
-    });
-    steps.push(step);
+    steps.push({ at: when, run, done: false });
   };
   const skip = (): void => {
-    if (!open || beat3Started || scene.time.now - startMs < timeline.beat2At) return;
+    if (!open || !started || beat3Started || scene.time.now - startMs < film.pullAt) return;
     steps
       .filter((s) => !s.done)
       .sort((a, b) => a.at - b.at)
       .forEach((s) => {
-        if (s.timer) tracker.cancel(s.timer);
         s.done = true;
         s.run(true);
       });
@@ -146,8 +151,7 @@ function openReveal(
     .setInteractive();
   backdrop.on('pointerup', skip);
   root.add(backdrop);
-  addGlow(ctx, at, gun.rarity);
-  const rays = addRays(ctx, at, gun.rarity);
+  const rays = addRays(ctx, hero, gun.rarity);
 
   const headline = scene.add
     .text(
@@ -160,38 +164,9 @@ function openReveal(
     .setAlpha(0);
   root.add(headline);
 
-  const key = SPRITE_KEYS.gun(gun.id);
-  const anchor = scene.cache.json.get(SPRITE_KEYS.gunAnchorKey(gun.id)) as AnchorJSON | undefined;
-  let image: Phaser.GameObjects.Image | null = null;
-  let finalScale = 1;
-  if (scene.textures.exists(key)) {
-    image = scene.add.image(at.x, at.y, key).setTintFill(COLOUR.ink);
-    finalScale = revealGunScale(image.width, image.height, gun.showScale);
-    image.setScale(finalScale * SILHOUETTE_FROM);
-    root.add(image);
-    tracker.tween({
-      targets: image,
-      scale: finalScale * SILHOUETTE_TO,
-      duration: timeline.impactAt,
-      ease: EASE.standardIn,
-    });
-  }
-
-  const name = scene.add
-    .text(
-      CENTRE_X,
-      REVEAL_LAYOUT.nameY,
-      gun.name,
-      textStyle('displayL', COLOUR_HEX.cloud, COLOUR_HEX.ink),
-    )
-    .setOrigin(0.5)
-    .setAlpha(0);
-  fitWidth(name, NAME_MAX_WIDTH);
-  const nameScale = name.scale;
-  root.add(name);
-
   const level = owned?.level ?? 1;
   const powerTo = powerRatingAt(gun, level);
+  const heroShot = new HeroShot(ctx, gun);
   const tag = buildTagRow(ctx, gun, powerTo);
 
   const stamp = (): void => {
@@ -205,13 +180,19 @@ function openReveal(
     });
   };
 
+  const art = loadHeroArt(scene, tracker, gun.id, (key) => startFilm(key));
+
   const close = (): void => {
     if (!open) return;
     open = false;
+    scene.events.off(Phaser.Scenes.Events.UPDATE, onUpdate);
+    art.cancel();
     range?.destroy();
+    rig?.destroy();
     tracker.clear();
     scene.tweens.killTweensOf(root.list);
     root.destroy();
+    art.release();
     owned?.onClosed?.();
   };
 
@@ -226,55 +207,92 @@ function openReveal(
     },
   });
 
-  // Beat 1: the slam.
-  schedule(timeline.impactAt, () => {
-    if (image) {
-      image.clearTint().setScale(finalScale * SLAM_FROM);
-      tracker.tween({
-        targets: image,
-        scale: finalScale,
-        duration: SLAM_MS,
-        ease: EASE.bouncy,
-        easeParams: [BOUNCE_OVERSHOOT],
-      });
+  const onUpdate = (): void => {
+    if (!open || !started) return;
+    const elapsed = scene.time.now - startMs;
+    rig?.update(elapsed);
+    for (const step of steps) {
+      if (!open) return;
+      if (!step.done && step.at <= elapsed) {
+        step.done = true;
+        step.run(false);
+      }
     }
-    playImpactFx(ctx, at, gun.rarity, rays);
-    stamp();
-    playStarChime(0);
-  });
-  // Beat 2: it blasts, the name and the rarity land.
-  schedule(timeline.nameAt, (instant) => {
-    name.setY(REVEAL_LAYOUT.nameY + (instant ? 0 : NAME_Y_RISE));
-    if (instant) name.setAlpha(1).setScale(nameScale);
-    else {
-      name.setScale(nameScale * NAME_FROM);
-      tracker.tween({
-        targets: name,
-        alpha: 1,
-        scale: nameScale,
-        y: REVEAL_LAYOUT.nameY,
-        duration: DURATION.stateChange,
-        ease: EASE.standardOut,
-      });
+  };
+
+  /** Starts the film once the picture to show is ready (the hero, or the small one after a short wait). */
+  function startFilm(key: string): void {
+    if (!open) return;
+    const anchorJson = scene.cache.json.get(SPRITE_KEYS.gunAnchorKey(gun.id)) as
+      | AnchorJSON
+      | undefined;
+    const small = scene.textures.getFrame(SPRITE_KEYS.gun(gun.id));
+    if (scene.textures.exists(key)) {
+      const smallWidth = small?.width ?? scene.textures.getFrame(key).width;
+      const anchor = anchorJson ?? {
+        x: smallWidth * FALLBACK_ANCHOR_X,
+        y: small ? small.height / 2 : 0,
+      };
+      rig = new FilmRig(ctx, gun, gun.rarity, key, anchor, smallWidth);
     }
-    playStarChime(1);
-  });
-  schedule(timeline.tagAt, (instant) => {
-    showPill(ctx, tag, instant);
-    playStarChime(2);
-  });
-  schedule(timeline.beat2At, () => {
-    if (image && anchor) {
-      range = new DemoRange(scene, root, tracker, gun, image, anchor);
-      range.start();
-    }
-  });
-  // Beat 3: the numbers.
-  schedule(timeline.beat3At, (instant) => {
-    beat3Started = true;
-    range?.setMode('idle');
-    if (owned) ending.startOwned(owned, instant);
-    else if (preview) ending.startPreview(preview, instant);
-  });
+    started = true;
+    startMs = scene.time.now;
+    scene.events.on(Phaser.Scenes.Events.UPDATE, onUpdate);
+    scheduleFilm();
+  }
+
+  function scheduleFilm(): void {
+    RISE_TONES.forEach((tone) =>
+      schedule(film.panEnd * tone.at, (instant) => {
+        if (!instant) playUpgrade(tone.chord);
+      }),
+    );
+    // Shot 2: it fires at the nozzle.
+    schedule(film.fireAt, () => fireFlash(ctx));
+    // Shot 3: the pull-back brings the rays up; the name and tag land as it settles.
+    schedule(film.pullAt, () => burstRays(ctx, rays));
+    schedule(timeline.nameAt, (instant) => {
+      heroShot.landName(instant);
+      if (!instant) {
+        heroRings(ctx, hero, gun.rarity);
+        playStarChime(0);
+      }
+    });
+    schedule(timeline.tagAt, (instant) => {
+      heroShot.landTag(instant);
+      if (!instant) playStarChime(1);
+    });
+    // Shot 4: it shrinks to its place, then blasts the targets.
+    schedule(film.shrinkAt, (instant) => {
+      heroShot.leave(instant);
+      stamp();
+      if (instant) rays.setPosition(at.x, at.y).setScale(1).setAlpha(1);
+      else
+        tracker.tween({
+          targets: rays,
+          x: at.x,
+          y: at.y,
+          duration: SHRINK_MS,
+          ease: 'Cubic.InOut',
+        });
+    });
+    schedule(timeline.beat2At, () => {
+      rig?.finish();
+      if (rig) {
+        range = new DemoRange(scene, root, tracker, gun, rig.image, rig.anchor);
+        range.start();
+      }
+    });
+    // Beat 3: the numbers.
+    schedule(timeline.beat3At, (instant) => {
+      beat3Started = true;
+      range?.setMode('idle');
+      if (owned) ending.startOwned(owned, instant);
+      else if (preview) ending.startPreview(preview, instant);
+    });
+    // The tag row's own pill pops with the numbers' layout, as it always did.
+    schedule(timeline.beat2At + 1, (instant) => showPill(ctx, tag, instant));
+  }
+
   return { close };
 }

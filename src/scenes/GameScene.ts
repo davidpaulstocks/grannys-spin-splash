@@ -49,6 +49,7 @@ import { buildHudData } from './game/hudSnapshot';
 import { BigFinish } from './game/BigFinish';
 import { CountIn } from './game/CountIn';
 import { CountdownUrgency } from './game/CountdownUrgency';
+import { bindPauseHandlers } from './game/pauseHandlers';
 import { FireControl } from './game/FireControl';
 import { FirstRunGuide } from './game/FirstRunGuide';
 import { FrenzyController } from './game/FrenzyController';
@@ -242,11 +243,14 @@ export class GameScene extends Phaser.Scene {
 
     // A paused scene never sees fingers lift, so held pointer state is dropped both ways
     // (see InputManager.resetPointerState).
-    this.events.on(Phaser.Scenes.Events.PAUSE, () => {
-      this._input.resetPointerState();
-      this._fire.showCursor();
-    });
-    this.events.on(Phaser.Scenes.Events.RESUME, () => this._input.resetPointerState());
+    bindPauseHandlers(
+      this,
+      () => {
+        this._input.resetPointerState();
+        this._fire.showCursor();
+      },
+      () => this._input.resetPointerState(),
+    );
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this._input.destroy();
@@ -336,7 +340,8 @@ export class GameScene extends Phaser.Scene {
       gun: this._gun,
       powerups: this._powerups,
       activeSpinners: () => this._activeSpinners(),
-      pickupPoints: () => [...this._powerupSpawner.points, ...this._visitors.aimPoints],
+      pickupPoints: () => this._powerupSpawner.points,
+      visitorPoints: () => this._visitors.aimPoints,
     });
     // Touch has no ESC key; the two-finger gesture stays, this makes it discoverable.
     createPauseButton(this, this._input, () => this._pauseGame());

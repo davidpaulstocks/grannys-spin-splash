@@ -57,6 +57,8 @@ export interface ShotRequest {
   readonly aimY: number;
   readonly target: Spinner | null;
   readonly soakerActive: boolean;
+  /** The aim is on a visitor: the shots fly over the instruments and only that visitor can take them. */
+  readonly visitorLock?: boolean;
 }
 
 /** Reported the frame the pump cycle changes state, so the scene can drive UI and SFX-adjacent feedback. */
@@ -117,6 +119,7 @@ export class WaterCannon {
         shot.target,
         0,
         i,
+        shot.visitorLock,
       );
     }
     // Super Soaker power-up: two extra angled streams alongside the main one
@@ -131,6 +134,7 @@ export class WaterCannon {
           shot.target,
           side * SOAKER_EXTRA_WOBBLE,
           side < 0 ? SOAKER_STREAM_LEFT : SOAKER_STREAM_RIGHT,
+          shot.visitorLock,
         );
       }
     }
@@ -167,11 +171,12 @@ export class WaterCannon {
     target: Spinner | null,
     extraWobble = 0,
     stream = -1,
+    visitorLock = false,
   ): void {
     const particle = this._pool.get() as WaterParticle | null;
     if (!particle) return;
     particle.setAppearance(this._gun.particleColour, this._gun.sz);
-    particle.fire(originX, originY, aimX, aimY, target, extraWobble, stream);
+    particle.fire(originX, originY, aimX, aimY, target, extraWobble, stream, visitorLock);
   }
 
   /**
@@ -189,6 +194,8 @@ export class WaterCannon {
         shot.aimY,
         shot.target,
         (Math.random() - 0.5) * 0.3,
+        -1,
+        shot.visitorLock,
       );
     }
     this._scene.cameras.main.shake(BLAST_SURGE_SHAKE_DURATION_MS, BLAST_SURGE_SHAKE_INTENSITY);

@@ -34,6 +34,7 @@ import { spawnFloatingText } from '../../ui/FloatingText';
 import { COLOUR, COLOUR_HEX } from '../../utils/colour';
 import type { AimResult } from '../../types/input';
 import { distance, resolveMagneticAim, scaleAboutPivot } from '../../utils/math';
+import { pickVisitorLock } from '../../utils/shotLock';
 import type { PowerUpEffects } from './PowerUpEffects';
 
 /** What the firing line reads from the rest of the scene. */
@@ -59,6 +60,15 @@ export interface FireControlDeps {
     readonly y: number;
     readonly aimRadius?: number;
   }[];
+  /**
+   * Visitors the player can aim at (a blocker, a treat, balloons). Aim on one
+   * locks the shots onto it: they fly over the instruments in the way.
+   */
+  readonly visitorPoints?: () => readonly {
+    readonly x: number;
+    readonly y: number;
+    readonly aimRadius: number;
+  }[];
 }
 
 export class FireControl {
@@ -67,6 +77,8 @@ export class FireControl {
   /** Mouse-only dot at the effective aim point (the OS cursor is hidden). */
   private readonly _reticle: Phaser.GameObjects.Arc;
   private _targetId: number | null = null;
+  /** True for the frame the aim sits on a visitor. */
+  private _visitorLock = false;
   private _cursorHidden: boolean | null = null;
 
   constructor(private readonly _d: FireControlDeps) {
@@ -123,6 +135,7 @@ export class FireControl {
         ? (d.activeSpinners().find((sp) => sp.id === aim.target?.id) ?? null)
         : null,
       soakerActive: d.powerups.soakerActive(time),
+      visitorLock: this._visitorLock,
     });
     // The hiss of the jet: on only while water is actually leaving the gun.
     waterSound.setFiring(firing && !d.cannon.isPumping && d.cannon.tank > 0);
@@ -152,6 +165,13 @@ export class FireControl {
     this._setCursorHidden(!touch);
     this._reticle.setVisible(!touch).setPosition(point.x, point.y);
 
+    const visitor = pickVisitorLock(point.x, point.y, d.visitorPoints?.() ?? [], AIM_PICKUP_MARGIN);
+    this._visitorLock = visitor !== null;
+    if (visitor) {
+      // Dead-centre on the visitor, whatever the instruments in between.
+      this._showRing(null);
+      return { x: visitor.x, y: visitor.y, target: null, snapped: false };
+    }
     const onPickup = (d.pickupPoints?.() ?? []).some(
       (p) =>
         distance(point.x, point.y, p.x, p.y) <

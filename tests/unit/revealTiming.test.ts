@@ -19,36 +19,44 @@ import {
 const SCREEN_HEIGHT = 720;
 
 describe('revealTimeline', () => {
-  it('runs impact, then the blast, then the numbers, in order', () => {
+  it('runs the film, then the blast, then the numbers, in order', () => {
     for (const rarity of ['common', 'rare', 'epic', 'legendary'] as const) {
       const t = revealTimeline(rarity);
-      expect(t.impactAt).toBeGreaterThan(0);
-      expect(t.beat2At).toBeGreaterThan(t.impactAt);
-      expect(t.nameAt).toBeGreaterThan(t.beat2At);
+      expect(t.film.fireAt).toBeGreaterThan(t.film.panEnd);
+      expect(t.film.pullAt).toBeGreaterThan(t.film.fireAt);
+      expect(t.nameAt).toBeGreaterThan(t.film.pullAt);
       expect(t.tagAt).toBeGreaterThan(t.nameAt);
-      expect(t.beat3At).toBeGreaterThan(t.tagAt);
+      expect(t.film.shrinkAt).toBeGreaterThan(t.tagAt);
+      expect(t.beat2At).toBe(t.film.shrinkEnd);
+      expect(t.beat3At).toBeGreaterThan(t.beat2At);
       expect(t.ownedButtonsAt).toBeGreaterThan(t.beat3At);
       expect(t.previewButtonsAt).toBeGreaterThan(t.beat3At);
     }
   });
 
-  it('holds the breath longer for rarer guns, and beat 1 stays under a second', () => {
-    expect(revealTimeline('legendary').impactAt).toBeGreaterThan(revealTimeline('epic').impactAt);
-    expect(revealTimeline('epic').impactAt).toBeGreaterThan(revealTimeline('common').impactAt);
-    expect(revealTimeline('common').beat2At).toBeLessThanOrEqual(1000);
+  it('pans the rarest guns more slowly', () => {
+    expect(revealTimeline('legendary').film.panEnd).toBeGreaterThan(
+      revealTimeline('epic').film.panEnd,
+    );
+    expect(revealTimeline('epic').film.panEnd).toBeGreaterThan(
+      revealTimeline('common').film.panEnd,
+    );
   });
 
-  it('shows the buttons after about four seconds', () => {
+  it('reaches the buttons in about 6 to 7 seconds for a common gun and about 8 for a legendary one', () => {
     const common = revealTimeline('common').ownedButtonsAt;
     const legendary = revealTimeline('legendary').ownedButtonsAt;
-    expect(common).toBeGreaterThan(3500);
-    expect(legendary).toBeLessThan(4700);
+    expect(common).toBeGreaterThan(6000);
+    expect(common).toBeLessThan(7200);
+    expect(legendary).toBeGreaterThan(7500);
+    expect(legendary).toBeLessThan(8500);
   });
 
-  it('allows a skip only once the first beat has landed', () => {
+  it('allows a skip only once the pull-back has started', () => {
     const t = revealTimeline('epic');
-    expect(canSkip(t.impactAt, t)).toBe(false);
-    expect(canSkip(t.beat2At, t)).toBe(true);
+    expect(canSkip(t.film.fireAt, t)).toBe(false);
+    expect(canSkip(t.film.pullAt - 1, t)).toBe(false);
+    expect(canSkip(t.film.pullAt, t)).toBe(true);
   });
 });
 

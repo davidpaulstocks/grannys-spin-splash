@@ -8,11 +8,12 @@
  * splash itself was not throttled, so a fast gun costs no more than before.
  */
 
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 import { COLOUR } from '../../../utils/colour';
 import { DURATION, EASE } from '../../../utils/tween';
 import type { GunDef, ProjectileStyle } from '../../gun/gun.types';
+import { impactPoolFor, type PieceShape } from '../impactPool';
 import { spawnSplash } from '../splashVFX';
 
 type Shape = 'circle' | 'ring' | 'spark' | 'triangle' | 'star';
@@ -129,29 +130,21 @@ function tone(gun: GunDef, which: 'main' | 'accent' | 'white', i: number): numbe
   return COLOUR.cloud;
 }
 
-function makePiece(
-  scene: Phaser.Scene,
-  shape: Shape,
-  x: number,
-  y: number,
-  size: number,
-  colour: number,
-): Phaser.GameObjects.Shape {
-  switch (shape) {
-    case 'ring': {
-      const ring = scene.add.circle(x, y, size, colour, 0);
-      return ring.setStrokeStyle(2.5, colour, 0.95);
-    }
-    case 'spark':
-      return scene.add.rectangle(x, y, size, 2.5, colour, 1);
-    case 'triangle':
-      return scene.add.triangle(x, y, 0, size, size, size, size / 2, 0, colour, 1);
-    case 'star':
-      return scene.add.star(x, y, 4, size * 0.35, size, colour, 1);
-    default:
-      return scene.add.circle(x, y, size, colour, 0.95);
-  }
-}
+/** The pool's piece shape for an extra's shape. */
+const PIECE_SHAPE: Readonly<Record<Shape, PieceShape>> = {
+  circle: 'circle',
+  ring: 'ring',
+  spark: 'rect',
+  triangle: 'triangle',
+  star: 'star',
+};
+const RING_STROKE = 2.5;
+const SPARK_THICKNESS = 2.5;
+const PIECE_ALPHA = 0.95;
+const FLASH_ALPHA = 0.45;
+const FLASH_GROWTH = 1.6;
+const RING_PIECE_GROWTH = 2.2;
+const PIECE_END_SCALE = 0.4;
 
 /** Plays the landing of a shot from `gun` at (x, y); a `depth` above 0 lifts it over an overlay (the gun reveal). */
 export function spawnImpact(
@@ -165,41 +158,53 @@ export function spawnImpact(
   const extra = EXTRAS[gun.projectile];
   if (!splashed || !extra) return;
   const duration = DURATION.stateChange * (extra.slow ?? 1);
+  const pool = impactPoolFor(scene);
 
   if (extra.flash) {
-    const flash = scene.add
-      .circle(x, y, extra.flash, tone(gun, extra.tones[0] as 'main', 0), 0.45)
-      .setDepth(depth);
-    scene.tweens.add({
-      targets: flash,
-      scale: gun.projectile === 'mega' ? MEGA_RING_GROWTH : 1.6,
-      alpha: 0,
+    pool.play({
+      kind: 'hit',
+      shape: 'circle',
+      size: extra.flash,
+      x,
+      y,
+      colour: tone(gun, extra.tones[0] as 'main', 0),
+      alpha: FLASH_ALPHA,
+      depth,
+      to: { scale: gun.projectile === 'mega' ? MEGA_RING_GROWTH : FLASH_GROWTH },
       duration,
       ease: EASE.standardOut,
-      onComplete: () => flash.destroy(),
     });
   }
   for (let i = 0; i < extra.count; i++) {
     const angle = (i / extra.count) * Math.PI * 2 + Math.random() * 0.5;
     const colour = tone(gun, extra.tones[i % extra.tones.length] as 'main', i);
-    const piece = makePiece(scene, extra.shape, x, y, extra.size, colour).setDepth(depth);
-    if (extra.shape === 'spark' || extra.shape === 'star') piece.setRotation(angle);
     const reach = extra.distance * (0.7 + Math.random() * 0.5);
+    // The shark's bite: teeth start out wide and close in on the point of impact.
     const inward = extra.shape === 'triangle';
-    if (inward) {
-      // The bite: teeth start out wide and close in on the point of impact.
-      piece.setPosition(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach);
-      piece.setRotation(angle - Math.PI / 2);
-    }
-    scene.tweens.add({
-      targets: piece,
-      x: inward ? x : x + Math.cos(angle) * reach,
-      y: (inward ? y : y + Math.sin(angle) * reach) + extra.drift,
-      alpha: 0,
-      scale: inward ? SHARK_TOOTH_END_SCALE : extra.shape === 'ring' ? 2.2 : 0.4,
+    const turns = extra.shape === 'spark' || extra.shape === 'star';
+    const played = pool.play({
+      kind: 'hit',
+      shape: PIECE_SHAPE[extra.shape],
+      size: extra.size,
+      thickness: extra.shape === 'ring' ? RING_STROKE : SPARK_THICKNESS,
+      x: inward ? x + Math.cos(angle) * reach : x,
+      y: inward ? y + Math.sin(angle) * reach : y,
+      colour,
+      alpha: PIECE_ALPHA,
+      depth,
+      rotation: inward ? angle - Math.PI / 2 : turns ? angle : 0,
+      to: {
+        x: inward ? x : x + Math.cos(angle) * reach,
+        y: (inward ? y : y + Math.sin(angle) * reach) + extra.drift,
+        scale: inward
+          ? SHARK_TOOTH_END_SCALE
+          : extra.shape === 'ring'
+            ? RING_PIECE_GROWTH
+            : PIECE_END_SCALE,
+      },
       duration,
       ease: EASE.standardOut,
-      onComplete: () => piece.destroy(),
     });
+    if (!played) break;
   }
 }

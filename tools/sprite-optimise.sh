@@ -124,8 +124,15 @@ with tempfile.TemporaryDirectory() as tmp:
             results.append((score, dst, before, after, mode))
             print(f"  {dst}: {before / 1024:.1f} KB -> {after / 1024:.1f} KB  ({mode}, SSIM {score:.4f})")
 
+# hero.webp files (the large gun pictures of the reveal) are fetched only when a
+# reveal opens, never at start-up, so they are not counted against this cap of
+# the initial download. `npm run budget` still counts them in dist/.
+LAZY_NAMES = {"hero.webp"}
 total = sum(
-    os.path.getsize(os.path.join(r, n)) for r, _d, ns in os.walk(sprite_dir) for n in ns
+    os.path.getsize(os.path.join(r, n))
+    for r, _d, ns in os.walk(sprite_dir)
+    for n in ns
+    if n not in LAZY_NAMES
 )
 
 
