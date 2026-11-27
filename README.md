@@ -18,20 +18,21 @@ npm run samples -- kitchen   # rebuild one band's sprite (tools/bands/<band>.man
 npm run optimise       # convert PNGs dropped in public/sprites/ to WebP (tools/sprite-optimise.sh)
 npm run instruments    # cut instrument art sheets in _art_inbox/instruments/ into icons (tools/slice-instrument-sheet.py)
 npm run visitors       # cut visitor art sheets in _art_inbox/visitors/ into pictures
-npm run guns           # cut gun art sheets in _art_inbox/guns/ into one picture + anchor per gun
+npm run guns           # cut gun art sheets in _art_inbox/guns/ into one picture + anchor + large hero.webp (for the reveal) per gun
+npm run guns -- --hero-only   # rewrite only the hero.webp pictures, leaving the small pictures and anchors alone
 ```
 
 ## Balance harness (dev only)
 
-In a dev build (`npm run dev`), open the browser console and run `await window.__bot.ladder('garden')` to play all eight gigs of a venue with scripted players, far faster than real time, and print stars and coins (on the starter gun unless you pass another). It is not included in production builds. See `src/dev/botSim.ts` for the other calls.
+In a dev build (`npm run dev`), open the browser console and run `await window.__bot.ladder('garden')` to play all eight gigs of a venue with scripted players (a child, a keen player and an expert, who also shoo thieves, clear blockers and chase treats), far faster than real time, and print stars and coins. Each gig is played with the gun a first pass is expected to hold (`FIRST_PASS_GUNS` in `gigs.data.ts`) and with one two rungs further up; `__bot.batch(...)` runs many cases, `__bot.sweep(...)` a whole venue, and the harness runs headless. It is not included in production builds. See `src/dev/botSim.ts` for the other calls and `docs/REWARD_LOOP.md` for what it measured. In a dev build `window.__revealGun('dragon_drencher')` opens the gun reveal for any gun without buying it (`src/dev/revealDebug.ts`).
 
-## Review link (dev and review only)
+## Review links (dev and review only)
 
-`?venue=<id>&gig=<n>` opens that gig directly, e.g. `http://localhost:5173/?venue=kitchen&gig=1`, so a venue's band can be heard without earning the stars to reach it. It bypasses the tour, so it is for review only and must be removed before Poki submission (see BACKLOG.md).
+`?venue=<id>&gig=<n>` opens that gig directly, e.g. `http://localhost:5173/?venue=kitchen&gig=1`, so a venue's band can be heard without earning the stars to reach it. `?jam=<venue>` opens that venue's Jam (no timer, score or coins) whether or not it has been unlocked. Both bypass the tour, so they are for review only and must be removed before Poki submission (see BACKLOG.md).
 
 ## What a gig is, today (2026-11-27)
 
-Every gig opens with a band count-in (3, 2, 1, GO!); the water then fires by itself (Space switches it off and on) and the player only aims. Visitors (treats, coin thieves, blockers) come from a venue's first gig; at the whistle a Big Finish pays each instrument still playing. There are eighteen guns. None of this has been played or heard by the owner yet; see `BACKLOG.md`.
+Every gig opens with a band count-in (3, 2, 1, GO!); the water then fires by itself (Space switches it off and on) and the player only aims. Visitors (treats, coin thieves, blockers) come from a venue's first gig; at the whistle a Big Finish pays each instrument still playing. There are eighteen guns; buying one (or tapping SEE IT BLAST on a gun not yet owned) plays a short product-film reveal. Passing a venue's last gig unlocks its Jam, a toy mode with no timer or score. None of this has been played or heard by the owner yet; see `BACKLOG.md`.
 
 ## Where the plans live
 

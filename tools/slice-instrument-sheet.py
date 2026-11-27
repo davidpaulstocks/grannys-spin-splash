@@ -33,11 +33,11 @@ INSTRUMENT_ART_READY (src/entities/spinner/instrumentArt.data.ts) or, for visito
 VISITOR_ART_READY (src/entities/visitor/visitorArt.data.ts).
 
 --set guns also writes public/sprites/guns/<id>/hero.webp: the same crop as the small picture, cut from the
-sheet at its full resolution onto a 768x512 canvas (never squashed) and encoded straight to WebP
+sheet at its full resolution onto a 1152x768 canvas (never squashed) and encoded straight to WebP
 (HERO_QUALITY, written here, not by `npm run optimise`). It is loaded only when a gun reveal opens.
 A sheet entry with "file" (a path from the project root) and "hero_only": true is a single-gun original
 (the six old guns: _reference/guns/<id>_0_raw.jpg); it writes only the hero picture, on a canvas exactly
-twice the size of that gun's existing 0.webp, so the two frame the gun identically. --hero-only skips
+three times the size of that gun's existing 0.webp, so the two frame the gun identically. --hero-only skips
 the small pictures and anchors (leaves the shipped 0.webp and anchor.json untouched).
 
 Needs Python 3 with Pillow. Options: --set instruments|visitors|guns  --inbox DIR  --out DIR  --no-optimise  --hero-only
@@ -243,7 +243,7 @@ def fit_gun(tile, flip, nozzle_override=None, canvas_size=GUN_CANVAS):
 
 
 def place_like_small(tile, small_path):
-    """Hero canvas of an old gun: twice the existing 0.webp, the gun's tight box scaled and placed at twice where
+    """Hero canvas of an old gun: three times the existing 0.webp, the gun's tight box scaled and placed at three times where
     the small picture has it, so the two frame the gun identically whatever margin the small one was cut with."""
     with Image.open(small_path) as small:
         small = small.convert("RGBA")
@@ -261,7 +261,7 @@ def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None, hero=Fa
     """Cuts one sheet into its icons. Returns the ids written.
 
     hero: write <id>/hero.webp (full-resolution sheet, HERO_CANVAS) instead of the small picture.
-    hero_only: a single-gun original; the canvas is twice the gun's existing 0.webp.
+    hero_only: a single-gun original; the canvas is three times the gun's existing 0.webp.
     """
     sheet = Image.open(path)
     if sheet.mode in ("RGBA", "LA", "P"):

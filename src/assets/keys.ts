@@ -20,7 +20,7 @@ export const SPRITE_KEYS = {
   /** public/sprites/guns/<id>/0.webp (one side-on picture, nozzle pointing right) + anchor.json */
   gun: (gunId: string): string => `gun_${gunId}`,
   gunPath: (gunId: string): string => `sprites/guns/${gunId}/0.webp`,
-  /** public/sprites/guns/<id>/hero.webp: the big picture of the same crop (twice the size), loaded only when a reveal opens. */
+  /** public/sprites/guns/<id>/hero.webp: the big picture of the same crop (three times the size), loaded only when a reveal opens. */
   gunHero: (gunId: string): string => `gun_${gunId}_hero`,
   gunHeroPath: (gunId: string): string => `sprites/guns/${gunId}/hero.webp`,
   gunAnchorKey: (gunId: string): string => `gun_${gunId}_anchor`,

@@ -1,6 +1,6 @@
 /**
  * Loads a gun's big "hero" picture when a reveal opens (never at boot: eighteen of
- * them are about 0.6 MB the player may never need). The film waits for it, but
+ * them are about 1 MB the player may never need). The film waits for it, but
  * only briefly: if it has not arrived in `HERO_WAIT_MS` the reveal starts with
  * the small in-game picture rather than making the player wait. The hero texture
  * is removed when the reveal closes.
