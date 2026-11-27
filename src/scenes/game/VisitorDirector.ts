@@ -37,7 +37,8 @@ import { createVisitor, type PlacedSpec } from '../../entities/visitor/createVis
 import { stealPerTick } from '../../entities/visitor/theft';
 import { ThiefVisitor } from '../../entities/visitor/ThiefVisitor';
 import { castFor, VisitorSchedule, type RandomFn } from '../../entities/visitor/visitorSchedule';
-import { spawnSparks, spawnSplash } from '../../entities/waterParticle/splashVFX';
+import { spawnImpact } from '../../entities/waterParticle/projectiles/impacts';
+import { spawnSparks } from '../../entities/waterParticle/splashVFX';
 import type { WaterParticle } from '../../entities/waterParticle/WaterParticle';
 import { starTargets, type GigDef } from '../../entities/world/gigs.data';
 import { wallAreaFor } from '../../entities/world/wallBuilder';
@@ -248,7 +249,7 @@ export class VisitorDirector {
     const d = this._d;
     const word = VISITOR_DEFS[visitor.def.id].word;
     if (hit === 'absorbed') {
-      spawnSplash(d.scene, x, y, d.gun.particleColour);
+      spawnImpact(d.scene, x, y, d.gun);
       if (d.scene.time.now - this._lastDeflectAt >= M.deflectSoundGapMs) {
         this._lastDeflectAt = d.scene.time.now;
         SFX.playDeflect();

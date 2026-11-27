@@ -80,7 +80,8 @@ describe('the goal is always the next thing not owned', () => {
     };
     expect(headline('hose')).toBe('Coins ×1.5 · Wider jet');
     expect(headline('splashjr')).toBe('Coins ×2 · Two jets');
-    expect(headline('inferno')).toBe('Coins ×5 · Fire jet');
+    expect(headline('inferno')).toBe('Coins ×5.5 · Fire jet');
+    expect(headline('hydro_blaster')).toBe('Coins ×2.4 · 3 jets');
     expect(headline('pistol')).toBe('Starter gun');
   });
 });

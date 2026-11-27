@@ -1,0 +1,49 @@
+{
+  "_comment": "Each sheet holds six guns; the slicer works out the grid itself (rows by vertical position, each row left to right, top row first). 'ids' is the gun id of each cell in that order; 'flip' lists guns painted nozzle-left, mirrored before saving; 'nozzle' optionally overrides a gun's nozzle point ({id: [x, y]} in the 384x256 picture). NOTE: the owner's files are named the other way round from the order they were first described: sheet-1-guns.jpg holds the bubble / slime / rainbow / shark / dragon / galaxy guns. Keep in step with GUN_LADDER in src/entities/gun/gun.data.ts.",
+  "sheets": {
+    "sheet-1-guns": {
+      "ids": [
+        "bubble_blitz",
+        "slime_slinger",
+        "rainbow_rocket",
+        "shark_soaker",
+        "dragon_drencher",
+        "galaxy_blaster"
+      ],
+      "flip": [],
+      "nozzle": {
+        "bubble_blitz": [
+          350,
+          103
+        ],
+        "shark_soaker": [
+          356,
+          118
+        ],
+        "dragon_drencher": [
+          352,
+          92
+        ]
+      }
+    },
+    "sheet-2-guns": {
+      "ids": [
+        "hydro_blaster",
+        "blizzard_blaster",
+        "turbo_tornado",
+        "thunder_soaker",
+        "neptunes_trident",
+        "mega_cannon"
+      ],
+      "flip": [
+        "mega_cannon"
+      ],
+      "nozzle": {
+        "hydro_blaster": [
+          352,
+          90
+        ]
+      }
+    }
+  }
+}

@@ -27,6 +27,7 @@ import { UnlockManager } from '../systems/UnlockManager';
 import { createButton } from '../ui/Button';
 import type { CarouselItem } from '../ui/Carousel';
 import { createGunRack, type GunRack, type GunRackItem } from '../ui/GunRack';
+import { powerText } from '../ui/gunRarity';
 import { LoadoutStage } from '../ui/LoadoutStage';
 import { createStatPill, type StatPill } from '../ui/StatPill';
 import { ThumbnailSelector } from '../ui/ThumbnailSelector';
@@ -54,7 +55,7 @@ const GRANNY_CAROUSEL_X = 150;
 const WORLD_CAROUSEL_X = GAME_WIDTH * 0.5;
 const GUN_CAROUSEL_X = GAME_WIDTH - 150;
 /** Random-unlock reward pool cap — a random gun at or below the player's current highest tier (CLAUDE.md §11.1). */
-const REWARD_MAX_TIER = 4;
+const REWARD_MAX_TIER = 3;
 /** Where unlock/select feedback toasts appear — a shared anchor above the rack. */
 const SELECT_TOAST_Y = GAME_HEIGHT * 0.68;
 const VAULT_PILL_X = 104;
@@ -178,8 +179,18 @@ export class ShopScene extends Phaser.Scene {
       unlocked: this._unlocks.isGunUnlocked(g.id),
       cost: g.cost,
       swatchColour: COLOUR.waterBlue,
-      swatchTextureKey: SPRITE_KEYS.gunAngle(g.id, 0),
+      swatchTextureKey: SPRITE_KEYS.gun(g.id),
+      silhouette: this._isSilhouette(g.id, g.cost),
     }));
+  }
+
+  /** A locked gun beyond the next one to save for that cannot be afforded yet: shown as a dark shape. */
+  private _isSilhouette(id: string, cost: number): boolean {
+    if (this._unlocks.isGunUnlocked(id) || cost <= this._unlocks.getVault()) return false;
+    const next = [...GUN_DEFS]
+      .sort((a, b) => a.cost - b.cost)
+      .find((g) => !this._unlocks.isGunUnlocked(g.id));
+    return id !== next?.id;
   }
 
   /** The stage shows one venue: the one being toured. Venues are chosen on the tour, not in the shop. */
@@ -236,7 +247,7 @@ export class ShopScene extends Phaser.Scene {
 
   /** Redraws everything that follows the equipped or shown gun: stage, card and rack. */
   private _refreshGunViews(): void {
-    this._loadoutStage.setGunTexture(SPRITE_KEYS.gunAngle(this._unlocks.getSelectedGunId(), 0));
+    this._loadoutStage.setGunTexture(SPRITE_KEYS.gun(this._unlocks.getSelectedGunId()));
     this._gunShopping.show(this._gunSelector.getSelectedId());
     this._rack.setItems(this._rackItems());
   }
@@ -246,14 +257,22 @@ export class ShopScene extends Phaser.Scene {
     const equipped = this._unlocks.getSelectedGunId();
     const ordered = [...GUN_DEFS].sort((a, b) => a.cost - b.cost);
     const next = ordered.find((g) => !this._unlocks.isGunUnlocked(g.id));
-    return ordered.map((g) => ({
-      id: g.id,
-      owned: this._unlocks.isGunUnlocked(g.id),
-      equipped: g.id === equipped,
-      level: this._unlocks.getGunLevel(g.id),
-      price: g.cost,
-      isNext: g.id === next?.id,
-    }));
+    const vault = this._unlocks.getVault();
+    return ordered.map((g) => {
+      const owned = this._unlocks.isGunUnlocked(g.id);
+      const level = this._unlocks.getGunLevel(g.id);
+      return {
+        id: g.id,
+        owned,
+        equipped: g.id === equipped,
+        level,
+        price: g.cost,
+        isNext: g.id === next?.id,
+        rarity: g.rarity,
+        power: powerText(g.id, level),
+        silhouette: !owned && g.id !== next?.id && g.cost > vault,
+      };
+    });
   }
 
   /** CLAUDE.md §11.1/§11.3: rewarded button must never be Mint Green, must be visible alongside DONE, one reward per ad. */

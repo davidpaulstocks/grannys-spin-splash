@@ -24,6 +24,8 @@ export interface CarouselItem {
   readonly swatchColour: number;
   /** A loaded texture key to render instead of the flat colour swatch, once real art exists for this item. */
   readonly swatchTextureKey?: string;
+  /** Draw the picture as a dark shape (a prize still out of reach: teased, not shown). */
+  readonly silhouette?: boolean;
 }
 
 /**

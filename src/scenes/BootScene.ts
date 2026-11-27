@@ -19,7 +19,6 @@ import type { GrannyPose } from '../entities/granny/granny.types';
 import { INSTRUMENT_ART_READY } from '../entities/spinner/instrumentArt.data';
 import { VISITOR_ART_READY } from '../entities/visitor/visitorArt.data';
 import { GUN_DEFS } from '../entities/gun/gun.data';
-import type { GunAngle } from '../entities/gun/gun.types';
 import { WORLD_DEFS } from '../entities/world/world.data';
 import { preloadWorldBackground } from '../entities/world/worldBackgrounds';
 import * as poki from '../poki';
@@ -29,7 +28,6 @@ import { usesTouchControls } from '../ui/touchControls';
 import { COLOUR } from '../utils/colour';
 
 const GRANNY_POSES: readonly GrannyPose[] = ['front', 'back', 'back_firing'];
-const GUN_ANGLES: readonly GunAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
 
 const BAR_WIDTH = 480;
 const BAR_HEIGHT = 20;
@@ -67,9 +65,7 @@ export class BootScene extends Phaser.Scene {
       }
     }
     for (const g of GUN_DEFS) {
-      for (const angle of GUN_ANGLES) {
-        this.load.image(SPRITE_KEYS.gunAngle(g.id, angle), SPRITE_KEYS.gunAnglePath(g.id, angle));
-      }
+      this.load.image(SPRITE_KEYS.gun(g.id), SPRITE_KEYS.gunPath(g.id));
       this.load.json(SPRITE_KEYS.gunAnchorKey(g.id), SPRITE_KEYS.gunAnchorPath(g.id));
     }
     for (const w of WORLD_DEFS) {

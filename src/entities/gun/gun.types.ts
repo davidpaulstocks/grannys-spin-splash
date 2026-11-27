@@ -1,48 +1,76 @@
-/** GunDef, AnchorJSON shape, GunTier. CLAUDE.md §7.2, §8.2. */
+/** GunDef, the nozzle anchor, rarity and projectile styles. CLAUDE.md §7.2, §8.2. */
 
 export type GunTier = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export type GunType = 'water' | 'fire';
 
-/** The 8 sprite rotation angles. */
-export type GunAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
+/** How rare a gun is: shown as a coloured tag, and the colour of the reveal's rays. */
+export type GunRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 /**
- * Per-angle nozzle position (where water/fire emits from in the gun PNG).
- * Authored manually by the anchor-picker tool (CLAUDE.md §8.3.1 step 4).
+ * What a gun fires, as drawn (the hit logic is the same for all of them). One renderer per style in
+ * `entities/waterParticle/projectiles/`.
  */
-export type AnchorJSON = Readonly<
-  Record<`${GunAngle}`, { readonly x: number; readonly y: number }>
->;
+export type ProjectileStyle =
+  | 'water'
+  | 'bubbles'
+  | 'slime'
+  | 'shark'
+  | 'ice'
+  | 'lightning'
+  | 'flame'
+  | 'rainbow'
+  | 'tornado'
+  | 'dragon'
+  | 'trident'
+  | 'laser'
+  | 'mega';
 
-export interface GunDef {
+/**
+ * Where the water leaves the gun, in the pixels of the one side-on picture (nozzle pointing right).
+ * Written by `npm run guns` for new pictures; Gun.ts turns the single picture to the aim.
+ */
+export interface AnchorJSON {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** The facts of the ladder, in the order a child climbs it (gun.data.ts). */
+export interface GunLadderEntry {
+  readonly order: number;
   readonly id: string;
   readonly name: string;
-  readonly spriteKey: string;
-  readonly tier: GunTier;
-  /** Stars required to unlock; 0 means available from first run. */
+  readonly rarity: GunRarity;
   readonly cost: number;
-  /** Maximum water-tank capacity. */
-  readonly tank: number;
-  /** Water drained per shot. */
-  readonly drain: number;
-  /** Milliseconds between auto-shots while firing held. */
-  readonly interval: number;
-  /** Speed boost imparted to a spinner on hit. */
-  readonly power: number;
-  /** Number of water streams per shot. */
-  readonly streams: number;
-  /** Multiplier on every coin earned with this gun (docs/REWARD_LOOP.md): the reason a bigger gun means a bigger number. */
   readonly coinBoost: number;
-  /** Particle size in px. */
+  /** A display number only: grows 8% per upgrade level. */
+  readonly powerRating: number;
+}
+
+/** How a gun shoots and what its shots look like (gunMechanics.data.ts). */
+export interface GunMechanics {
+  readonly tier: GunTier;
+  readonly tank: number;
+  readonly drain: number;
+  readonly interval: number;
+  readonly power: number;
+  readonly streams: number;
   readonly sz: number;
   readonly type: GunType;
-  /**
-   * Projectile + impact-splash colour (CLAUDE.md §5.1 palette only — no
-   * new hex values). Restored 2026-09-12: guns previously all fired
-   * identical blue dots regardless of `type`/`sz`, which were both dead
-   * fields nothing read — direct user feedback that the 6 guns needed to
-   * "feel super different" surfaced this.
-   */
+  readonly projectile: ProjectileStyle;
+  /** Main colour of the shots and the impact (palette colours only, via `shade`). */
   readonly particleColour: number;
+  /** Second colour of the projectile (core, edge, sparkle), where the style has one. */
+  readonly accentColour: number;
+  /** Gap between neighbouring barrels in px, where the gun has more than one stream; default is the cannon's. */
+  readonly barrelSpacing?: number;
+}
+
+export interface GunDef extends GunLadderEntry, GunMechanics {
+  readonly spriteKey: string;
+  readonly rarity: GunRarity;
+  /** How big the picture is on the reveal, 1 for the pistol to about 1.5 for the MEGA CANNON. */
+  readonly showScale: number;
+  /** How big the gun is in Granny's hands, same ladder. */
+  readonly handScale: number;
 }

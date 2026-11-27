@@ -112,6 +112,22 @@ async function boot(): Promise<void> {
       OrchestraGraph,
       resolveScore,
     };
+    // Dev-only: `localStorage.__devMute = '1'` keeps the dev build silent across
+    // reloads (testing while on a call); remove the key to hear it again. Never
+    // in a production bundle, so SaveManager's rule on localStorage is untouched.
+    try {
+      if (window.localStorage.getItem('__devMute') === '1') {
+        const init = audioBus.init.bind(audioBus);
+        audioBus.init = () => {
+          init();
+          audioBus.mute();
+        };
+        audioBus.mute();
+        audioBus.unmute = () => undefined;
+      }
+    } catch {
+      // Storage blocked: nothing to do.
+    }
     // The balance harness: see src/dev/botSim.ts. Dynamically imported so it
     // is never in a production bundle.
     void import('./dev/botSim').then(({ installBotSim }) => {

@@ -129,7 +129,7 @@ export class WaterCannon {
     const perp = perpendicular(shot.origin.x, shot.origin.y, shot.aimX, shot.aimY);
     const streams = this._gun.streams;
     for (let i = 0; i < streams; i++) {
-      const offset = (i - (streams - 1) / 2) * BARREL_SPACING_PX;
+      const offset = (i - (streams - 1) / 2) * (this._gun.barrelSpacing ?? BARREL_SPACING_PX);
       this._fireStream(
         shot.origin.x + perp.x * offset,
         shot.origin.y + perp.y * offset,

@@ -157,7 +157,7 @@ export class GameScene extends Phaser.Scene {
       GAME_HEIGHT - GRANNY_Y_FROM_BOTTOM,
       this._grannyId,
     );
-    this._gunSprite = new Gun(this, this._gun.id);
+    this._gunSprite = new Gun(this, this._gun.id, this._gun.handScale);
     this._input = new InputManager(this);
     this._waterPool = this.add.group({
       classType: WaterParticle,
@@ -441,13 +441,7 @@ export class GameScene extends Phaser.Scene {
     this._granny.setFiring(false);
     this._fire.showCursor();
     for (const drop of this._waterPool.getChildren()) this._waterPool.killAndHide(drop);
-    this._jet.update(
-      this.time.now,
-      this._gunSprite.getNozzleWorldPosition(),
-      false,
-      this._gun.particleColour,
-      this._gun.sz,
-    );
+    this._jet.update(this.time.now, this._gunSprite.getNozzleWorldPosition(), false, this._gun);
   }
 
   /** Banks the finished gig, bow coins included, and hands over to the results screen. */

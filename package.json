@@ -15,6 +15,7 @@
     "optimise": "bash tools/sprite-optimise.sh",
     "instruments": "python3 tools/slice-instrument-sheet.py",
     "visitors": "python3 tools/slice-instrument-sheet.py --set visitors",
+    "guns": "python3 tools/slice-instrument-sheet.py --set guns",
     "samples": "node tools/build-orchestra-samples.ts"
   },
   "dependencies": {

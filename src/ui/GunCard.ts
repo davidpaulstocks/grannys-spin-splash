@@ -12,7 +12,7 @@
 
 import Phaser from 'phaser';
 
-import { MAX_GUN_LEVEL } from '../entities/gun/gun.data';
+import { GUN_LADDER_DEFS, MAX_GUN_LEVEL } from '../entities/gun/gun.data';
 import { formatCount } from '../systems/Rewards';
 import { COLOUR, COLOUR_HEX, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
@@ -20,6 +20,7 @@ import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 import { createButton } from './Button';
 import { drawLockIcon } from './icons';
+import { addPowerPill, powerText, rarityLabel } from './gunRarity';
 import { createPanel } from './Panel';
 import { fitWidth } from './RewardParts';
 import { spawnSparkles } from './sparkle';
@@ -66,15 +67,16 @@ export interface GunCard {
 export const GUN_CARD_WIDTH = 230;
 export const GUN_CARD_HEIGHT = 200;
 /** Offsets from the card's centre. */
-const PIP_Y = -74;
+const PIP_Y = -52;
+const RARITY_PILL_Y = -80;
 const PIP_SPACING = 30;
 const PIP_RADIUS = 10;
 const PIPS_SHIFT_X = 14;
 const LOCK_X = -88;
 const LOCK_SIZE = 20;
-const ROW_Y = [-44, -16, 12] as const;
+const ROW_Y = [-24, 0, 24] as const;
 const ROW_MAX_WIDTH = 204;
-const ACTION_Y = 62;
+const ACTION_Y = 66;
 const ACTION_WIDTH = 190;
 const MAX_TAG_HEIGHT = 40;
 const DISABLED_ALPHA = 0.55;
@@ -121,6 +123,20 @@ export function createGunCard(scene: Phaser.Scene, config: GunCardConfig): GunCa
         height: GUN_CARD_HEIGHT,
       }),
     );
+
+    const def = GUN_LADDER_DEFS.find((g) => g.id === state.gunId);
+    if (def) {
+      const level = state.owned ? state.level : 1;
+      container.add(
+        addPowerPill(
+          scene,
+          config.x,
+          config.y + RARITY_PILL_Y,
+          `${rarityLabel(def.rarity)} · ${powerText(def.id, level)}`,
+          def.rarity,
+        ),
+      );
+    }
 
     const filled = state.owned ? state.level : 0;
     for (let i = 0; i < MAX_GUN_LEVEL; i++) {

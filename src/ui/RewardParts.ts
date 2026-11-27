@@ -10,12 +10,14 @@ import type { NextReward } from '../systems/Rewards';
 import { COLOUR, shade } from '../utils/colour';
 import { pillRadius } from '../utils/math';
 import { EASE } from '../utils/tween';
+import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
+import { addRarityFrame } from './gunRarity';
 import { drawLockIcon } from './icons';
 
 /** The gun's 0-degree sprite or the granny's front pose. */
 export function rewardTextureKey(reward: Pick<NextReward, 'kind' | 'id'>): string {
   return reward.kind !== 'granny'
-    ? SPRITE_KEYS.gunAngle(reward.id, 0)
+    ? SPRITE_KEYS.gun(reward.id)
     : SPRITE_KEYS.grannyPose(reward.id, 'front');
 }
 
@@ -38,6 +40,7 @@ export function addRewardPicture(
 const LOCKED_TINT = shade(COLOUR.cloud, 0.5);
 const LOCKED_ALPHA = 0.85;
 const LOCK_SIZE = 20;
+const FRAME_PAD = 6;
 const LOCK_PLATE_RADIUS = 18;
 const LOCK_CORNER_INSET = 14;
 
@@ -57,7 +60,12 @@ export function addGoalPicture(
 ): Phaser.GameObjects.GameObject[] {
   const image = addRewardPicture(scene, x, y, maxWidth, maxHeight, reward);
   if (!image) return [];
-  if (!locked) return [image];
+  const gun =
+    reward.kind === 'granny' ? undefined : GUN_LADDER_DEFS.find((g) => g.id === reward.id);
+  const frame = gun
+    ? [addRarityFrame(scene, x, y, maxWidth + FRAME_PAD, maxHeight + FRAME_PAD, gun.rarity)]
+    : [];
+  if (!locked) return [...frame, image];
   image.setTint(LOCKED_TINT).setAlpha(LOCKED_ALPHA);
   const plate = scene.add.graphics({
     x: x + maxWidth / 2 - LOCK_CORNER_INSET,
@@ -67,7 +75,7 @@ export function addGoalPicture(
   plate.fillCircle(0, 0, LOCK_PLATE_RADIUS);
   const lock = scene.add.graphics({ x: plate.x, y: plate.y + 1 });
   drawLockIcon(lock, LOCK_SIZE, COLOUR.cloud);
-  return [image, plate, lock];
+  return [...frame, image, plate, lock];
 }
 
 /** Shrinks `text` so it is no wider than `maxWidth`; wide text is made smaller, never cut. */

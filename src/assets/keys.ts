@@ -1,7 +1,7 @@
 /**
  * Asset key registry — every load.image(), setTexture() call must
  * reference a builder here so typos become compile errors (CLAUDE.md
- * §7.3 rule 11). Grannies (3 × 3 poses) and guns (6 × 8 angles) are a
+ * §7.3 rule 11). Grannies (3 × 3 poses) are a
  * combinatorial set, so these are small deterministic key-builder
  * functions rather than a flat object literal — still no raw string
  * literals at any call site, which is the rule's actual intent.
@@ -10,7 +10,6 @@
 import type { InstrumentIconId } from '../audio/orchestra/icons';
 import type { VisitorId } from '../entities/visitor/visitor.types';
 import type { GrannyPose } from '../entities/granny/granny.types';
-import type { GunAngle } from '../entities/gun/gun.types';
 
 export const SPRITE_KEYS = {
   /** public/sprites/grannies/<id>/<pose>.webp */
@@ -18,9 +17,9 @@ export const SPRITE_KEYS = {
   grannyPath: (grannyId: string, pose: GrannyPose): string =>
     `sprites/grannies/${grannyId}/${pose}.webp`,
 
-  /** public/sprites/guns/<id>/<angle>.webp + anchor.json */
-  gunAngle: (gunId: string, angle: GunAngle): string => `gun_${gunId}_${angle}`,
-  gunAnglePath: (gunId: string, angle: GunAngle): string => `sprites/guns/${gunId}/${angle}.webp`,
+  /** public/sprites/guns/<id>/0.webp (one side-on picture, nozzle pointing right) + anchor.json */
+  gun: (gunId: string): string => `gun_${gunId}`,
+  gunPath: (gunId: string): string => `sprites/guns/${gunId}/0.webp`,
   gunAnchorKey: (gunId: string): string => `gun_${gunId}_anchor`,
   gunAnchorPath: (gunId: string): string => `sprites/guns/${gunId}/anchor.json`,
 

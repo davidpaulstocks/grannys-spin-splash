@@ -17,6 +17,8 @@ import { EASE } from '../utils/tween';
 import { textStyle } from '../utils/typography';
 import { createButton } from './Button';
 import { equippedGun, revealIfOwned } from './gunPurchase';
+import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
+import { addPowerPill, powerText } from './gunRarity';
 import { createPanel } from './Panel';
 import { addGoalPicture, createRewardBar, fitWidth, wrapFit } from './RewardParts';
 
@@ -65,6 +67,8 @@ const AFFORDABLE_PERK_MAX_H = 56;
 const BUY_PULSE_SCALE = 1.05;
 const BUY_PULSE_MS = 520;
 const BAR_FILL_MS = 600;
+/** The POWER pill sits on the bottom edge of the picture's frame. */
+const POWER_PILL_DROP = 8;
 
 /** The ribbon: names the goal, or says a gun is ready to take. */
 function ribbonFor(reward: NextReward): string {
@@ -127,6 +131,21 @@ export function createNextRewardCard(
         !reward.canAfford,
       ),
     );
+
+    if (reward.kind !== 'granny') {
+      const gun = GUN_LADDER_DEFS.find((g) => g.id === reward.id);
+      if (gun) {
+        container.add(
+          addPowerPill(
+            scene,
+            left + PICTURE_X,
+            top + PICTURE_Y + PICTURE_MAX_H / 2 + POWER_PILL_DROP,
+            powerText(gun.id),
+            gun.rarity,
+          ),
+        );
+      }
+    }
 
     const textWidth = reward.canAfford ? AFFORDABLE_TEXT_WIDTH : RIGHT_EDGE - TEXT_X;
     const name = scene.add

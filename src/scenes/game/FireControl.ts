@@ -131,8 +131,7 @@ export class FireControl {
       time,
       d.gunSprite.getNozzleWorldPosition(),
       firing && !d.cannon.isPumping && d.cannon.tank > 0,
-      d.gun.particleColour,
-      d.gun.sz,
+      d.gun,
     );
   }
 

@@ -16,7 +16,7 @@ import { MAX_SPINNER_SPEED } from '../../entities/spinner/spinner.data';
 import type { Spinner } from '../../entities/spinner/Spinner';
 import { FIRE_DENSITY_SCALE } from '../../entities/waterParticle/WaterCannon';
 import type { WaterParticle } from '../../entities/waterParticle/WaterParticle';
-import { spawnSplash } from '../../entities/waterParticle/splashVFX';
+import { spawnImpact } from '../../entities/waterParticle/projectiles/impacts';
 import type { FrenzyController } from './FrenzyController';
 import type { VisitorDirector } from './VisitorDirector';
 import type { PowerUpEffects } from './PowerUpEffects';
@@ -67,7 +67,7 @@ export class WaterCollisions {
       const power = usingGoldenSplash ? MAX_SPINNER_SPEED : d.gun.power / FIRE_DENSITY_SCALE;
       const landed = hitSpinner.hit(power);
       hitSpinner.pulse(HIT_PULSE);
-      spawnSplash(d.scene, hitX, hitY, d.gun.particleColour);
+      spawnImpact(d.scene, hitX, hitY, d.gun);
       if (!landed) {
         SFX.playDeflect(); // whirligig
         continue;

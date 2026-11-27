@@ -195,6 +195,8 @@ export class ThumbnailSelector extends Phaser.GameObjects.Container {
       const frame = this._swatchImage.frame;
       const scale = Math.min(THUMB_SIZE / frame.width, THUMB_SIZE / frame.height);
       this._swatchImage.setScale(scale);
+      if (item.silhouette) this._swatchImage.setTintFill(COLOUR.ink);
+      else this._swatchImage.clearTint();
     } else {
       this._swatch.setVisible(true).setFillStyle(item.swatchColour);
       this._swatchImage.setVisible(false);

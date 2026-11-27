@@ -77,7 +77,7 @@ describe('UnlockManager', () => {
   it('pickRandomLockedGun() only returns guns at or below maxTier that are still locked', () => {
     for (let i = 0; i < 20; i++) {
       const picked = unlocks.pickRandomLockedGun(2);
-      expect(picked === null || ['hose', 'splashjr'].includes(picked)).toBe(true);
+      expect(picked === null || ['hose', 'bubble_blitz'].includes(picked)).toBe(true);
     }
   });
 

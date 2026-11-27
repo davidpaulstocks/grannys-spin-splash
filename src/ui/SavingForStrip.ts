@@ -14,6 +14,8 @@ import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { textStyle } from '../utils/typography';
 import { createButton } from './Button';
 import { buyGunWithReveal } from './gunPurchase';
+import { GUN_LADDER_DEFS } from '../entities/gun/gun.data';
+import { powerText } from './gunRarity';
 import { createPanel } from './Panel';
 import { addGoalPicture, createRewardBar, fitWidth, wrapFit } from './RewardParts';
 
@@ -41,6 +43,7 @@ const NAME_X = 100;
 const NAME_Y = 48;
 const NAME_MAX_WIDTH = 112;
 const PERK_Y = 94;
+const POWER_Y = 70;
 const PERK_MAX_WIDTH = 196;
 const PERK_MAX_HEIGHT = 40;
 const BAR_X = 20;
@@ -116,6 +119,20 @@ export function createSavingForStrip(
     )
     .setOrigin(0, 0.5);
   fitWidth(name, NAME_MAX_WIDTH);
+  const gun =
+    reward.kind === 'granny' ? undefined : GUN_LADDER_DEFS.find((g) => g.id === reward.id);
+  if (gun) {
+    parts.push(
+      scene.add
+        .text(
+          left + NAME_X,
+          top + POWER_Y,
+          powerText(gun.id),
+          textStyle('caption', COLOUR_HEX.ink, COLOUR_HEX.cloud),
+        )
+        .setOrigin(0, 0.5),
+    );
+  }
   const perk = scene.add
     .text(
       config.x,

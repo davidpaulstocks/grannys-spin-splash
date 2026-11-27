@@ -65,6 +65,7 @@ export function gunHeadline(gun: GunDef): string {
   const parts: string[] = [];
   if (gun.coinBoost > 1) parts.push(`Coins ×${trimmed(gun.coinBoost)}`);
   if (gun.streams === TWO_JETS) parts.push('Two jets');
+  else if (gun.streams > TWO_JETS) parts.push(`${gun.streams} jets`);
   else if (gun.type === 'fire') parts.push('Fire jet');
   else if (gun.sz >= WIDE_JET_SIZE) parts.push('Wider jet');
   return parts.length > 0 ? parts.join(' · ') : STARTER_PERK;

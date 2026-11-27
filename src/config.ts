@@ -170,7 +170,7 @@ export const WATER_PARTICLE_GRAVITY = Math.round(
   90 * PROTOTYPE_SCALE * WATER_SPEED_BOOST * WATER_SPEED_BOOST,
 );
 export const WATER_PARTICLE_RADIUS = 5;
-export const WATER_PARTICLE_MAX_POOL = 50;
+export const WATER_PARTICLE_MAX_POOL = 160;
 /** Random horizontal wobble added to each shot's direction, in radians. */
 export const WATER_PARTICLE_WOBBLE = 0.04;
 /** Super Soaker power-up: horizontal shear on its two extra side streams (prototype: `wobbleExtra`, ±0.12). */

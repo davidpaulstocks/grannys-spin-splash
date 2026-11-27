@@ -9,6 +9,7 @@ import type { GunDef } from './gun.types';
 import {
   GUN_LEVEL_COIN_STEP,
   GUN_LEVEL_POWER_STEP,
+  GUN_LEVEL_RATING_STEP,
   GUN_UPGRADE_BASE_COST_SHARE,
   GUN_UPGRADE_COST_GROWTH,
   GUN_UPGRADE_MIN_COST,
@@ -49,4 +50,11 @@ export function upgradeCost(def: GunDef, level: number): number | null {
   const base = Math.max(GUN_UPGRADE_MIN_COST, def.cost * GUN_UPGRADE_BASE_COST_SHARE);
   const raw = base * GUN_UPGRADE_COST_GROWTH ** (current - MIN_GUN_LEVEL);
   return Math.round(raw / GUN_UPGRADE_ROUNDING) * GUN_UPGRADE_ROUNDING;
+}
+
+/** The gun's displayed POWER number at `level`: grows 8% of the base per level above 1 (a display number only). */
+export function powerRatingAt(def: GunDef, level = MIN_GUN_LEVEL): number {
+  return Math.round(
+    def.powerRating * (1 + GUN_LEVEL_RATING_STEP * (clampGunLevel(level) - MIN_GUN_LEVEL)),
+  );
 }

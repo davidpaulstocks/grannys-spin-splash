@@ -3,6 +3,7 @@
 
 Usage:  npm run instruments           (reads _art_inbox/instruments/<sheet name>.png, .jpg, .jpeg or .webp)
         npm run visitors              (the same for the visitors: --set visitors)
+        npm run guns                  (the same for the guns: --set guns)
 
 --set instruments (the default) cuts the instrument sheets named in tools/instrument-sheets.json
 into public/sprites/instruments. --set visitors cuts the two visitor sheets named in
@@ -18,6 +19,15 @@ For every sheet named in the set's JSON file that exists in the inbox:
      then column.
   4. Crops each tight with a 4% margin, pads to a square, resizes to 256x256
      and writes public/sprites/instruments/<icon>.png.
+The grid is worked out from where the six blobs sit (rows by vertical centre, each row left to right), so a
+sheet may be 3x2 or 2x3.
+
+--set guns cuts tools/gun-sheets.json from _art_inbox/guns into public/sprites/guns/<id>/0.png. A gun is wide,
+so it is cropped tight (same margin), scaled to fit a 384x256 canvas without squashing and centred. A sheet
+entry may be {"ids": [...], "flip": [ids]}: ids listed in "flip" are mirrored left to right first (painted
+nozzle-left). The nozzle point (mean of the right-most opaque pixels, or a per-gun
+"nozzle": {"id": [x, y]} override in the sheet's entry, in picture pixels) goes to <id>/anchor.json as
+{"x": .., "y": ..} in picture pixels. Gun pictures all face right; Gun.ts turns them in code.
 Then it runs `npm run optimise` (PNG -> WebP, PNG removed) and prints the ids to add to
 INSTRUMENT_ART_READY (src/entities/spinner/instrumentArt.data.ts) or, for visitors,
 VISITOR_ART_READY (src/entities/visitor/visitorArt.data.ts).
@@ -50,16 +60,27 @@ SETS = {
         "out": os.path.join(ROOT, "public", "sprites", "visitors"),
         "ready_list": "VISITOR_ART_READY in src/entities/visitor/visitorArt.data.ts",
     },
+    "guns": {
+        "sheets_json": os.path.join(ROOT, "tools", "gun-sheets.json"),
+        "inbox": os.path.join(ROOT, "_art_inbox", "guns"),
+        "out": os.path.join(ROOT, "public", "sprites", "guns"),
+        "ready_list": "GUN_ART_READY in src/entities/gun/gun.data.ts",
+        "wide": True,
+    },
 }
 
 CELLS_PER_SHEET = 6
-COLUMNS = 3
+ROW_GAP_FRACTION = 0.5  # a new row starts when the next blob's centre is this far (x median blob height) below
+GUN_CANVAS = (384, 256)  # guns are wide: fitted into this, centred, never squashed
+NOZZLE_EDGE_PX = 4  # the nozzle is the mean of the opaque pixels within this many px of the right-most one
+NOZZLE_ALPHA = 128
 MAX_SHEET_SIDE = 2048  # bigger sheets are scaled down to this
 WHITE_TOLERANCE = 20  # a pixel is background-white if every channel >= 255 - this
 OUTPUT_SIZE = 256
 CROP_MARGIN = 0.04
 GROUP_SCALE = 8  # blobs are found at 1/8 size...
 GROUP_DILATE = 7  # ...after growing by this many low-res px, so a bow joins its violin
+GUN_GROUP_DILATE = 3  # a gun is one piece, and its neighbours sit close: group less
 MIN_BLOB_FRACTION = 0.04  # the sixth blob must be at least this fraction of the biggest
 
 
@@ -101,12 +122,12 @@ def background_mask(rgb):
     return bg
 
 
-def find_blobs(foreground):
+def find_blobs(foreground, dilate=GROUP_DILATE):
     """Groups foreground pixels into blobs. Returns [(area, (x0, y0, x1, y1), labels_lowres)] biggest first."""
     w, h = foreground.size
     small_w, small_h = max(1, w // GROUP_SCALE), max(1, h // GROUP_SCALE)
     small = foreground.resize((small_w, small_h), Image.BOX).point(lambda v: 255 if v > 0 else 0)
-    small = small.filter(ImageFilter.MaxFilter(GROUP_DILATE))
+    small = small.filter(ImageFilter.MaxFilter(dilate))
     sdata = small.tobytes()
     label = [0] * (small_w * small_h)
     count = 0
@@ -130,7 +151,58 @@ def find_blobs(foreground):
     return label, count, small_w, small_h
 
 
-def slice_sheet(path, icons, out_dir):
+def order_by_grid(ranked, boxes):
+    """Orders blobs row by row (top first), each row left to right, whatever the grid shape."""
+    centres = {k: ((boxes[k][0] + boxes[k][2]) / 2, (boxes[k][1] + boxes[k][3]) / 2) for k in ranked}
+    heights = sorted(boxes[k][3] - boxes[k][1] for k in ranked)
+    gap = heights[len(heights) // 2] * ROW_GAP_FRACTION
+    by_y = sorted(ranked, key=lambda k: centres[k][1])
+    rows, last_y = [], None
+    for k in by_y:
+        if last_y is None or centres[k][1] - last_y > gap:
+            rows.append([])
+        rows[-1].append(k)
+        last_y = centres[k][1]
+    print(f"  grid: {len(rows)} rows of " + ", ".join(str(len(r)) for r in rows))
+    ordered = []
+    for row in rows:
+        ordered += sorted(row, key=lambda k: centres[k][0])
+    return ordered
+
+
+def keep_only_blob(tile, box, label, sw, sh, scale_x, scale_y, k):
+    """Clears the pixels of the crop that belong to a neighbouring gun (the crop margin can reach one)."""
+    keep = bytearray(tile.width * tile.height)
+    for y in range(tile.height):
+        ly = min(sh - 1, int((box[1] + y) / scale_y)) * sw
+        for x in range(tile.width):
+            if label[ly + min(sw - 1, int((box[0] + x) / scale_x))] == k:
+                keep[y * tile.width + x] = 255
+    mask = Image.frombytes("L", tile.size, bytes(keep))
+    alpha = ImageChops.multiply(tile.getchannel("A"), mask)
+    tile = tile.copy()
+    tile.putalpha(alpha)
+    return tile
+
+
+def fit_gun(tile, flip, nozzle_override=None):
+    """Fits a cropped gun into the canvas (no squashing) and finds its nozzle. Returns (image, (x, y))."""
+    if flip:
+        tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
+    cw, ch = GUN_CANVAS
+    scale = min(cw / tile.width, ch / tile.height)
+    tile = tile.resize((max(1, round(tile.width * scale)), max(1, round(tile.height * scale))), Image.LANCZOS)
+    canvas = Image.new("RGBA", GUN_CANVAS, (0, 0, 0, 0))
+    ox, oy = (cw - tile.width) // 2, (ch - tile.height) // 2
+    canvas.paste(tile, (ox, oy))
+    alpha = canvas.getchannel("A").tobytes()
+    rightmost = max((i % cw for i, a in enumerate(alpha) if a >= NOZZLE_ALPHA), default=cw - 1)
+    pts = [(i % cw, i // cw) for i, a in enumerate(alpha) if a >= NOZZLE_ALPHA and i % cw >= rightmost - NOZZLE_EDGE_PX]
+    nozzle = (round(sum(p[0] for p in pts) / len(pts)), round(sum(p[1] for p in pts) / len(pts)))
+    return canvas, (tuple(nozzle_override) if nozzle_override else nozzle)
+
+
+def slice_sheet(path, icons, out_dir, wide=False, flip=(), nozzles=None):
     """Cuts one sheet into its icons. Returns the ids written."""
     sheet = Image.open(path)
     if sheet.mode in ("RGBA", "LA", "P"):
@@ -151,7 +223,7 @@ def slice_sheet(path, icons, out_dir):
     rgba = rgb.convert("RGBA")
     rgba.putalpha(alpha)
 
-    label, count, sw, sh = find_blobs(foreground)
+    label, count, sw, sh = find_blobs(foreground, GUN_GROUP_DILATE if wide else GROUP_DILATE)
     scale_x, scale_y = w / sw, h / sh
     areas = [0] * (count + 1)
     boxes = [None] * (count + 1)
@@ -179,12 +251,7 @@ def slice_sheet(path, icons, out_dir):
         print(f"  warning: the smallest instrument found is tiny - check {os.path.basename(path)}")
 
     centres = {k: ((boxes[k][0] + boxes[k][2]) / 2, (boxes[k][1] + boxes[k][3]) / 2) for k in ranked}
-    by_row = sorted(ranked, key=lambda k: centres[k][1])
-    rows_count = CELLS_PER_SHEET // COLUMNS
-    ordered = []
-    for r in range(rows_count):
-        row = by_row[r * COLUMNS:(r + 1) * COLUMNS]
-        ordered += sorted(row, key=lambda k: centres[k][0])
+    ordered = order_by_grid(ranked, boxes)
 
     os.makedirs(out_dir, exist_ok=True)
     written = []
@@ -193,6 +260,17 @@ def slice_sheet(path, icons, out_dir):
         margin = round(max(x1 - x0, y1 - y0) * CROP_MARGIN)
         box = (max(0, x0 - margin), max(0, y0 - margin), min(w, x1 + margin + 1), min(h, y1 + margin + 1))
         tile = rgba.crop(box)
+        if wide:
+            tile = keep_only_blob(tile, box, label, sw, sh, scale_x, scale_y, k)
+            canvas, nozzle = fit_gun(tile, icon in flip, (nozzles or {}).get(icon))
+            gun_dir = os.path.join(out_dir, icon)
+            os.makedirs(gun_dir, exist_ok=True)
+            canvas.save(os.path.join(gun_dir, "0.png"))
+            with open(os.path.join(gun_dir, "anchor.json"), "w") as f:
+                json.dump({"x": nozzle[0], "y": nozzle[1]}, f)
+                f.write("\n")
+            written.append(icon)
+            continue
         side = max(tile.size)
         square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
         square.paste(tile, ((side - tile.width) // 2, (side - tile.height) // 2))
@@ -217,7 +295,9 @@ def main():
     with open(chosen["sheets_json"]) as f:
         sheets = json.load(f)["sheets"]
     done = []
-    for name, icons in sheets.items():
+    for name, entry in sheets.items():
+        icons, flip = (entry["ids"], entry.get("flip", [])) if isinstance(entry, dict) else (entry, [])
+        nozzles = entry.get("nozzle") if isinstance(entry, dict) else None
         # Nano Banana often saves a JPG whatever the file is called, so take any of these.
         candidates = [os.path.join(args.inbox, name + ext) for ext in (".png", ".jpg", ".jpeg", ".webp")]
         path = next((c for c in candidates if os.path.isfile(c)), None)
@@ -225,7 +305,7 @@ def main():
             print(f"skip {name}: not in {args.inbox}")
             continue
         print(f"slicing {name} ...")
-        written = slice_sheet(path, icons, args.out)
+        written = slice_sheet(path, icons, args.out, chosen.get("wide", False), flip, nozzles)
         print("  wrote " + ", ".join(written))
         done += written
     if not done:
@@ -235,9 +315,15 @@ def main():
         print("optimising ...")
         subprocess.run(["bash", "tools/sprite-optimise.sh"], cwd=ROOT, check=True)
 
-    ready = sorted(
-        os.path.splitext(n)[0] for n in os.listdir(args.out) if n.endswith((".webp", ".png"))
-    )
+    if chosen.get("wide"):
+        ready = sorted(
+            d for d in os.listdir(args.out)
+            if os.path.isfile(os.path.join(args.out, d, "0.webp")) or os.path.isfile(os.path.join(args.out, d, "0.png"))
+        )
+    else:
+        ready = sorted(
+            os.path.splitext(n)[0] for n in os.listdir(args.out) if n.endswith((".webp", ".png"))
+        )
     print("\nIcons sliced this run: " + ", ".join(done))
     print(f"\nSet {chosen['ready_list']} to:")
     print("[" + ", ".join(f"'{i}'" for i in ready) + "]")

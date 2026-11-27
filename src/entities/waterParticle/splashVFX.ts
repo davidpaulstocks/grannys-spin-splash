@@ -40,15 +40,18 @@ const CONFETTI_SPEED_RANGE = 90;
 const CONFETTI_FALL = 90;
 const CONFETTI_DURATION_MS = 900;
 
-/** Spawns a small radial water-droplet burst centred on (x, y), tinted `colour` (defaults to Water Blue). */
+/**
+ * Spawns a small radial water-droplet burst centred on (x, y), tinted `colour` (defaults to Water Blue).
+ * Returns false when the burst was skipped because another landed a moment ago.
+ */
 export function spawnSplash(
   scene: Phaser.Scene,
   x: number,
   y: number,
   colour: number = COLOUR.waterBlue,
-): void {
+): boolean {
   const now = scene.time.now;
-  if (now - _lastSplashAt < SPLASH_MIN_INTERVAL_MS && now >= _lastSplashAt) return;
+  if (now - _lastSplashAt < SPLASH_MIN_INTERVAL_MS && now >= _lastSplashAt) return false;
   _lastSplashAt = now;
 
   // The ripple: a ring that opens out from the point of impact.
@@ -80,6 +83,7 @@ export function spawnSplash(
       onComplete: () => droplet.destroy(),
     });
   }
+  return true;
 }
 
 /**

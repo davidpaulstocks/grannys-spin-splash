@@ -13,6 +13,8 @@ import { playStarChime } from '../audio/ResultsMusic';
 import { SPRITE_KEYS } from '../assets/keys';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { GUN_DEFS } from '../entities/gun/gun.data';
+import { powerRatingAt } from '../entities/gun/gunLevels';
+import { addPowerPill, rarityColour, rarityHex, rarityLabel } from './gunRarity';
 import { gunStats, statRows } from '../systems/gunStats';
 import { COLOUR, COLOUR_HEX } from '../utils/colour';
 import { BOUNCE_OVERSHOOT, DURATION, EASE } from '../utils/tween';
@@ -51,15 +53,21 @@ const RAY_HALF_ANGLE = 0.09;
 const RAY_ALPHA = 0.1;
 const RAY_TURN_MS = 26000;
 const GUN_X = CENTRE_X;
-const GUN_Y = 232;
-const GUN_MAX_W = 400;
-const GUN_MAX_H = 210;
+const GUN_Y = 198;
+/** The picture is this fraction of its own size for the pistol; `showScale` (1 to 1.5) makes bigger guns bigger, within the box. */
+const GUN_BASE_SCALE = 0.6;
+const GUN_MAX_W = 560;
+const GUN_MAX_H = 230;
 const GUN_START_SCALE = 0.15;
-const HEADLINE_Y = 64;
-const NAME_Y = 384;
+const HEADLINE_Y = 52;
+const NAME_Y = 338;
+const RARITY_Y = 380;
+const POWER_Y = 424;
+const POWER_COUNT_MS = 900;
+const LEGENDARY_BURST_AT_MS = 420;
 const NAME_MAX_WIDTH = 780;
-const ROWS_Y = 452;
-const ROW_GAP = 56;
+const ROWS_Y = 486;
+const ROW_GAP = 50;
 const ROWS_START_MS = 750;
 const ROW_STEP_MS = 450;
 const BUTTONS_Y = 664;
@@ -69,6 +77,7 @@ const USE_MIN_WIDTH = 240;
 const BUTTONS_AT_MS = ROWS_START_MS + ROW_STEP_MS * 2 + 200;
 const CHIME_GAP_MS = 180;
 const CHIME_COUNT = 3;
+const RARITY_TAG_SCALE = 1.25;
 
 /** Opens the reveal over `scene` and returns a handle to close it early. */
 export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): GunRevealHandle {
@@ -91,7 +100,7 @@ export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): Gun
   root.add(backdrop);
 
   const rays = scene.add.graphics({ x: GUN_X, y: GUN_Y });
-  rays.fillStyle(COLOUR.sunnyGold, RAY_ALPHA);
+  rays.fillStyle(rarityColour(next.rarity), RAY_ALPHA);
   for (let i = 0; i < RAY_COUNT; i++) {
     const a = (i / RAY_COUNT) * Math.PI * 2;
     rays.fillTriangle(
@@ -118,10 +127,14 @@ export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): Gun
     .setOrigin(0.5);
   root.add(headline);
 
-  const key = SPRITE_KEYS.gunAngle(next.id, 0);
+  const key = SPRITE_KEYS.gun(next.id);
   if (scene.textures.exists(key)) {
     const image = scene.add.image(GUN_X, GUN_Y, key);
-    const scale = Math.min(GUN_MAX_W / image.width, GUN_MAX_H / image.height);
+    const scale = Math.min(
+      GUN_BASE_SCALE * next.showScale,
+      GUN_MAX_W / image.width,
+      GUN_MAX_H / image.height,
+    );
     image.setScale(scale * GUN_START_SCALE);
     root.add(image);
     tweenList.push(
@@ -139,6 +152,34 @@ export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): Gun
     .setOrigin(0.5);
   fitWidth(name, NAME_MAX_WIDTH);
   root.add(name);
+
+  root.add(
+    addPowerPill(scene, CENTRE_X, RARITY_Y, rarityLabel(next.rarity), next.rarity).setScale(
+      RARITY_TAG_SCALE,
+    ),
+  );
+  const power = scene.add
+    .text(
+      CENTRE_X,
+      POWER_Y,
+      `POWER ${powerRatingAt(before, config.previousLevel ?? 1).toLocaleString('en-US')}`,
+      textStyle('displayM', rarityHex(next.rarity), COLOUR_HEX.ink),
+    )
+    .setOrigin(0.5);
+  root.add(power);
+  const powerTo = powerRatingAt(next, config.level ?? 1);
+  const powerFrom = powerRatingAt(before, config.previousLevel ?? 1);
+  tweenList.push(
+    scene.tweens.addCounter({
+      from: powerFrom,
+      to: powerTo,
+      delay: ROWS_START_MS - ROW_STEP_MS,
+      duration: POWER_COUNT_MS,
+      ease: EASE.standardOut,
+      onUpdate: (tween) =>
+        power.setText(`POWER ${Math.round(tween.getValue() ?? powerTo).toLocaleString('en-US')}`),
+    }),
+  );
 
   const parts = rows.map((row, i) => buildRow(scene, root, row, ROWS_Y + i * ROW_GAP));
   parts.forEach((p, i) => {
@@ -201,5 +242,14 @@ export function showGunReveal(scene: Phaser.Scene, config: GunRevealConfig): Gun
     timers.push(scene.time.delayedCall(i * CHIME_GAP_MS, () => playStarChime(i)));
   }
   spawnSparkles(scene, GUN_X, GUN_Y, DEPTH + 1);
+  if (next.rarity === 'legendary') {
+    // A second burst for the rarest guns, in the rarity gold and white.
+    timers.push(
+      scene.time.delayedCall(LEGENDARY_BURST_AT_MS, () => {
+        if (open)
+          spawnSparkles(scene, GUN_X, GUN_Y, DEPTH + 1, [rarityColour('legendary'), COLOUR.cloud]);
+      }),
+    );
+  }
   return { close };
 }
