@@ -27,7 +27,11 @@
 set -euo pipefail
 
 SPRITE_DIR="public/sprites"
-CAP_BYTES=$((3600 * 1024))
+# Raised from 3600 to 3900 KB on 2026-11-27 for the fifth and sixth grannies: with the rest of the
+# initial download at about 3.2 MB (code, fonts, audio), 3.9 MB of sprites still leaves the build
+# under 8 MB, and `npm run budget` is the check that decides. More worlds will need their art
+# loaded on demand rather than a higher cap.
+CAP_BYTES=$((3900 * 1024))
 
 if [ ! -d "$SPRITE_DIR" ]; then
   echo "sprite-optimise: $SPRITE_DIR not found — run from the project root" >&2
