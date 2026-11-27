@@ -37,7 +37,8 @@ export class WaterJet {
   /**
    * Puts the jet just behind `object` in the scene's drawing order. The jet is
    * drawn from the nozzle, so in front of the gun its squared-off start shows
-   * across the muzzle; behind Granny and her gun it appears to come out of it.
+   * across the muzzle; just behind the gun it appears to come out of it. It
+   * stays in front of Granny: she holds the gun, so the water passes over her.
    */
   drawBehind(object: Phaser.GameObjects.GameObject): void {
     this._gfx.scene.children.moveBelow(this._gfx, object);

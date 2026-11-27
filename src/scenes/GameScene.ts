@@ -173,7 +173,7 @@ export class GameScene extends Phaser.Scene {
     });
     this._cannon = new WaterCannon(this, this._gun, this._waterPool, this._talents);
     this._jet = new WaterJet(this, this._waterPool);
-    this._jet.drawBehind(this._granny);
+    this._jet.drawBehind(this._gunSprite);
     this._music = new MusicReactions(this, this._world, this._gig);
     this._guide = new FirstRunGuide(this, this._world);
     this._flair = new LevelUpFlair(this, this._world);
