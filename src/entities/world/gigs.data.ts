@@ -11,6 +11,7 @@
  * numbers were set against a bot that plays like a child (see gun.data.ts).
  */
 
+import { GUN_LADDER } from '../gun/gun.data';
 import { FRENZY_THRESHOLDS } from '../spinner/spinner.data';
 import { WORLD_DEFS } from './world.data';
 import type { WorldDef } from './world.types';
@@ -141,23 +142,115 @@ export function awakeNeededForStars(band: number): readonly [number, number, num
 }
 
 /**
+ * The gun a first pass through a venue is expected to be holding at each of
+ * its eight gigs (level 1, no upgrades): the guns the owner expects a player
+ * to have bought by then. The star targets are set against these, so buying
+ * the next gun early makes a gig easier and arriving late makes it harder.
+ */
+export const FIRST_PASS_GUNS: Readonly<Record<string, readonly string[]>> = {
+  garden: [
+    'pistol',
+    'pistol',
+    'pistol',
+    'hose',
+    'hose',
+    'bubble_blitz',
+    'bubble_blitz',
+    'splashjr',
+  ],
+  workshop: [
+    'splashjr',
+    'splashjr',
+    'splashjr',
+    'hydro_blaster',
+    'hydro_blaster',
+    'hydro_blaster',
+    'slime_slinger',
+    'slime_slinger',
+  ],
+  kitchen: [
+    'soaker3000',
+    'soaker3000',
+    'soaker3000',
+    'soaker3000',
+    'shark_soaker',
+    'shark_soaker',
+    'shark_soaker',
+    'shark_soaker',
+  ],
+  funfair: [
+    'blizzard_blaster',
+    'blizzard_blaster',
+    'blizzard_blaster',
+    'blizzard_blaster',
+    'thunder_soaker',
+    'thunder_soaker',
+    'thunder_soaker',
+    'thunder_soaker',
+  ],
+  disco: [
+    'inferno',
+    'inferno',
+    'inferno',
+    'inferno',
+    'rainbow_rocket',
+    'rainbow_rocket',
+    'rainbow_rocket',
+    'rainbow_rocket',
+  ],
+};
+
+/**
  * Coin targets for one, two and three stars (docs/REWARD_LOOP.md). They are
  * fractions of "par": the whole band at full speed for the whole gig with no
- * groove. One star is 0.8 of par, three stars 6 times it (raised from
- * 0.5 / 1.8 / 3.2 after a play-test took three stars on every gig without
- * trying), so three cannot be reached without building the groove high and
- * keeping it.
+ * groove and no gun. One star is 0.8 of par, three stars 6 times it (raised
+ * from 0.5 / 1.8 / 3.2 after a play-test took three stars on every gig
+ * without trying), so three cannot be reached without building the groove
+ * high and keeping it.
  */
 const PAY_TICKS_PER_SECOND = 2;
 const FULL_SPEED_PAY = 4;
 const STAR_TARGET_FRACTIONS = [0.8, 3.0, 6.0] as const;
 /**
- * Later venues ask for more, because by then the player owns a gun that
- * multiplies coins. Each step is smaller than the gun a player would
- * plausibly own there, so an upgrade always makes the targets easier.
+ * Par is then multiplied by the coin boost of the gun the venue's first pass
+ * is expected to hold at that gig (`FIRST_PASS_GUNS`), because that gun is
+ * what pays the coins, and by two small factors that say how hard the venue
+ * and the place on its ladder make it to reach par.
+ *
+ * Tuned 2026-11-27 against the dev bot (src/dev/botSim.ts: a child, a keen
+ * and an expert player, visitors on, the Big Finish bow bonus included, 16
+ * runs a case) holding the expected gun at level 1. A child passes (one
+ * star) in nine runs in ten at the start of each venue and three in four
+ * elsewhere, and averages about two stars; a keen player averages about two
+ * and a quarter, three-stars the first two gigs of a venue about half the
+ * time or better and a third or fewer of the last three; an expert
+ * three-stars the last gig in at most seven runs in ten; and a keen player
+ * two guns further up the ladder three-stars most gigs.
+ *
+ * Venue by venue: Garden and Disco a little under the coin boost (the
+ * pistol, and the mirror-ball finale's extra spinner), the rest a little over.
  */
-const STAR_TARGET_VENUE_GAIN = [1, 1.25, 1.6, 2, 2.6] as const;
+const STAR_TARGET_VENUE_GAIN = [0.95, 1.05, 1.05, 1.05, 0.95] as const;
+/**
+ * By gig on the ladder. A trio is saturated by any gun, so the early gigs
+ * ask for close to full boost (1.2 x par x boost); bigger bands are harder
+ * to keep at full speed, so the later gigs ask for less per gun. The second
+ * gig dips because it is as long as the first (20 s) with a musician more.
+ */
+const STAR_TARGET_GIG_SCALE = [1.2, 1.05, 1.2, 1.2, 1.1, 1.1, 1.05, 1.0] as const;
+/**
+ * Only the first star, by venue. The Garden's starter pistol leaves a slow
+ * child with a bad run a fifth of a normal one, so its first star sits at
+ * 0.7 of the share above; elsewhere it follows the other two.
+ */
+const FIRST_STAR_EASE = [0.7, 1, 1, 1, 1] as const;
 const STAR_TARGET_ROUND_TO = 10;
+
+/** The coin boost of the gun a first pass holds at this gig (1 if the venue or gun is unknown). */
+function firstPassBoost(venueId: string, index: number): number {
+  const gunId = (FIRST_PASS_GUNS[venueId] ?? FIRST_PASS_GUNS.garden)?.[index];
+  return GUN_LADDER.find((gun) => gun.id === gunId)?.coinBoost ?? 1;
+}
 
 export function starTargets(gig: GigDef): readonly [number, number, number] {
   const venueTier = Math.max(
@@ -169,14 +262,16 @@ export function starTargets(gig: GigDef): readonly [number, number, number] {
     FULL_SPEED_PAY *
     gig.seconds *
     PAY_TICKS_PER_SECOND *
-    (STAR_TARGET_VENUE_GAIN[venueTier] ?? 1);
-  const target = (fraction: number): number =>
+    firstPassBoost(gig.venueId, gig.index) *
+    (STAR_TARGET_VENUE_GAIN[venueTier] ?? 1) *
+    (STAR_TARGET_GIG_SCALE[gig.index] ?? 1);
+  const target = (fraction: number, ease = 1): number =>
     Math.max(
       STAR_TARGET_ROUND_TO,
-      Math.round((par * fraction) / STAR_TARGET_ROUND_TO) * STAR_TARGET_ROUND_TO,
+      Math.round((par * fraction * ease) / STAR_TARGET_ROUND_TO) * STAR_TARGET_ROUND_TO,
     );
   return [
-    target(STAR_TARGET_FRACTIONS[0]),
+    target(STAR_TARGET_FRACTIONS[0], FIRST_STAR_EASE[venueTier] ?? 1),
     target(STAR_TARGET_FRACTIONS[1]),
     target(STAR_TARGET_FRACTIONS[2]),
   ];

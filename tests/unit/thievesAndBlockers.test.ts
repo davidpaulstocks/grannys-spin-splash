@@ -5,7 +5,13 @@ import { stealPerTick } from '../../src/entities/visitor/theft';
 import { BLOCKER, THIEF } from '../../src/entities/visitor/visitorTuning.data';
 import type { WorldDef } from '../../src/entities/world/world.types';
 import { WORLD_DEFS } from '../../src/entities/world/world.data';
-import { GIGS_PER_VENUE, gigFor, starTargets } from '../../src/entities/world/gigs.data';
+import { GUN_LADDER } from '../../src/entities/gun/gun.data';
+import {
+  FIRST_PASS_GUNS,
+  GIGS_PER_VENUE,
+  gigFor,
+  starTargets,
+} from '../../src/entities/world/gigs.data';
 
 const GARDEN: WorldDef = WORLD_DEFS.find((w) => w.id === 'garden') ?? WORLD_DEFS[0];
 
@@ -72,13 +78,21 @@ describe('pickCluster', () => {
 });
 
 describe('star targets', () => {
-  it('are 0.8, 3.0 and 6.0 times par for the whole band at full speed', () => {
-    const gig = gigFor(GARDEN, 0);
-    const par = gig.band * 4 * gig.seconds * 2;
-    const [one, two, three] = starTargets(gig);
-    expect(one).toBeCloseTo(par * 0.8, -1);
-    expect(two).toBeCloseTo(par * 3.0, -1);
-    expect(three).toBeCloseTo(par * 6, -1);
+  it('put two stars at half of three, for every gig of every venue', () => {
+    for (const world of WORLD_DEFS) {
+      for (let i = 0; i < GIGS_PER_VENUE; i++) {
+        const [, two, three] = starTargets(gigFor(world, i));
+        expect(two / three).toBeCloseTo(0.5, 1);
+      }
+    }
+  });
+
+  it('put one star at 0.8 / 6 of three, or lower where the first star is eased', () => {
+    for (const world of WORLD_DEFS) {
+      const [one, , three] = starTargets(gigFor(world, 3));
+      expect(one / three).toBeLessThanOrEqual(0.8 / 6 + 0.005);
+      expect(one / three).toBeGreaterThan(0.5 * (0.8 / 6));
+    }
   });
 
   it('rise through every gig of a venue', () => {
@@ -87,6 +101,41 @@ describe('star targets', () => {
       expect(a).toBeLessThan(b);
       expect(b).toBeLessThan(c);
     }
+  });
+
+  it('track the coin boost of the gun the first pass is expected to hold', () => {
+    // Garden gig 4 and gig 3 differ in band, length and gun: dividing each by its
+    // par and gun leaves only the (small) gig scale between them.
+    const perGun = (index: number): number => {
+      const gig = gigFor(GARDEN, index);
+      const par = gig.band * 4 * gig.seconds * 2;
+      const boost =
+        GUN_LADDER.find((g) => g.id === FIRST_PASS_GUNS.garden?.[index])?.coinBoost ?? 0;
+      return starTargets(gig)[2] / (par * boost);
+    };
+    expect(perGun(3) / perGun(2)).toBeGreaterThan(0.8);
+    expect(perGun(3) / perGun(2)).toBeLessThan(1.2);
+  });
+
+  it('list a real gun for every gig of every venue, never going back down the ladder', () => {
+    for (const world of WORLD_DEFS) {
+      const guns = FIRST_PASS_GUNS[world.id] ?? [];
+      expect(guns).toHaveLength(GIGS_PER_VENUE);
+      const order = guns.map((id) => GUN_LADDER.findIndex((g) => g.id === id));
+      expect(order.every((at) => at >= 0)).toBe(true);
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+    }
+  });
+
+  it('ask more of each later venue, where the expected gun pays more', () => {
+    const third = (id: string): number => {
+      const world = WORLD_DEFS.find((w) => w.id === id) ?? GARDEN;
+      return starTargets(gigFor(world, 0))[2] / (gigFor(world, 0).band * gigFor(world, 0).seconds);
+    };
+    expect(third('workshop')).toBeGreaterThan(third('garden'));
+    expect(third('kitchen')).toBeGreaterThan(third('workshop'));
+    expect(third('funfair')).toBeGreaterThan(third('kitchen'));
+    expect(third('disco')).toBeGreaterThan(third('funfair'));
   });
 });
 
