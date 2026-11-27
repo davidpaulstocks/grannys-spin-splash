@@ -20,6 +20,7 @@ npm run instruments    # cut instrument art sheets in _art_inbox/instruments/ in
 npm run visitors       # cut visitor art sheets in _art_inbox/visitors/ into pictures
 npm run guns           # cut gun art sheets in _art_inbox/guns/ into one picture + anchor + large hero.webp (for the reveal) per gun
 npm run guns -- --hero-only   # rewrite only the hero.webp pictures, leaving the small pictures and anchors alone
+npm run grannies       # cut a granny's three painted poses in _art_inbox/grannies/ into public/sprites/grannies/<id>/ (tools/cut-granny.py)
 ```
 
 ## Balance harness (dev only)
@@ -32,7 +33,7 @@ In a dev build (`npm run dev`), open the browser console and run `await window._
 
 ## What a gig is, today (2026-11-27)
 
-Every gig opens with a band count-in (3, 2, 1, GO!); the water then fires by itself (Space switches it off and on) and the player only aims. Visitors (treats, coin thieves, blockers) come from a venue's first gig; at the whistle a Big Finish pays each instrument still playing. There are eighteen guns; buying one (or tapping SEE IT BLAST on a gun not yet owned) plays a short product-film reveal. Passing a venue's last gig unlocks its Jam, a toy mode with no timer or score. None of this has been played or heard by the owner yet; see `BACKLOG.md`.
+Every gig opens with a band count-in (3, 2, 1, GO!); the water then fires by itself (there is no off switch; Space does nothing in play) and the player only aims, with free aim that snaps to an instrument only when the pointer is close to it. Visitors (treats, coin thieves, blockers) come from a venue's first gig; at the whistle a Big Finish pays each instrument still playing. There are twenty-four guns across six worlds (the sixth, the Pirate Ship, opens at 110 stars), and five grannies who join at star milestones rather than costing coins; buying a gun (or tapping SEE IT BLAST on a gun not yet owned) plays a short product-film reveal. Passing a venue's last gig unlocks its Jam, a toy mode with no timer or score. The owner and his son played earlier builds on 2026-11-27, but nothing from the Pirate Ship, the Mythic guns or the granny talents onward has been played or heard by him; see `BACKLOG.md`.
 
 ## Where the plans live
 

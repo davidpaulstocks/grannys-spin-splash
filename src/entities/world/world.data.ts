@@ -95,7 +95,6 @@ export const WORLD_DEFS: readonly WorldDef[] = [
     time: ROUND_LENGTH_SECONDS,
     starsToOpen: 110,
     deckRolls: true,
-    // The sail canvas between the rail and the deck: stand-in measure, re-measure when the painting lands.
     // Measured against the painting: the big cream sail (about x 211 to 1037, to y 591).
     wallArea: { x: 225, y: 140, width: 800, height: 350 },
   },

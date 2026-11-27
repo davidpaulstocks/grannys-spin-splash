@@ -202,7 +202,7 @@ function drawDisco(scene: Phaser.Scene): void {
   g.fillRect(0, groundY, GAME_WIDTH, 8);
 }
 
-/** Pirate Ship stand-in: sky and sea behind, a sail-cloth wall, a rail and a wooden deck — until the painting arrives. */
+/** Pirate Ship stand-in: sky and sea behind, a sail-cloth wall, a rail and a wooden deck. Now only a fallback: the owner's painting ships. */
 function drawShip(scene: Phaser.Scene): void {
   const g = scene.add.graphics().setDepth(-100);
   const groundY = GAME_HEIGHT * (1 - GROUND_HEIGHT_RATIO);

@@ -1,5 +1,7 @@
 # Art Brief — Instruments
 
+> **Note (2026-11-27): how art is actually made now.** Instruments, visitors and guns are painted as sheets on pure white, dropped in `_art_inbox/<instruments|visitors|guns>/` and cut by `npm run instruments`, `npm run visitors` or `npm run guns` (`tools/slice-instrument-sheet.py`; the sheets are named in `tools/*-sheets.json`), which remove the white (keeping white inside a closed outline), crop, size and convert to WebP, then print the ids to add to the matching `*_ART_READY` list. This brief's six-by-six plan is how the instruments were made; the 36 pictures are done.
+
 **For:** painting the 36 instrument pictures that sit in the middle of every spinner, with Nano Banana (Gemini 2.5 Flash Image).
 **Owner:** you — same deal as [ART_BRIEF.md](ART_BRIEF.md) and [WORLD_BACKGROUND_BRIEF.md](WORLD_BACKGROUND_BRIEF.md). The code is already built and waiting; each picture you drop in switches on by itself (section 6).
 

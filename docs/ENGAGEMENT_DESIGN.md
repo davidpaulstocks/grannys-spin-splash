@@ -1,6 +1,6 @@
 # Granny's Grand Tour — Engagement Redesign
 
-**Updated 2026-11-27:** jeopardy (coin thieves, blockers), the Big Finish, the rebuilt results screen with "Double coins" removed, the eighteen-gun ladder, the count-in with auto-fire, star targets that follow the gun a player is expected to hold, the gun reveal as a short product film and Jam mode changed parts of this document; where they conflict, `docs/REWARD_LOOP.md` and the "2026-11-27" notes below win. None of it has been played or heard by David; it was checked by Claude in the browser with the sound off, and the balance is bot-measured, not human-tested.
+**Updated 2026-11-27:** jeopardy (coin thieves, blockers), the Big Finish, the rebuilt results screen with "Double coins" removed, the eighteen-gun ladder (now twenty-four), the count-in with auto-fire, star targets that follow the gun a player is expected to hold, the gun reveal as a short product film and Jam mode changed parts of this document, and later that day so did the Pirate Ship (world six), the six Mythic guns (twenty-four in all), grannies that join at star milestones instead of costing coins, tappable gigs and free aim; where they conflict, `docs/REWARD_LOOP.md` and the "2026-11-27" notes below win. The owner and his son played earlier builds that day, but nothing from the Pirate Ship onward has been played or heard by him; the rest was checked by Claude in the browser with the sound off, and the balance is bot-measured, not human-tested.
 
 **Written:** 2026-11-25 · **Status:** approved direction (David: "the whole game
 needs to be rethought from an engagement perspective… a big transformation I
@@ -89,13 +89,14 @@ means more music, literally.
 
 ### Gig ladder (band size per gig)
 
-| Venue    | Wall | Gigs 1–8                           |
-| -------- | ---- | ---------------------------------- |
-| Garden   | 12   | 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12    |
-| Workshop | 15   | 4 · 5 · 6 · 8 · 9 · 10 · 12 · 15   |
-| Kitchen  | 16   | 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16  |
-| Funfair  | 16   | 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16  |
-| Disco    | 21   | 5 · 6 · 8 · 10 · 12 · 15 · 18 · 21 |
+| Venue       | Wall | Gigs 1–8                           |
+| ----------- | ---- | ---------------------------------- |
+| Garden      | 12   | 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12    |
+| Workshop    | 15   | 4 · 5 · 6 · 8 · 9 · 10 · 12 · 15   |
+| Kitchen     | 16   | 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16  |
+| Funfair     | 16   | 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16  |
+| Disco       | 21   | 5 · 6 · 8 · 10 · 12 · 15 · 18 · 21 |
+| Pirate Ship | 18   | 5 · 6 · 8 · 10 · 12 · 14 · 16 · 18 |
 
 Small bands get **big spinners**: the wall is laid out for the number of
 musicians, so gig 1 is three generous targets and the first squirt cannot miss.
@@ -124,20 +125,21 @@ Poki allows no purchases and no second currency, so there is exactly one.
 | Daily gift                             | 800, plus 400 per consecutive day, growing for up to a week                                           |
 | Mission complete (one rolling mission) | 1,000 to 2,400                                                                                        |
 
-| Spent on                                     | Price                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------ |
-| Guns                                         | 0 · 0 · 6,000 · 20,000 · 60,000 · 200,000                          |
-| Gun upgrade levels (2 to 5)                  | the larger of 1,500 and 30% of the gun's price, doubling per level |
-| Grannies                                     | 0 · 0 · 30,000                                                     |
-| Later: band cosmetics, alternative musicians | —                                                                  |
+| Spent on                                     | Price                                                                                                                                        |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Guns                                         | 24 guns, 0 · 0 · 6,000 up to 7,600,000 (`REWARD_LOOP.md`; the old six-gun ladder of 0 · 0 · 6,000 · 20,000 · 60,000 · 200,000 is superseded) |
+| Gun upgrade levels (2 to 5)                  | the larger of 1,500 and 30% of the gun's price, doubling per level                                                                           |
+| Grannies                                     | Never bought: they join at 0 · 0 · 20 · 40 · 70 · 100 total stars (`REWARD_LOOP.md`; the old 0 · 0 · 30,000 coins is superseded)             |
+| Later: band cosmetics, alternative musicians | —                                                                                                                                            |
 
-| Venue    | Opens at |
-| -------- | -------- |
-| Garden   | free     |
-| Workshop | 12 ★     |
-| Kitchen  | 30 ★     |
-| Funfair  | 54 ★     |
-| Disco    | 80 ★     |
+| Venue       | Opens at |
+| ----------- | -------- |
+| Garden      | free     |
+| Workshop    | 12 ★     |
+| Kitchen     | 30 ★     |
+| Funfair     | 54 ★     |
+| Disco       | 80 ★     |
+| Pirate Ship | 110 ★    |
 
 Opening a venue on stars, not coins, means replaying for three stars always
 moves the tour forward, and coins are never hoarded for a wall.
@@ -152,9 +154,12 @@ Four screens on the main path, each with one obvious button.
 
 1. **Home** — the current venue's art, Granny, and one big button:
    **PLAY · Gig n**. Coins and total stars along the top. Along the bottom, a
-   row of the five venues as tiles (tap to switch; a locked one says how many
-   stars it needs). A "saving for" strip names the cheapest next gun, upgrade
-   or granny with a bar of coins toward it (tap for the Shop). ALL GIGS (the
+   strip of venue tiles, five at a time and paged with arrows when there are
+   more (tap to switch; a locked one says how many stars it needs). The gig
+   card's eight gigs are buttons, and PLAY starts the recommended one (the next
+   with no stars, else the one with the fewest). A "saving for" strip names the
+   cheapest next gun not yet owned (never an upgrade, and since 2026-11-27
+   never a granny) with a bar of coins toward it (tap for the Shop). ALL GIGS (the
    tour map) and SHOP are labelled buttons. A first-ever launch skips Home and
    drops straight into Garden gig 1.
 2. **Gig intro** — two seconds, skippable: venue, gig number, and
@@ -201,14 +206,14 @@ UI restraint still applies: no screen has more than one primary action.
 
 ## 7. Build slices
 
-| Slice                    | Contents                                                                                                                                               | Status (2026-11-26)                                                                                                                                                                                                                                                                                          |
+| Slice                    | Contents                                                                                                                                               | Status (2026-11-27)                                                                                                                                                                                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **1. The gig**           | Level data, sized wall layout, line-up seating, star rating, per-gig difficulty, coin rebalance, results screen with stars and Next                    | **Built.** All five venues run their eight gigs. Stars now come from the coin total (`REWARD_LOOP.md`); the results screen is the three-beat one. Star targets retuned against the bot in all five venues on 2026-11-27 (bot-measured only; a slow player is short of the expected guns from the Funfair on) |
 | **2. The tour**          | Home, gig intro, Tour map, Shop, save fields, first launch straight to gig 1                                                                           | **Built.** Home has a venue strip and a "saving for" strip; the Shop has gun upgrade levels. The gig intro names new musicians on their spinners; it does not yet play them a solo                                                                                                                           |
 | **3. Reasons to return** | Missions, daily gift, Band album, Jam mode, rewarded options                                                                                           | **Part built:** one rolling mission, the daily gift and Jam mode (2026-11-27, `9d9fed9`; not played by David). Not built: the album, "ten more seconds"                                                                                                                                                      |
-| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                                       | **All five bands built**, each in its own room with its own Frenzy fanfare, closing chord, accents and results chimes (2026-11-26); Workshop reworked at 136 BPM. None of the 2026-11-26 audio has been heard by David, see `BANDS.md`                                                                       |
+| **4. The bands**         | Per-venue styles (jazz, rock, fairground, disco)                                                                                                       | **All six bands built** (the Pirate Ship's sea-shanty band added 2026-11-27, unheard), each in its own room with its own Frenzy fanfare, closing chord, accents and results chimes (2026-11-26); Workshop reworked at 136 BPM. None of the 2026-11-26 audio has been heard by David, see `BANDS.md`          |
 | **5. The reward loop**   | Coins from every spinning instrument, the groove, stars from the coin total, the results screen, gun coin boosts and upgrade levels (`REWARD_LOOP.md`) | **Built 2026-11-26** (`dc38f8c`, `4b4cd4e`); bot-tested on Garden only, not played by David since                                                                                                                                                                                                            |
-| **6. Visitors**          | Random surprise blockers, sitters and treats replacing the fixed obstacles                                                                             | **Built 2026-11-27** (`ceda261`, `cd20e22`, `dd6b821`): 18 painted visitors from a venue's first gig; sitters steal coins, blockers silence two or three instruments; not played by David. Balance bot does not understand visitors                                                                          |
+| **6. Visitors**          | Random surprise blockers, sitters and treats replacing the fixed obstacles                                                                             | **Built 2026-11-27** (`ceda261`, `cd20e22`, `dd6b821`, pirates `150dccd`): 24 painted visitors from a venue's first gig; sitters steal coins, blockers silence two or three instruments; the balance bot now plays them (`b16d1d6`); the pirates not played by David                                         |
 
 Each slice ends with lint, tests, build, budget, a live playthrough, a commit
 and a push.

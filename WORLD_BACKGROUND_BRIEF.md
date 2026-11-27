@@ -1,5 +1,7 @@
 # Art Brief — World Backgrounds
 
+> **Note (2026-11-27): how art is actually made now.** A world's backdrop is one painting by the owner (the Pirate Ship's deck, `ship_bg`, arrived 2026-11-27), saved first in `_art_inbox/worlds/`, converted to WebP into `public/sprites/worlds/<id>_bg.webp` (the optimiser, `npm run optimise`, takes a PNG or JPG under `public/sprites/`), and switched on by adding the world's id to `WORLD_BG_READY` in `src/entities/world/worldBackgrounds.ts`; the wall's area is then measured against the painting in `world.data.ts`. The procedural placeholders this brief mentions remain only as a fallback. All six backdrops are painted.
+
 **For:** generating the 5 world backdrops with Nano Banana (Gemini 2.5 Flash Image).
 **Owner:** you — same deal as [ART_BRIEF.md](ART_BRIEF.md). Drop finished images
 into the exact paths below and let me know; I'll wire the loading code and swap

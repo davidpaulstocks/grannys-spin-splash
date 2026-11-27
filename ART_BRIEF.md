@@ -1,5 +1,7 @@
 # Art Brief — Grannies & Guns
 
+> **Note (2026-11-27): how art is actually made now.** The owner paints grannies as three single pictures on pure white (front, back, back with arms out), saves them in `_art_inbox/grannies/`, names them in `tools/granny-sheets.json`, and `npm run grannies` (`tools/cut-granny.py`) removes the white, crops, and writes `public/sprites/grannies/<id>/{front,back,back_firing}.webp`; the id is then added to `GRANNY_ART_READY`. Guns are painted as sheets on pure white (any number of pictures per sheet) in `_art_inbox/guns/` and cut by `npm run guns` into one picture, an `anchor.json` and a large `hero.webp` each, turned in code (no eight angles). The five-pose spec and the 8-angle gun spec below are history; see CLAUDE.md §8.1 and §8.2.
+
 **For:** generating launch sprite art with Nano Banana (Gemini 2.5 Flash Image).
 **Owner:** you — see CLAUDE.md §8's correction note (2026-09-11). This doc is the
 delivery spec; drop finished PNGs into the exact paths below and the game will

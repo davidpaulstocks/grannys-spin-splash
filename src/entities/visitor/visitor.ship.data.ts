@@ -1,7 +1,7 @@
 /**
  * The Pirate Ship's six visitors: two blockers, two thieves and two treats.
- * They are not painted yet (visitorArt.data.ts), so each wears a drawn
- * stand-in (pirateDrawings.ts). Sizes follow the nearest existing visitor.
+ * All six are painted (visitorArt.data.ts); the drawn stand-ins in
+ * pirateDrawings.ts remain as the fallback. Sizes follow the nearest existing visitor.
  */
 
 import type { VisitorDef } from './visitor.types';

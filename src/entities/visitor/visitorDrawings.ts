@@ -146,7 +146,7 @@ function drawSeagull(g: Gfx, leaving: boolean): void {
  * Redraws visitor `id` into `g` (cleared first) at its natural size, facing
  * right. The six visitors of the third art sheet borrow the nearest
  * drawing (they ship painted); the Pirate Ship's six have their own
- * stand-ins (pirateDrawings.ts) until sheet 4 is painted.
+ * stand-ins (pirateDrawings.ts), now only a fallback since sheet 4 is painted.
  */
 export function drawVisitor(g: Gfx, id: VisitorId, state: DrawState): void {
   g.clear();

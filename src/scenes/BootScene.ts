@@ -1,6 +1,6 @@
 /**
- * Loads every launch asset up front — all 3 grannies' 3 poses, all 18 guns'
- * pictures + anchor.json, all 5 world backgrounds, the title lockup — so
+ * Loads every launch asset up front — every painted granny's 3 poses, every painted gun's
+ * picture + anchor.json, every world's background, the title lockup — so
  * no later scene ever shows a blank/partial frame
  * while art streams in (CLAUDE.md §12 must-fix 9 territory: a first
  * impression that starts with a stutter reads as broken). Fires
