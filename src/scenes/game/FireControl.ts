@@ -8,6 +8,8 @@ import type Phaser from 'phaser';
 
 import { waterSound } from '../../audio/WaterSound';
 import {
+  AIM_CAPTURE_EXTRA,
+  AIM_CAPTURE_SCALE,
   AIM_MAGNET_MARGIN,
   AIM_PICKUP_MARGIN,
   AIM_PICKUP_RADIUS,
@@ -35,6 +37,7 @@ import { COLOUR, COLOUR_HEX } from '../../utils/colour';
 import type { AimResult } from '../../types/input';
 import { distance, resolveMagneticAim, scaleAboutPivot } from '../../utils/math';
 import { pickVisitorLock } from '../../utils/shotLock';
+import { resolveSoftAim } from '../../utils/softAim';
 import type { PowerUpEffects } from './PowerUpEffects';
 
 /** What the firing line reads from the rest of the scene. */
@@ -75,7 +78,7 @@ export interface FireControlDeps {
 export class FireControl {
   /** One ring, moved between targets. */
   private readonly _ring: Phaser.GameObjects.Arc;
-  /** Mouse-only dot at the effective aim point (the OS cursor is hidden). */
+  /** Dot where free-aimed water will land (mouse and touch); hidden while snapped or on a visitor. */
   private readonly _reticle: Phaser.GameObjects.Arc;
   private _targetId: number | null = null;
   /** True for the frame the aim sits on a visitor. */
@@ -155,27 +158,32 @@ export class FireControl {
   }
 
   /**
-   * Resolves the aim point: the pointer (pushed outward for mouse/trackpad),
-   * then pulled to the nearest spinner, or left on a pickup it is over.
-   * Also moves the targeting ring and the mouse reticle.
+   * Resolves the aim point. Free aim with a soft snap (2026-11-27). Owner:
+   * "you kind of aim and they seem to just get stuck on one predetermined
+   * point of each of the spinners rather than giving you free aim, which
+   * makes it harder to hit the treats or hit the barriers". The water goes
+   * where the pointer is (a mouse pushed outward by the reach boost), and
+   * only inside an instrument's capture radius does it snap to its centre
+   * with the ring. A visitor or pickup under the pointer takes it first.
+   * Before the pointer has moved it starts on the instrument nearest the
+   * wall's bottom-centre. Also moves the ring and the free-aim reticle.
    */
   private _updateAim(): AimResult {
     const d = this._d;
     const touch = d.input.isTouchAim();
-    // Until a pointer or finger has moved, aim at the wall's bottom-centre so
-    // the nearest instrument is playing and paying from the first second.
-    const raw = d.input.hasAimed() ? d.input.getPointer() : AIM_REACH_PIVOT;
+    const aimed = d.input.hasAimed();
+    const raw = aimed ? d.input.getPointer() : AIM_REACH_PIVOT;
     const point = touch
       ? raw
       : scaleAboutPivot(raw, AIM_REACH_PIVOT, AIM_REACH_GAIN, GAME_WIDTH, GAME_HEIGHT);
     this._setCursorHidden(!touch);
-    this._reticle.setVisible(!touch).setPosition(point.x, point.y);
 
     const visitor = pickVisitorLock(point.x, point.y, d.visitorPoints?.() ?? [], AIM_PICKUP_MARGIN);
     this._visitorLock = visitor !== null;
     if (visitor) {
       // Dead-centre on the visitor, whatever the instruments in between.
       this._showRing(null);
+      this._reticle.setVisible(false);
       return { x: visitor.x, y: visitor.y, target: null, snapped: false };
     }
     const onPickup = (d.pickupPoints?.() ?? []).some(
@@ -184,11 +192,30 @@ export class FireControl {
         (p.aimRadius ?? AIM_PICKUP_RADIUS) + AIM_PICKUP_MARGIN,
     );
     const spinners = d.activeSpinners();
-    const targets = spinners.map((s) => ({ id: s.id, x: s.x, y: s.y }));
-    const aim = onPickup
-      ? { x: point.x, y: point.y, target: null, snapped: false }
-      : resolveMagneticAim(point, targets, this._targetId, AIM_MAGNET_MARGIN);
+    let aim: AimResult;
+    if (onPickup) {
+      aim = { x: point.x, y: point.y, target: null, snapped: false };
+    } else if (!aimed) {
+      const targets = spinners.map((s) => ({ id: s.id, x: s.x, y: s.y }));
+      aim = resolveMagneticAim(point, targets, this._targetId, AIM_MAGNET_MARGIN);
+    } else {
+      const targets = spinners.map((s) => ({
+        id: s.id,
+        x: s.x,
+        y: s.y,
+        r: s.def.r * s.scaleX,
+      }));
+      aim = resolveSoftAim(
+        point,
+        targets,
+        this._targetId,
+        AIM_CAPTURE_SCALE,
+        AIM_CAPTURE_EXTRA,
+        AIM_MAGNET_MARGIN,
+      );
+    }
     this._showRing(aim.target ? (spinners.find((s) => s.id === aim.target?.id) ?? null) : null);
+    this._reticle.setVisible(!aim.snapped && aimed).setPosition(aim.x, aim.y);
     return aim;
   }
 

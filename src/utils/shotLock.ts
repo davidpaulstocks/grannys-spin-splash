@@ -9,6 +9,10 @@
  * over every instrument and is tested only against visitors; a shot locked
  * onto an instrument is tested only against that instrument (it was already
  * so: see `WaterParticle.getCandidates`).
+ *
+ * A free shot (2026-11-27 free aim: the pointer is outside every capture
+ * radius) flies to the pointer and may only hit an instrument whose body
+ * contains that aim point, so it is never eaten by one merely on the way.
  */
 
 import { distance } from './math';
@@ -54,13 +58,21 @@ export function resolveShotLock(onVisitor: boolean, hasSpinnerTarget: boolean): 
   return hasSpinnerTarget ? 'spinner' : 'free';
 }
 
-/** The instruments a shot of this kind may hit: none for a visitor lock, its target for a spinner lock, else all. */
-export function spinnersForShot<S>(
+/**
+ * The instruments a shot of this kind may hit: none for a visitor lock, its
+ * target for a spinner lock, and for a free shot only those whose body
+ * (`bodyRadius` plus the hit-ring padding) contains the aim point.
+ */
+export function spinnersForShot<S extends { readonly x: number; readonly y: number }>(
   lock: ShotLock,
   target: S | null,
   all: readonly S[],
+  aim: { readonly x: number; readonly y: number },
+  bodyRadius: (s: S) => number,
 ): readonly S[] {
   if (lock === 'visitor') return [];
   if (lock === 'spinner' && target) return [target];
-  return all;
+  return all.filter(
+    (s) => distance(aim.x, aim.y, s.x, s.y) < bodyRadius(s) + SPINNER_HIT_RING_PADDING,
+  );
 }

@@ -17,6 +17,7 @@ interface Disc {
 const GRANNY = { x: 640, y: 536 };
 const RADIUS = 45;
 const ROW_XS = [243, 508, 773, 1038];
+const bodyR = (s: Disc): number => s.r;
 const WALL: Disc[] = [220, 400].flatMap((y) =>
   ROW_XS.map((x) => ({ id: `${x},${y}`, x, y, r: RADIUS })),
 );
@@ -44,8 +45,8 @@ function firstHit(
 describe('a shot aimed at a visitor', () => {
   const blockers = [243, 1038].map((x) => ({ x, y: 310, aimRadius: 90, r: 90 }));
 
-  it('is spent on a front-row instrument when it is free (the bug)', () => {
-    const grazed = blockers.map((b) => firstHit(b, spinnersForShot('free', null, WALL), b));
+  it('is spent on a front-row instrument when it may hit every instrument (the bug)', () => {
+    const grazed = blockers.map((b) => firstHit(b, WALL, b));
     // At least one of the two outer blockers is shadowed by a nearer instrument on the line.
     expect(grazed.some((hit) => hit !== 'visitor' && hit !== null)).toBe(true);
   });
@@ -53,8 +54,8 @@ describe('a shot aimed at a visitor', () => {
   it.each(blockers)('reaches the blocker at x=$x when locked onto it', (b) => {
     const lock = resolveShotLock(true, false);
     expect(lock).toBe('visitor');
-    expect(spinnersForShot(lock, null, WALL)).toEqual([]);
-    expect(firstHit(b, spinnersForShot(lock, null, WALL), b)).toBe('visitor');
+    expect(spinnersForShot(lock, null, WALL, GRANNY, bodyR)).toEqual([]);
+    expect(firstHit(b, spinnersForShot(lock, null, WALL, GRANNY, bodyR), b)).toBe('visitor');
   });
 });
 
@@ -62,12 +63,30 @@ describe('a shot aimed at an instrument', () => {
   it('is only ever tested against that instrument, whatever is in front', () => {
     const back = WALL.find((s) => s.id === '1038,220') as Disc;
     const lock = resolveShotLock(false, true);
-    expect(spinnersForShot(lock, back, WALL)).toEqual([back]);
-    expect(firstHit(back, spinnersForShot(lock, back, WALL), null)).toBe(back.id);
+    expect(spinnersForShot(lock, back, WALL, back, bodyR)).toEqual([back]);
+    expect(firstHit(back, spinnersForShot(lock, back, WALL, back, bodyR), null)).toBe(back.id);
+  });
+});
+
+describe('a free shot (free aim)', () => {
+  const free = resolveShotLock(false, false);
+
+  it.each([
+    [640, 310],
+    [375, 310],
+  ])('in a gap at (%i, %i) has no instrument candidates and flies to its point', (x, y) => {
+    expect(spinnersForShot(free, null, WALL, { x, y }, bodyR)).toEqual([]);
+    expect(firstHit({ x, y }, [], null)).toBeNull();
   });
 
-  it('a loose shot may hit any instrument', () => {
-    expect(spinnersForShot(resolveShotLock(false, false), null, WALL)).toBe(WALL);
+  it('is not eaten by an instrument on the way (gap point behind the front row)', () => {
+    // (508, 310) is between rows; the line from Granny passes near row-400 discs.
+    expect(spinnersForShot(free, null, WALL, { x: 508, y: 310 }, bodyR)).toEqual([]);
+  });
+
+  it('with the aim point inside a body may hit that instrument only', () => {
+    const hit = spinnersForShot(free, null, WALL, { x: 508 + 20, y: 220 }, bodyR);
+    expect(hit.map((s) => s.id)).toEqual(['508,220']);
   });
 });
 

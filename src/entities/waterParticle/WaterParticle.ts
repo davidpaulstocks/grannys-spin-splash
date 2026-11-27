@@ -77,6 +77,9 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
   private _target: Spinner | null = null;
   /** Set at launch when the aim was on a visitor: this shot flies over the instruments and only visitors can take it. */
   private _visitorLock = false;
+  /** Where this shot was aimed, so a free shot is only tested against an instrument under that point. */
+  private _aimX = 0;
+  private _aimY = 0;
   /**
    * Which of the gun's streams this shot belongs to, or -1 for loose water
    * (the opening burst, the dying splutter). `WaterJet` joins each stream's
@@ -118,6 +121,8 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
   ): void {
     this.stream = stream;
     this._visitorLock = visitorLock;
+    this._aimX = aimX;
+    this._aimY = aimY;
     this.seq = _nextSeq++;
     const aimPoint = resolveFireAimPoint(aimX, aimY, target);
     const dist = Math.max(10, distance(originX, originY, aimPoint.x, aimPoint.y));
@@ -128,17 +133,29 @@ export class WaterParticle extends Phaser.GameObjects.Arc {
     this.setPosition(originX, originY);
     this._vx = dirX * WATER_PARTICLE_SPEED;
     this._vy = dirY * WATER_PARTICLE_SPEED;
-    this._lifeSeconds = (dist / WATER_PARTICLE_SPEED) * LIFE_PADDING_FACTOR + LIFE_PADDING_SECONDS;
+    // A free shot (aimed into a gap, at nothing) lands where it was aimed and stops there;
+    // a shot at an instrument or a visitor gets the padding, since its target may be a little further.
+    const flightSeconds = dist / WATER_PARTICLE_SPEED;
+    const free = target === null && !visitorLock;
+    this._lifeSeconds = free
+      ? flightSeconds
+      : flightSeconds * LIFE_PADDING_FACTOR + LIFE_PADDING_SECONDS;
     this._target = target;
     this.setActive(true);
     // A stream's shots are drawn as one ribbon by WaterJet; only loose water shows as droplets.
     this.setVisible(stream < 0);
   }
 
-  /** The locked-on target only, none if aimed at a visitor, or every live spinner if this shot wasn't snapped to one. */
+  /** The locked-on target only, none if aimed at a visitor, or, for a free shot, only an instrument whose body holds the aim point (usually none). */
   getCandidates(allSpinners: readonly Spinner[]): readonly Spinner[] {
     const lock = resolveShotLock(this._visitorLock, this._target !== null);
-    return spinnersForShot(lock, this._target, allSpinners);
+    return spinnersForShot(
+      lock,
+      this._target,
+      allSpinners,
+      { x: this._aimX, y: this._aimY },
+      (s) => s.def.r,
+    );
   }
 
   /** Recycles this particle from outside — a visitor's `tryBlock()` calls this when a blocker or sitter intercepts it. */

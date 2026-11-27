@@ -63,7 +63,7 @@ describe('filmCues', () => {
 });
 
 describe('filmGeometry', () => {
-  it('makes the whole gun about 2.2 screen widths long in the close-up and 800 px in the hero shot', () => {
+  it('makes the whole gun its close-up length in the close-up and 800 px in the hero shot', () => {
     const g = geometry();
     expect(g.imageW * CONTENT_FRACTION * g.closeZoom).toBeCloseTo(
       CLOSE_LENGTH_SCREENS * SCREEN.w,
@@ -102,10 +102,11 @@ describe('filmPose', () => {
     const left = screenPointOf(p, { x: -(g.imageW * CONTENT_FRACTION) / 2, y: 0 });
     expect(left.x).toBeCloseTo(PAN_START_INSET_PX, 3);
     const right = screenPointOf(p, { x: (g.imageW * CONTENT_FRACTION) / 2, y: 0 });
-    expect(right.x).toBeGreaterThan(SCREEN.w * 1.5);
+    // The nozzle end starts off the right-hand edge, so the pan has something to arrive at.
+    expect(right.x).toBeGreaterThan(SCREEN.w);
   });
 
-  it('ends the pan with the nozzle left of centre, mid-screen vertically', () => {
+  it('ends the pan with the nozzle on screen with room to fire, mid-screen vertically', () => {
     const g = geometry();
     for (const r of RARITIES) {
       const c = filmCues(r);
@@ -113,7 +114,7 @@ describe('filmPose', () => {
       const n = screenPointOf(p, g.nozzle);
       expect(n.x).toBeCloseTo(SCREEN.w * NOZZLE_VIEW_X, 3);
       expect(n.y).toBeCloseTo(SCREEN.h / 2, 3);
-      expect(n.x).toBeLessThan(SCREEN.w / 2);
+      expect(n.x).toBeLessThan(SCREEN.w * 0.7);
     }
   });
 

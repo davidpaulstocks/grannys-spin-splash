@@ -66,11 +66,23 @@ export const BACKGROUND_COLOUR: string = COLOUR_HEX.cloud;
 export const AIM_SNAP_RADIUS = 96;
 
 /**
- * Magnetic aim (2026-11-26, owner: "the actual gameplay of aiming isn't very
- * fun"): the water always goes to the spinner nearest the aim point, with no
- * distance limit. The current target is kept until another is nearer by this
- * many px, so the choice does not flicker on a boundary.
+ * Free aim with a soft snap (2026-11-27). Owner: "when you're aiming at the
+ * spinny things, you kind of aim and they seem to just get stuck on one
+ * predetermined point of each of the spinners rather than giving you free
+ * aim, which makes it harder to hit the treats or hit the barriers, because
+ * it's almost like your aim is semi-controlled." The day before he had said
+ * aiming at the top row was "hard work", so the help stays but is local:
+ * the water goes where the pointer is, and only inside an instrument's
+ * capture radius does it snap to that instrument's centre (ring shown).
+ * Capture radius = the larger of radius x AIM_CAPTURE_SCALE and
+ * radius + AIM_CAPTURE_EXTRA px. Once snapped, it holds until the pointer is
+ * AIM_MAGNET_MARGIN beyond the capture radius, so it does not flicker.
+ * Kept only a little bigger than the instrument itself (they were 1.6 and 36,
+ * which left no free band between two rows of large instruments, where
+ * blockers park and treats fly).
  */
+export const AIM_CAPTURE_SCALE = 1.2;
+export const AIM_CAPTURE_EXTRA = 14;
 export const AIM_MAGNET_MARGIN = 28;
 /**
  * Mouse/trackpad reach assist: the aim point is the pointer pushed away from
@@ -89,7 +101,7 @@ export const AIM_RING_STROKE = 4;
 export const AIM_RING_POP_MS = 100;
 /** The ring starts this much larger than its final size when it lands on a new target. */
 export const AIM_RING_POP_FROM = 1.4;
-/** Mouse reticle at the effective aim point: radius and stroke, px. */
+/** Reticle at the free aim point (mouse and touch; hidden while snapped): radius and stroke, px. */
 export const AIM_RETICLE_RADIUS = 7;
 export const AIM_RETICLE_STROKE = 3;
 
