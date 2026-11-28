@@ -22,6 +22,38 @@ architecture rules are in §7.3; the status paragraph at the top says what David
   `npx prettier --check src tests`, `npm run build && npm run budget`.
 - Say plainly what you could not check: you cannot hear sound, and the browser pane is not a real phone.
 
+## The art queue: David paints while you build
+
+David paints in parallel with your work and wants a steady rhythm: **always keep exactly one painting
+waiting for him.** In your very first reply, before you start Job 0, give him the first prompt in this
+queue with its reference image file(s) sent alongside (`SendUserFile`; convert a WebP to JPG first).
+Whenever he says a painting is done (or "next"), cut what he saved into the game, say in one line what
+you saw, and give him the next prompt with its references, without stopping the job you are on. Never
+make him ask twice, never send a prompt without its reference image, and never send more than one
+painting's prompt at a time unless he asks for a batch. Check the inbox folders first: skip anything
+already there.
+
+The prompts are in `docs/NEW_WORLDS_ART_PROMPTS.md` (templates plus each world's lines: paste the
+template with the lines filled in, so what he gets is ready to copy). Where a prompt is not written
+yet, write it in the same style. The queue, in order:
+
+1. **The Macaron Blaster** (`sheet-kid-macaron`, section 7): two references.
+2. **His son's seven blasters** (`sheet-kid-1`, then `sheet-kid-2`, section 6): the style reference only.
+3. **Tall backdrops of the six existing worlds** (section 2 template; David was given this prompt and the
+   six references on 2026-11-28, with one extra line per world, so these may already be in
+   `_art_inbox/worlds/` as `<id>_bg_tall`): garden, workshop, kitchen, funfair, disco, ship.
+4. **The Golden Spinner's new picture** (Job 0; write the prompt: one gleaming golden object on pure
+   white in the style of `_art_inbox/visitors/sheet-2-treats.jpg`; save as `_art_inbox/visitors/golden_spinner`).
+5. **The crew's icon for the Pirate Ship** (Job 0c; write the prompt in the style of an instrument icon,
+   reference `_art_inbox/instruments/` sheet 1; save as `_art_inbox/instruments/crew`).
+6. **Then world by world, in the order of Job 4** (jungle first): the wide backdrop (section 1), its
+   tall backdrop (section 2, with the new wide painting as the reference), its visitors sheet
+   (section 3). After every second world, one gun sheet: `sheet-5-guns` to `sheet-12-guns` (section 4
+   and section 5), in order.
+
+Keep a short list in `BACKLOG.md` of which paintings have arrived and which are cut in, so a later
+session can pick the queue up where it stopped.
+
 ## Job 0 (small, do first): keep the Golden Spinner but make it look and aim right; a light touch on treats
 
 David first asked (2026-11-28) to remove the Golden Spinner and slow the treats down, then corrected
