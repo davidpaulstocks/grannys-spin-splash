@@ -44,6 +44,31 @@ when you go for it.
 - The five power-up pickups (`src/entities/powerup/`): leave them; just tell David whether they have
   the same aim problem.
 
+## Job 0b (small): cut the leftover white out of the visitors and treats
+
+David, 2026-11-28: "some of the treats and visitors, specifically the golden watering can, have white
+parts that haven't been cut out properly: the inside of the handle and one other place. Make sure
+they're all properly cut out, including the details."
+
+The same thing was done for the guns on 2026-11-27 (see the `holes` seeds in `tools/gun-sheets.json` and
+`punch_holes` in `tools/slice-instrument-sheet.py`): the slicer removes white by flood-filling from the
+picture's border, so white enclosed by an outline (inside a handle, a loop, a gap between parts)
+survives. Do it for all 24 visitors (`tools/visitor-sheets.json`, sheets in `_art_inbox/visitors/`,
+pictures in `public/sprites/visitors/`):
+
+- Let the visitors set take a `holes` option like the guns' (seed points per id in the 256x256 picture).
+- For every visitor, list the enclosed near-white regions, make a contact picture on a coloured
+  background, **look at it**, and decide region by region: background showing through (cut: handle
+  loops, gaps between a strap and a body, between balloon strings, inside a net's mesh if it is plain
+  white) or paint (keep: eyes, teeth, highlights, cream cloth such as the bloomers, sail and tea towel,
+  the compass dial, white feathers). When unsure, keep: a leftover gap is a blemish, a hole in paint is
+  damage.
+- Re-cut with `npm run visitors`, check on green and on Ink that every cut is clean and nothing painted
+  is gone, and confirm with `git status` that only the intended pictures changed.
+- Then give the 36 instrument pictures (`tools/instrument-sheets.json`) the same look-over and tell
+  David what you find before cutting anything there: they sit on a cream disc, so enclosed white matters
+  less, and the harp's strings and the whisk were left white on purpose.
+
 ## Job 1 (small): a granny joining should be an event, and changing granny should be one tap
 
 David: "the shop is quite a few clicks away, and people never click in there to change the granny…
