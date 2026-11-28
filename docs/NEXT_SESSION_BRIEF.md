@@ -21,28 +21,28 @@ architecture rules are in §7.3; the status paragraph at the top says what David
   `npx prettier --check src tests`, `npm run build && npm run budget`.
 - Say plainly what you could not check: you cannot hear sound, and the browser pane is not a real phone.
 
-## Job 0 (small, do first): remove the Golden Spinner; make treats catchable
+## Job 0 (small, do first): keep the Golden Spinner but make it look and aim right; a light touch on treats
 
-David, 2026-11-28, after watching children play:
+David first asked (2026-11-28) to remove the Golden Spinner and slow the treats down, then corrected
+himself the same day after watching his seven-year-old: the boy **does** catch the treats as they fly
+across, and **does** grab the extra spinners as they appear. So the mechanics work for a real player and
+stay. What remains true from David's first note: the Golden Spinner "looks a bit crap" (it is drawn in
+the old procedural style beside painted visitors), and "your aim snaps to the nearest actual spinner"
+when you go for it.
 
-- **Remove the Golden Spinner** (the timed bonus spinner announced with "Golden Spinner appeared!"; more
-  frequent in the Disco). "They're a bit of an anticlimax because it's kind of hard to hit them because
-  your aim snaps to the nearest actual spinner, and they look a bit crap… we already have the visitors
-  and the treats." Take it out everywhere: its spawner and entity, its accents (`golden`, `goldenMissed`
-  in the audio API can stay if other things use them: the thief's first steal does), its texts, the
-  Disco's "frequent Golden Spinner" trait in `src/entities/world/world.data.ts` and `gigs.data.ts`, any
-  mission that mentions it (`src/systems/Missions.ts`), tests and docs. Check whether the five power-up
-  pickups (`src/entities/powerup/`) have the same problem (hard to hit with the snap, look out of place
-  next to the painted visitors) and tell David what you find before removing them.
-- **Treats are too hard to catch.** "The treats fly across really fast, and if your gun doesn't directly
-  target them they're just quite hard to get." Make a treat a gift, not a test: slow its crossing to
-  about half speed (`src/entities/visitor/visitorTuning.data.ts`), have it drift in, **hover for about a
-  second and a half** near the middle of the wall with a gentle bob, then drift on; make its catch area
-  generous (about 1.5 times the picture); and make the aim take it eagerly: a treat within about 140 px
-  of the pointer takes the aim before any instrument does (the visitor lock in `src/utils/shotLock.ts`
-  already lets those shots fly over instruments), with a clear ring on it while it is the target. One
-  hit is enough. Keep a miss costing nothing. Check on screen that a treat can be caught by moving the
-  pointer roughly toward it, on mouse and on touch.
+- **Golden Spinner: keep the idea, fix the look and the aim.** It stays a bonus target that appears for
+  a few seconds and pays when hit. Make the aim take it the way it takes a visitor (it should be in the
+  points FireControl checks before instruments, with the visitor lock in `src/utils/shotLock.ts` so the
+  shots fly over instruments), with a clear ring on it. For the look, ask David for one painted picture
+  (give him a prompt and a reference: a gleaming golden gramophone record or golden bell, in the style
+  of the treats sheet) and mount it like the visitors' art; until it arrives, leave the current drawing.
+  Do not change how often it appears or what it pays.
+- **Treats: do not slow them or make them hover.** Only make the aim a little more willing to take one:
+  a treat within about 110 px of the pointer takes the aim before an instrument does. Check that this
+  does not pull the aim off an instrument the player is clearly on (the pointer inside that
+  instrument's body keeps the instrument).
+- The five power-up pickups (`src/entities/powerup/`): leave them; just tell David whether they have
+  the same aim problem.
 
 ## Job 1 (small): a granny joining should be an event, and changing granny should be one tap
 
