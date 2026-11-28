@@ -226,21 +226,21 @@ Sheet 12 (`sheet-12-guns`)
 
 ## 6. Seven blasters designed by David's son (do these FIRST of all the new guns)
 
-David's seven-year-old drew seven blasters on 2026-11-28. The photo of his drawings is saved at
-`_reference/guns/sons_blaster_drawings.jpg`. These go into the ladder straight after Phoenix Fury, ahead
-of sheets 5 to 12, so he gets to earn his own designs soon. Keep each one recognisably his: the shapes
-and the idea come from the drawing, the paint style from the game.
+David's seven-year-old drew seven blasters on 2026-11-28 (the photo is kept at
+`_reference/guns/sons_blaster_drawings.jpg` for the record). These go into the ladder straight after
+Phoenix Fury, ahead of sheets 5 to 12, so he gets to earn his own designs soon. David's instruction:
+the idea of each blaster is his son's, but the paintings should **elaborate and be as cool as possible,
+not stay true to the sketch**, so the drawings are NOT attached as a reference.
 
-For both sheets attach TWO reference images: `_art_inbox/guns/sheet-2-guns.jpg` (the style) and
-`_reference/guns/sons_blaster_drawings.jpg` (the designs). Save into `_art_inbox/guns` as `sheet-kid-1`
-and `sheet-kid-2`.
+One reference image only: `_art_inbox/guns/sheet-2-guns.jpg` (the style). Save into `_art_inbox/guns` as
+`sheet-kid-1` and `sheet-kid-2`.
 
 Sheet `sheet-kid-1` (four blasters)
 
 ```text
-Using the first attached image as the exact style reference (same outline weight, same watercolour shading, same level of detail), paint a sheet of four toy water blasters laid out in a 2 by 2 grid on a perfectly flat pure white background (#FFFFFF), with wide empty white space between blasters and around the edges. No blaster touches or overlaps another or the edge of the image. Exactly four blasters.
+Using the attached image as the exact style reference (same outline weight, same watercolour shading, same level of detail), paint a sheet of four toy water blasters laid out in a 2 by 2 grid on a perfectly flat pure white background (#FFFFFF), with wide empty white space between blasters and around the edges. No blaster touches or overlaps another or the edge of the image. Exactly four blasters.
 
-The second attached image is a child's own drawings of these blasters. Keep each design's idea, its main shapes and its colours as he drew them, then turn it up as far as it will go: these must be the coolest, wildest, most desirable toy blasters a child has ever seen, the ones every kid in the playground would want. Make each one big, bold and dramatic, bursting with personality: oversized glowing tanks with liquid swirling inside, gleaming gold trim, fins, spikes and crests, jewels, vents with light pouring out, sparks of energy held inside its shapes. Creature blasters have huge expressive eyes and a fierce, cheeky grin full of character. Paint them as finished toys in the style of the first image.
+These must be the coolest, wildest, most desirable toy blasters a child has ever seen, the ones every kid in the playground would want. Make each one big, bold and dramatic, bursting with personality: oversized glowing tanks with liquid swirling inside, gleaming gold trim, fins, spikes and crests, jewels, vents with light pouring out, sparks of energy held inside its shapes. Creature blasters have huge expressive eyes and a fierce, cheeky grin full of character. Paint them as finished toys in the style of the reference.
 
 Every blaster is drawn in exact side-on profile, perfectly horizontal, with the nozzle pointing to the RIGHT and the handle at the lower left. All four face the same way, nozzle on the right. They are clearly plastic TOYS, never realistic firearms: rounded shapes, bright colours. Any opening such as a trigger guard shows plain white background through it. Tanks are painted fully opaque.
 
@@ -249,18 +249,18 @@ Style: hand-painted watercolour with thick, fully closed dark navy-ink (#1F2138)
 Strictly no people, no hands, nothing spraying or flying out, no arrows, no text, no letters, no numbers, no floor, no cast shadows, no gradient background. Only the four objects on plain white.
 
 The four blasters, reading left to right, top row first:
-1. Snake Blaster (the big green drawing at the top): a mighty emerald cobra whose tail is coiled into a huge glowing spiral at the back and whose scaled body sweeps forward to a wide-open roaring mouth with two gleaming golden fangs; the open mouth is the nozzle. A flared hood behind its head, glittering jewel scales with gold edges, one big fierce cheeky eye, a tank of bubbling green venom glowing inside the coil, a handle under its body.
-2. Chicken Egg Blaster (the small bird drawing): a proud, puffed-up super-hen sitting on top of a chunky blaster body, beak facing left with a determined glare, wings flared like rocket fins, a spiky pink comb like a mohawk; under her tail at the right a clear hopper is crammed with glowing golden eggs feeding a big round egg-sized barrel, which is the nozzle. White and gold feathers with a shine, a nest of gold wire round the tank.
-3. Pineapple Blaster (the drawing with the leafy tail): a long golden barrel that flares into a huge trumpet-shaped mouth at the right, with an explosive crown of spiky green pineapple leaves fanning out at the back like a rocket's tail; chunky diamond pineapple armour along the barrel, each diamond glowing at its centre; a tank of fizzing yellow juice with bubbles, little pineapple rings as fins, a small handle and trigger underneath.
-4. Peacock Blaster (the orange and purple drawing): a dazzling long body with a bold purple zigzag lightning stripe along the top, a row of big glowing peacock-feather "eyes" in orange and blue along the side like jewels, and a magnificent fan of shimmering feather quills sweeping up and back from its top edge, tapering to a sharp golden beak-like nozzle at the right. A proud crest of three feathers above the nozzle, a tank of swirling blue and purple.
+1. Snake Blaster: a mighty emerald cobra whose tail is coiled into a huge glowing spiral at the back and whose scaled body sweeps forward to a wide-open roaring mouth with two gleaming golden fangs; the open mouth is the nozzle. A flared hood behind its head, glittering jewel scales with gold edges, one big fierce cheeky eye, a tank of bubbling green venom glowing inside the coil, a handle under its body.
+2. Chicken Egg Blaster: a proud, puffed-up super-hen sitting on top of a chunky blaster body, beak facing left with a determined glare, wings flared like rocket fins, a spiky pink comb like a mohawk; under her tail at the right a clear hopper is crammed with glowing golden eggs feeding a big round egg-sized barrel, which is the nozzle. White and gold feathers with a shine, a nest of gold wire round the tank.
+3. Pineapple Blaster: a long golden barrel that flares into a huge trumpet-shaped mouth at the right, with an explosive crown of spiky green pineapple leaves fanning out at the back like a rocket's tail; chunky diamond pineapple armour along the barrel, each diamond glowing at its centre; a tank of fizzing yellow juice with bubbles, little pineapple rings as fins, a small handle and trigger underneath.
+4. Peacock Blaster: a dazzling long body with a bold purple zigzag lightning stripe along the top, a row of big glowing peacock-feather "eyes" in orange and blue along the side like jewels, and a magnificent fan of shimmering feather quills sweeping up and back from its top edge, tapering to a sharp golden beak-like nozzle at the right. A proud crest of three feathers above the nozzle, a tank of swirling blue and purple.
 ```
 
 Sheet `sheet-kid-2` (three blasters)
 
 ```text
-Using the first attached image as the exact style reference (same outline weight, same watercolour shading, same level of detail), paint a sheet of three toy water blasters laid out in a row on a perfectly flat pure white background (#FFFFFF), with wide empty white space between blasters and around the edges. No blaster touches or overlaps another or the edge of the image. Exactly three blasters.
+Using the attached image as the exact style reference (same outline weight, same watercolour shading, same level of detail), paint a sheet of three toy water blasters laid out in a row on a perfectly flat pure white background (#FFFFFF), with wide empty white space between blasters and around the edges. No blaster touches or overlaps another or the edge of the image. Exactly three blasters.
 
-The second attached image is a child's own drawings of these blasters. Keep each design's idea, its main shapes and its colours as he drew them, then turn it up as far as it will go: these must be the coolest, wildest, most desirable toy blasters a child has ever seen, the ones every kid in the playground would want. Make each one big, bold and dramatic, bursting with personality: oversized glowing tanks with liquid swirling inside, gleaming gold trim, fins, spikes and crests, jewels, vents with light pouring out, sparks of energy held inside its shapes. Creature blasters have huge expressive eyes and a fierce, cheeky grin full of character. Paint them as finished toys in the style of the first image.
+These must be the coolest, wildest, most desirable toy blasters a child has ever seen, the ones every kid in the playground would want. Make each one big, bold and dramatic, bursting with personality: oversized glowing tanks with liquid swirling inside, gleaming gold trim, fins, spikes and crests, jewels, vents with light pouring out, sparks of energy held inside its shapes. Creature blasters have huge expressive eyes and a fierce, cheeky grin full of character. Paint them as finished toys in the style of the reference.
 
 Every blaster is drawn in exact side-on profile, perfectly horizontal, with the nozzle pointing to the RIGHT and the handle at the lower left. All three face the same way, nozzle on the right. They are clearly plastic TOYS, never realistic firearms: rounded shapes, bright colours. Any opening such as a trigger guard shows plain white background through it. Tanks are painted fully opaque.
 
@@ -269,9 +269,9 @@ Style: hand-painted watercolour with thick, fully closed dark navy-ink (#1F2138)
 Strictly no people, no hands, nothing spraying or flying out, no arrows, no text, no letters, no numbers, no floor, no cast shadows, no gradient background. Only the three objects on plain white.
 
 The three blasters, reading left to right:
-1. Hover Suck Blaster (the blue drawing at the bottom left): a long, sleek blue hover-machine like a floating spaceship vacuum, with a row of glowing vents along the top and five big funnel-shaped suction engines hanging down underneath, each blazing with swirling gold light as if it is hovering on them; chrome pipes, a clear tube down its side with things whizzing through it, a grip at the left end and a wide glowing slot nozzle at the right end.
-2. Crystal Blaster (the spiky orange drawing): a jagged, spiky golden-orange body like an explosion frozen in rock, with two enormous glowing red crystals outlined in electric blue bursting out of its top and a great round red and blue power gem at the back; smaller shards grow all along it, light glows from the cracks, and the longest, sharpest crystal point at the right is the nozzle. It looks as if it is charged with power.
-3. Stretch Blue Blaster (the brown and blue drawing at the bottom right): a long boxy bronze and wood body like a giant catapult machine, with a glowing blue stretchy panel of thick elastic bands in the middle pulled tight and ready to snap, a silver ribbed spring section, brass rivets and gears, a round trigger housing at the left and a big square block muzzle with three glowing slots at the right. Stretched and straining with energy.
+1. Hover Suck Blaster: a long, sleek blue hover-machine like a floating spaceship vacuum, with a row of glowing vents along the top and five big funnel-shaped suction engines hanging down underneath, each blazing with swirling gold light as if it is hovering on them; chrome pipes, a clear tube down its side with things whizzing through it, a grip at the left end and a wide glowing slot nozzle at the right end.
+2. Crystal Blaster: a jagged, spiky golden-orange body like an explosion frozen in rock, with two enormous glowing red crystals outlined in electric blue bursting out of its top and a great round red and blue power gem at the back; smaller shards grow all along it, light glows from the cracks, and the longest, sharpest crystal point at the right is the nozzle. It looks as if it is charged with power.
+3. Stretch Blue Blaster: a long boxy bronze and wood body like a giant catapult machine, with a glowing blue stretchy panel of thick elastic bands in the middle pulled tight and ready to snap, a silver ribbed spring section, brass rivets and gears, a round trigger housing at the left and a big square block muzzle with three glowing slots at the right. Stretched and straining with energy.
 ```
 
 What each one fires in the game (for the session, not the prompts): the snake spits pairs of green

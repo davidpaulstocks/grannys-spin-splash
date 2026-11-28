@@ -275,7 +275,8 @@ Ice Palace now that Antarctica exists, that is his call: ask. Twenty-four more g
   Stretch Blue): his drawings are at `_reference/guns/sons_blaster_drawings.jpg` and the prompts are in
   section 6 of the prompts file. They are the next guns after Phoenix Fury, ahead of every other new
   sheet, and can be done early (they need no new world): ask David for `sheet-kid-1` and `sheet-kid-2`
-  as soon as Jobs 0 to 2 are done, sending both reference images. Each fires what he drew. In the Shop
+  as soon as Jobs 0 to 2 are done, sending the one style reference image (not his drawings: David wants
+  them elaborated, not copied). Each fires what he drew. In the Shop
   and the reveal, mark them "Designed by" with whatever name David gives (ask him; never invent one).
 - Guns: twenty-four more (`sheet-5-guns` to `sheet-8-guns` in the prompts file) continue the ladder
   after Phoenix Fury by the 25% rule, as a tier above mythic if a new rarity name is wanted (ask David).
