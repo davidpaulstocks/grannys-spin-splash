@@ -69,6 +69,33 @@ pictures in `public/sprites/visitors/`):
   David what you find before cutting anything there: they sit on a cream disc, so enclosed white matters
   less, and the harp's strings and the whisk were left white on purpose.
 
+## Job 0c (small to medium): make the Pirate Ship a real sea shanty
+
+David, 2026-11-28: "Is there an opportunity to make the pirate ship a bit more of a sea shanty song? It
+could even play the Drunken Sailor song, and could one of the instruments be a kind of sea shanty
+singing?" Nobody has heard the current score (`src/audio/scores/ship.ts`): it was written by rule.
+
+- **The tune.** "What Shall We Do with the Drunken Sailor" is a traditional shanty, long out of
+  copyright, so its melody can be used. Rewrite the ship's score around it: the fiddle carries the
+  verse tune, the tin whistle answers, and the whole band lands the "way, hey, and up she rises"
+  refrain together (that is the Frenzy/finale material). It is in the Dorian mode (D E F G A B C), which
+  the engine does not have as a mode, but those are the notes of C major: write the score with tonic C,
+  mode major, over the chords Dm and C, and melodies in scale degrees stay in key. Keep the tests in
+  `tests/unit/scores.test.ts` passing. On screen the song is never named and no words are shown or sung
+  (the title mentions drink; a kids' game on Poki keeps it to the tune).
+- **A singing seat.** One musician is the crew: "Hey!" and "Ho!" shouts on the stomps and a hummed or
+  "oh"-sung line in the refrain. This needs recorded voices. First look in the approved CC0 sources
+  (`APPROVED_SOURCES` in `tools/build-orchestra-samples.ts`: VSCO-2 CE, VCSL, the Karoryfer repositories)
+  for a choir "ah/oh" or shouts and check each licence file before using anything. If nothing fits, ask
+  David: he and his son can record four or five short clips on a phone ("Hey!", "Ho!", and a sung "oh"
+  on three or four notes), which the sprite builder can pack as a new small bank (`tools/bands/`), with
+  rights that are plainly his. Do not download voices from anywhere else. Until there are voices, a
+  whistled line (a sine with vibrato, synthesised, no download) can stand in for the crew. The seat needs
+  a picture: ask David for one painted icon (a singing sailor's hat or a megaphone) with a prompt and a
+  reference.
+- Measure loudness offline against the other bands as `CLAUDE.md` §9.8 describes, and tell David plainly
+  that it has still not been heard until he listens (`?jam=ship` plays the whole band with no clock).
+
 ## Job 1 (small): a granny joining should be an event, and changing granny should be one tap
 
 David: "the shop is quite a few clicks away, and people never click in there to change the granny…
