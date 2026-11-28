@@ -1,7 +1,8 @@
 # Brief for the next session (written 2026-11-28)
 
 David's weekly usage was nearly spent when this was written, so the three jobs below were not started.
-They are for a **fresh session on a cheaper model**. Read `CLAUDE.md` first (source of truth; the
+They are for a **fresh session on a cheaper model**. Do the jobs in the order they appear; the
+last (ten more worlds) is by far the largest and can run over several sessions. Read `CLAUDE.md` first (source of truth; the
 architecture rules are in §7.3; the status paragraph at the top says what David has and has not played).
 
 ## How to work
@@ -195,6 +196,70 @@ retune without asking David.
 prompt, nothing overlapping or cut off on any screen; desktop at 1280x720 is unchanged; all checks pass;
 `CLAUDE.md` (§3 rule 1, §5.8, §6.3, the status paragraph) and `BACKLOG.md` say what is built and what
 David has and has not seen.
+
+## Job 4 (the last and largest): ten more worlds
+
+David, 2026-11-28: his seven-year-old "has played for around 2 hours non stop, the pace is perfect and
+addictive and fun. But he has just completed all the worlds, and has earned the Volcano Blaster. So he's
+through most of the content, but the answer isn't slowing him down, it's more content. Like another 10
+worlds." Do **not** slow the pace: keep price and coin boost rising together (`LADDER_PRICE_STEP`,
+`LADDER_BOOST_STEP` in `src/entities/gun/gun.data.ts`) and keep star targets following the gun a player
+should hold (`FIRST_PASS_GUNS` in `src/entities/world/gigs.data.ts`). The Pirate Ship (`ship`, built
+2026-11-27, commit `fe598f1`) is the pattern for a world: copy how it was added.
+
+**All the art prompts are in `docs/NEW_WORLDS_ART_PROMPTS.md`**: per world a wide backdrop, a tall
+backdrop and a sheet of six visitors, plus four sheets of six guns. David had no time to paint them
+before this session. Give him the prompts **one painting at a time, each with its reference image file
+sent alongside**, starting with the first world, and build each world as its art arrives (a world is
+playable on stand-in drawings and a procedural backdrop meanwhile, as the ship was).
+
+**First, before any new world: load world art on demand.** The build was 1.18 MB under Poki's 8 MB
+initial-download cap, and a world costs about 0.3 MB. Change loading so a world's backdrop (wide and
+tall), its visitors' pictures and any band sprite of its own are fetched when that world is opened
+(with a short loading moment), not in `BootScene`; only the Garden and what Home needs load at start.
+Guns' small pictures beyond the ones the player owns or can see in the Shop page can load the same way.
+`tools/budget-check.ts` and `tools/sprite-optimise.sh` already separate "initial" from "on demand": extend
+their lists. Report the initial-download figure after this step and after each world.
+
+**The ten worlds, in order** (id, name, the band and its feel):
+
+| #   | id        | World           | Band                                                                                                                                                               |
+| --- | --------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 7   | `jungle`  | Jungle          | Percussion ensemble: marimba, congas, shakers, toms, flute calls. Bright, bouncing.                                                                                |
+| 8   | `castle`  | Castle          | Royal fanfares: trumpets, horns, harp, timpani, bells. Stately, in three.                                                                                          |
+| 9   | `beach`   | Beach           | Laid-back island band: vibraphone, guitar, hand drums, bass. Sunny, off-beat.                                                                                      |
+| 10  | `ice`     | Ice Palace      | A winter waltz: glockenspiel, sleigh bells, celesta or harp, soft strings.                                                                                         |
+| 11  | `saloon`  | Wild West       | Honky-tonk piano, guitar, fiddle, a clip-clop wood block, tambourine. A hoedown.                                                                                   |
+| 12  | `haunted` | Haunted House   | Friendly spooky: organ, pizzicato strings, xylophone "bones", bassoon. Tiptoe.                                                                                     |
+| 13  | `toyshop` | Toy Shop        | A music box: glockenspiel, celesta or toy piano, pizzicato, clarinet, snare.                                                                                       |
+| 14  | `sea`     | Under the Sea   | Dreamy: harp glissandi, vibraphone, soft horns, bass clarinet. Slow, swaying.                                                                                      |
+| 15  | `dino`    | Dinosaur Valley | Big drums, low brass, tuba, bassoon stomps. Heavy and funny.                                                                                                       |
+| 16  | `space`   | Space Station   | A synth band (the engine has no synth voices beyond its fallback pluck: add a small set of synthesised instruments, no download). The owner's son asked for space. |
+
+- Write each band from instruments already recorded (the three sprites) wherever that gives the style;
+  where a signature instrument is missing, look in the approved CC0 sources only
+  (`tools/build-orchestra-samples.ts`), check the licence file, and say what you added and its size.
+  Each band gets its own room (`src/audio/scores/rooms.ts`) and palette, as the ship has. Every seat
+  needs one of the 36 painted instrument icons, or ask David for a new sheet of icons if a world needs
+  instruments that have no picture (give him the prompt in the style of `INSTRUMENT_ART_BRIEF.md`).
+- Give each world one trait in play, as the Funfair has moving targets and the ship a rolling deck
+  (for example: the Ice Palace's instruments slow down faster; under the sea everything drifts gently;
+  the Space Station's wall slowly turns). Only if it can be built cleanly.
+- Star thresholds continue from the ship's 110 in steps of 20 (130, 150, … 310 for the last), so a world
+  always opens well before every star is won. Job 2's star guidance matters more with sixteen worlds.
+- Visitors: each world's sheet is two blockers, two thieves, two treats, in the order listed in the
+  prompts file; add the ids, stand-in drawings and the cast as the ship did.
+- Guns: twenty-four more (`sheet-5-guns` to `sheet-8-guns` in the prompts file) continue the ladder
+  after Phoenix Fury by the 25% rule, as a tier above mythic if a new rarity name is wanted (ask David).
+  Each needs its own projectile; build them from mix-and-match parts (shape, colour, trail, impact)
+  on the existing renderers instead of hand-making twenty-four. Extend `FIRST_PASS_GUNS` so each new
+  world expects the two or three guns a player would reach there at the pace measured for David's son
+  (six worlds and nineteen guns in about four hours of play).
+- Measure each world once with the balance bot (child and keen profiles, eight runs a gig) and tune only
+  that world's own numbers. Remember the bot under-estimates a real child's income.
+- Home's world strip already pages; the Tour map pages one world at a time: check both read well with
+  sixteen.
+- After each world: push, and tell David what you saw and that its music has not been heard.
 
 ## Also waiting
 
