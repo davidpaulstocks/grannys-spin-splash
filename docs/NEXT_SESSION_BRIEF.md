@@ -278,6 +278,14 @@ Ice Palace now that Antarctica exists, that is his call: ask. Twenty-four more g
   as soon as Jobs 0 to 2 are done, sending the one style reference image (not his drawings: David wants
   them elaborated, not copied). Each fires what he drew. In the Shop
   and the reveal, mark them "Designed by" with whatever name David gives (ask him; never invent one).
+- **The Macaron Blaster is the most powerful blaster in the game.** David's son drew it and this one
+  is to be followed faithfully (prompt and both reference images in section 7 of the prompts file;
+  the drawing is at `_reference/guns/macaron_blaster_drawing.jpg`). It is always the LAST gun on the
+  ladder, above OMEGA SOAKER and anything added later: when guns are added, it moves to stay last, with
+  the highest price, coin boost and POWER, its own top rarity, and the longest reveal. It fires a spray
+  of little macarons with gold sparkles and two golden shock arcs at the muzzle, as drawn. It can be
+  painted and built early; until the guns below it exist it simply sits at the top of whatever ladder
+  there is.
 - Guns: twenty-four more (`sheet-5-guns` to `sheet-8-guns` in the prompts file) continue the ladder
   after Phoenix Fury by the 25% rule, as a tier above mythic if a new rarity name is wanted (ask David).
   Each needs its own projectile; build them from mix-and-match parts (shape, colour, trail, impact)

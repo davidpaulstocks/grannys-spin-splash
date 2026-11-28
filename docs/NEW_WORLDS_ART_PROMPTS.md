@@ -221,7 +221,7 @@ Sheet 12 (`sheet-12-guns`)
 3. Steam Train Soaker: a blaster shaped like a friendly steam engine in blue and gold, a funnel on top, wheels along the bottom, the front lamp is the nozzle.
 4. Alphorn Avalanche: a very long curved wooden mountain-horn blaster with a wide bell as the nozzle, snow on top, a red and cream band round it.
 5. Summit Storm: a blaster shaped like a snowy mountain peak on its side with a flag at the top, clouds and lightning shapes round it, the peak is the nozzle.
-6. OMEGA SOAKER: the last and greatest, an enormous gleaming blaster in gold, pink and blue with four tanks, wings, a crown, rings of light and stars all round it. Bigger and grander than every other blaster.
+6. OMEGA SOAKER: the mightiest of the factory-made blasters, an enormous gleaming blaster in gold, pink and blue with four tanks, wings, a crown, rings of light and stars all round it. Bigger and grander than every other blaster.
 ```
 
 ## 6. Seven blasters designed by David's son (do these FIRST of all the new guns)
@@ -279,6 +279,34 @@ venom drops, as his drawing shows; the chicken fires eggs that crack on impact; 
 fires little pineapples; the peacock sprays a fan of feathers with eye spots; the hover suck fires
 swirling suction rings; the crystal blaster fires red crystal shards; the stretch blue fires a stretchy
 blue band that snaps back.
+
+## 7. The Macaron Blaster: the most powerful blaster in the game (follow the drawing)
+
+Drawn by David's son on 2026-11-28. Unlike the seven above, **this one is to be followed**: David wants
+the painting true to the drawing. It is the last gun on the ladder, above everything else, including
+OMEGA SOAKER. The drawing, turned so the nozzle points right, is at
+`_reference/guns/macaron_blaster_drawing.jpg`.
+
+Attach TWO reference images: `_art_inbox/guns/sheet-2-guns.jpg` (the style) and
+`_reference/guns/macaron_blaster_drawing.jpg` (the design). Save into `_art_inbox/guns` as
+`sheet-kid-macaron`.
+
+```text
+The second attached image is a child's drawing of a toy blaster built from macarons. Paint exactly this blaster, faithfully: the same parts in the same order, the same proportions and the same colours as the drawing, as one finished toy in the exact style of the first attached image (same outline weight, same watercolour shading, same level of detail). Do not add new parts or change its shape; make what is drawn look real, glossy and delicious.
+
+One blaster only, in exact side-on profile, perfectly horizontal, nozzle pointing to the RIGHT, on a perfectly flat pure white background (#FFFFFF), filling about 80% of the picture with white space all round.
+
+From left to right it is a row of macarons of shrinking size, each a round sandwich biscuit with a band of cream filling round its middle: a large orange-pink macaron with a bright pink filling at the back; then the biggest, a purple macaron with a deeper purple filling, which is the body; then a teal macaron with a dark green filling; then a brown chocolate macaron with a red-brown filling; then a small pink macaron with a magenta filling, whose filling pokes out as the nozzle. A small yellow macaron sits on the side of the teal one like a dial. A pink handle with two purple stripes hangs down from the purple body.
+
+Thick, fully closed dark navy-ink (#1F2138) outlines of identical weight. Smooth domed biscuit shells with a soft shine and a crinkly "foot" at the edge of each shell, creamy fillings. Single light source from the upper left.
+
+Strictly no people, no hands, nothing flying out of it, no sparkles around it, no text, no floor, no cast shadows, no gradient background. Only the one blaster on plain white.
+```
+
+What it fires in the game, as he drew it: a spray of little macarons in pink, purple, teal, brown and
+yellow with gold four-point sparkles among them, and two golden curved shock arcs at the muzzle with
+each shot. On impact the macarons burst into crumbs and sparkles. It must look and feel like the
+strongest thing in the game.
 
 ## What to check on each painting
 
