@@ -73,7 +73,9 @@ pictures in `public/sprites/visitors/`):
 
 David, 2026-11-28: "Is there an opportunity to make the pirate ship a bit more of a sea shanty song? It
 could even play the Drunken Sailor song, and could one of the instruments be a kind of sea shanty
-singing?" Nobody has heard the current score (`src/audio/scores/ship.ts`): it was written by rule.
+singing?" David has now heard the current score (`src/audio/scores/ship.ts`): "it's fine, I just think we could do
+better." So this is an improvement to something that works, not a rescue: keep what is good about it (the
+stomp, the line-up order) and rework the tune and the refrain.
 
 - **The tune.** "What Shall We Do with the Drunken Sailor" is a traditional shanty, long out of
   copyright, so its melody can be used. Rewrite the ship's score around it: the fiddle carries the
@@ -93,8 +95,8 @@ singing?" Nobody has heard the current score (`src/audio/scores/ship.ts`): it wa
   whistled line (a sine with vibrato, synthesised, no download) can stand in for the crew. The seat needs
   a picture: ask David for one painted icon (a singing sailor's hat or a megaphone) with a prompt and a
   reference.
-- Measure loudness offline against the other bands as `CLAUDE.md` §9.8 describes, and tell David plainly
-  that it has still not been heard until he listens (`?jam=ship` plays the whole band with no clock).
+- Measure loudness offline against the other bands as `CLAUDE.md` §9.8 describes, and tell David
+  plainly that the new version has not been heard until he listens (`?jam=ship` plays the whole band with no clock).
 
 ## Job 1 (small): a granny joining should be an event, and changing granny should be one tap
 
@@ -199,5 +201,6 @@ David has and has not seen.
 - **Download size.** The build was 1.18 MB under Poki's 8 MB cap. Four more worlds (Jungle, Castle,
   Beach, Space) will not fit as things are: load each world's backdrop, visitors and band sprite when the
   world is opened, not at start-up, before adding the next world.
-- **Nobody has heard** the Pirate Ship's sea shanty or any sound built on 2026-11-27.
+- David has heard the Pirate Ship's music ("it's fine"). He has not said he has listened to the rest of
+  the sound built on 2026-11-27 (count-in, thief, reveal, Jam).
 - Nothing from the Pirate Ship onward has been played by David (see `CLAUDE.md` status).
