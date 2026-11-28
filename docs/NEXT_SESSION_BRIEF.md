@@ -21,6 +21,29 @@ architecture rules are in §7.3; the status paragraph at the top says what David
   `npx prettier --check src tests`, `npm run build && npm run budget`.
 - Say plainly what you could not check: you cannot hear sound, and the browser pane is not a real phone.
 
+## Job 0 (small, do first): remove the Golden Spinner; make treats catchable
+
+David, 2026-11-28, after watching children play:
+
+- **Remove the Golden Spinner** (the timed bonus spinner announced with "Golden Spinner appeared!"; more
+  frequent in the Disco). "They're a bit of an anticlimax because it's kind of hard to hit them because
+  your aim snaps to the nearest actual spinner, and they look a bit crap… we already have the visitors
+  and the treats." Take it out everywhere: its spawner and entity, its accents (`golden`, `goldenMissed`
+  in the audio API can stay if other things use them: the thief's first steal does), its texts, the
+  Disco's "frequent Golden Spinner" trait in `src/entities/world/world.data.ts` and `gigs.data.ts`, any
+  mission that mentions it (`src/systems/Missions.ts`), tests and docs. Check whether the five power-up
+  pickups (`src/entities/powerup/`) have the same problem (hard to hit with the snap, look out of place
+  next to the painted visitors) and tell David what you find before removing them.
+- **Treats are too hard to catch.** "The treats fly across really fast, and if your gun doesn't directly
+  target them they're just quite hard to get." Make a treat a gift, not a test: slow its crossing to
+  about half speed (`src/entities/visitor/visitorTuning.data.ts`), have it drift in, **hover for about a
+  second and a half** near the middle of the wall with a gentle bob, then drift on; make its catch area
+  generous (about 1.5 times the picture); and make the aim take it eagerly: a treat within about 140 px
+  of the pointer takes the aim before any instrument does (the visitor lock in `src/utils/shotLock.ts`
+  already lets those shots fly over instruments), with a clear ring on it while it is the target. One
+  hit is enough. Keep a miss costing nothing. Check on screen that a treat can be caught by moving the
+  pointer roughly toward it, on mouse and on touch.
+
 ## Job 1 (small): a granny joining should be an event, and changing granny should be one tap
 
 David: "the shop is quite a few clicks away, and people never click in there to change the granny…
