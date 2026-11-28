@@ -44,9 +44,7 @@ yet, write it in the same style. The queue, in order:
    `_art_inbox/worlds/` as `<id>_bg_tall`): garden, workshop, kitchen, funfair, disco, ship.
 4. **The Golden Spinner's new picture** (Job 0; write the prompt: one gleaming golden object on pure
    white in the style of `_art_inbox/visitors/sheet-2-treats.jpg`; save as `_art_inbox/visitors/golden_spinner`).
-5. **The crew's icon for the Pirate Ship** (Job 0c; write the prompt in the style of an instrument icon,
-   reference `_art_inbox/instruments/` sheet 1; save as `_art_inbox/instruments/crew`).
-6. **Then world by world, in the order of Job 4** (jungle first): the wide backdrop (section 1), its
+5. **Then world by world, in the order of Job 4** (jungle first): the wide backdrop (section 1), its
    tall backdrop (section 2, with the new wide painting as the reference), its visitors sheet
    (section 3). After every second world, one gun sheet: `sheet-5-guns` to `sheet-12-guns` (section 4
    and section 5), in order.
@@ -101,35 +99,6 @@ pictures in `public/sprites/visitors/`):
 - Then give the 36 instrument pictures (`tools/instrument-sheets.json`) the same look-over and tell
   David what you find before cutting anything there: they sit on a cream disc, so enclosed white matters
   less, and the harp's strings and the whisk were left white on purpose.
-
-## Job 0c (small to medium): make the Pirate Ship a real sea shanty
-
-David, 2026-11-28: "Is there an opportunity to make the pirate ship a bit more of a sea shanty song? It
-could even play the Drunken Sailor song, and could one of the instruments be a kind of sea shanty
-singing?" David has now heard the current score (`src/audio/scores/ship.ts`): "it's fine, I just think we could do
-better." So this is an improvement to something that works, not a rescue: keep what is good about it (the
-stomp, the line-up order) and rework the tune and the refrain.
-
-- **The tune.** "What Shall We Do with the Drunken Sailor" is a traditional shanty, long out of
-  copyright, so its melody can be used. Rewrite the ship's score around it: the fiddle carries the
-  verse tune, the tin whistle answers, and the whole band lands the "way, hey, and up she rises"
-  refrain together (that is the Frenzy/finale material). It is in the Dorian mode (D E F G A B C), which
-  the engine does not have as a mode, but those are the notes of C major: write the score with tonic C,
-  mode major, over the chords Dm and C, and melodies in scale degrees stay in key. Keep the tests in
-  `tests/unit/scores.test.ts` passing. On screen the song is never named and no words are shown or sung
-  (the title mentions drink; a kids' game on Poki keeps it to the tune).
-- **A singing seat.** One musician is the crew: "Hey!" and "Ho!" shouts on the stomps and a hummed or
-  "oh"-sung line in the refrain. This needs recorded voices. First look in the approved CC0 sources
-  (`APPROVED_SOURCES` in `tools/build-orchestra-samples.ts`: VSCO-2 CE, VCSL, the Karoryfer repositories)
-  for a choir "ah/oh" or shouts and check each licence file before using anything. If nothing fits, ask
-  David: he and his son can record four or five short clips on a phone ("Hey!", "Ho!", and a sung "oh"
-  on three or four notes), which the sprite builder can pack as a new small bank (`tools/bands/`), with
-  rights that are plainly his. Do not download voices from anywhere else. Until there are voices, a
-  whistled line (a sine with vibrato, synthesised, no download) can stand in for the crew. The seat needs
-  a picture: ask David for one painted icon (a singing sailor's hat or a megaphone) with a prompt and a
-  reference.
-- Measure loudness offline against the other bands as `CLAUDE.md` §9.8 describes, and tell David
-  plainly that the new version has not been heard until he listens (`?jam=ship` plays the whole band with no clock).
 
 ## Job 1 (small): a granny joining should be an event, and changing granny should be one tap
 
@@ -349,6 +318,9 @@ Ice Palace now that Antarctica exists, that is his call: ask. Twenty-four more g
 - After each world: push, and tell David what you saw and that its music has not been heard.
 
 ## Also waiting
+
+- **The Pirate Ship's music stays as it is.** David heard it ("it's fine"), considered reworking it round
+  "Drunken Sailor" with a singing crew, and dropped the idea on 2026-11-28. Do not rework it.
 
 - **Download size.** The build was 1.18 MB under Poki's 8 MB cap. Four more worlds (Jungle, Castle,
   Beach, Space) will not fit as things are: load each world's backdrop, visitors and band sprite when the
