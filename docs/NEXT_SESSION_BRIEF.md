@@ -145,6 +145,24 @@ with a talent. Today a join is only a toast on the results screen, and switching
   use, talent shown) and the ones to come ("Joins at 70 stars"). A "NEW" badge sits on Granny after a
   join until the picker has been opened. The line under her also names the next one:
   "Nana Joy joins at 40 stars (you have 31)".
+- **A dramatic entrance for a new granny** (David, 2026-11-28: "we reveal her in a powerful way to make
+  it feel like a dramatic entrance… we take the granny facing backwards and she spins around and faces
+  forwards and there's confetti and a big moment, let's go, power granny"). Build it as a full-screen
+  overlay in the manner of the gun reveal (`src/ui/GunReveal.ts`, `src/ui/reveal/`: reuse its dark
+  backdrop, rays, shockwave rings, sparkles, tracker and skip rule; do not copy the code) from the three
+  pictures every granny already has (`back`, `back_firing`, `front`), with no new art:
+  1. Dark screen, a single spotlight on the floor, a drum roll from the existing sounds.
+  2. She steps into the light **seen from behind** (`back`), large, in silhouette at first, then lit.
+  3. A beat, then she throws her arms out (`back_firing`) and **spins round** (a quick horizontal
+     squash to nothing and out again, swapping to `front` at the turn) to face the player, landing with
+     a bounce, a flash, shockwave rings in her own colour and a burst of confetti.
+  4. Her name slams in very large, then her talent in one line, and one Mint Green button:
+     **LET'S GO!**, which makes her the active granny. A small "Later" keeps the current one.
+     It plays when a granny joins (from the results card's USE HER) and the first time a granny is chosen
+     in Home's picker; after that, choosing her is instant. About four seconds to the button, skippable by
+     a tap once she has turned. Put the timing maths in a Phaser-free helper with unit tests, destroy
+     everything on close, and check it on screen for all six grannies at desktop size and, once Job 3 is
+     done, in portrait.
 - Jam mode does not apply talents yet (`src/scenes/JamScene.ts`): make it.
 - "Big tank" (Nana Storm) does almost nothing, because every tank outlasts a gig. Replace it with
   something felt, e.g. a 25% faster refill pump, and say so on her card.
