@@ -271,6 +271,12 @@ Ice Palace now that Antarctica exists, that is his call: ask. Twenty-four more g
   always opens well before every star is won. Job 2's star guidance matters more with sixteen worlds.
 - Visitors: each world's sheet is two blockers, two thieves, two treats, in the order listed in the
   prompts file; add the ids, stand-in drawings and the cast as the ship did.
+- **David's son designed seven blasters** (Snake, Chicken Egg, Pineapple, Peacock, Hover Suck, Crystal,
+  Stretch Blue): his drawings are at `_reference/guns/sons_blaster_drawings.jpg` and the prompts are in
+  section 6 of the prompts file. They are the next guns after Phoenix Fury, ahead of every other new
+  sheet, and can be done early (they need no new world): ask David for `sheet-kid-1` and `sheet-kid-2`
+  as soon as Jobs 0 to 2 are done, sending both reference images. Each fires what he drew. In the Shop
+  and the reveal, mark them "Designed by" with whatever name David gives (ask him; never invent one).
 - Guns: twenty-four more (`sheet-5-guns` to `sheet-8-guns` in the prompts file) continue the ladder
   after Phoenix Fury by the 25% rule, as a tier above mythic if a new rarity name is wanted (ask David).
   Each needs its own projectile; build them from mix-and-match parts (shape, colour, trail, impact)

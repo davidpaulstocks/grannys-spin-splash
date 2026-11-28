@@ -224,6 +224,62 @@ Sheet 12 (`sheet-12-guns`)
 6. OMEGA SOAKER: the last and greatest, an enormous gleaming blaster in gold, pink and blue with four tanks, wings, a crown, rings of light and stars all round it. Bigger and grander than every other blaster.
 ```
 
+## 6. Seven blasters designed by David's son (do these FIRST of all the new guns)
+
+David's seven-year-old drew seven blasters on 2026-11-28. The photo of his drawings is saved at
+`_reference/guns/sons_blaster_drawings.jpg`. These go into the ladder straight after Phoenix Fury, ahead
+of sheets 5 to 12, so he gets to earn his own designs soon. Keep each one recognisably his: the shapes
+and the idea come from the drawing, the paint style from the game.
+
+For both sheets attach TWO reference images: `_art_inbox/guns/sheet-2-guns.jpg` (the style) and
+`_reference/guns/sons_blaster_drawings.jpg` (the designs). Save into `_art_inbox/guns` as `sheet-kid-1`
+and `sheet-kid-2`.
+
+Sheet `sheet-kid-1` (four blasters)
+
+```text
+Using the first attached image as the exact style reference (same outline weight, same watercolour shading, same level of detail), paint a sheet of four toy water blasters laid out in a 2 by 2 grid on a perfectly flat pure white background (#FFFFFF), with wide empty white space between blasters and around the edges. No blaster touches or overlaps another or the edge of the image. Exactly four blasters.
+
+The second attached image is a child's own drawings of these blasters. Keep each design's idea, its main shapes and its colours as he drew them, and paint it as a finished toy in the style of the first image.
+
+Every blaster is drawn in exact side-on profile, perfectly horizontal, with the nozzle pointing to the RIGHT and the handle at the lower left. All four face the same way, nozzle on the right. They are clearly plastic TOYS, never realistic firearms: rounded shapes, bright colours. Any opening such as a trigger guard shows plain white background through it. Tanks are painted fully opaque.
+
+Style: hand-painted watercolour with thick, fully closed dark navy-ink (#1F2138) outlines of identical weight on every object. Bold, exciting, friendly shapes, simple enough to read at 100 pixels wide. Single light source from the upper left. Palette built from: pink #FF6BA8, blue #4DB3E5, gold #FFC93C, orange #FF8A3D, mint #7FD9A8, ink #1F2138, slate #6B6F8C, cream #F5F2E8, with tints of those and bright glowing highlights.
+
+Strictly no people, no hands, nothing spraying or flying out, no arrows, no text, no letters, no numbers, no floor, no cast shadows, no gradient background. Only the four objects on plain white.
+
+The four blasters, reading left to right, top row first:
+1. Snake Blaster (the big green drawing at the top): a green snake whose tail is coiled into a big spiral at the back and whose body sweeps forward to a wide-open mouth with two fangs at the front; the open mouth is the nozzle. A friendly, cheeky snake with one small eye, a handle under its body.
+2. Chicken Egg Blaster (the small bird drawing): a plump hen sitting on top of a blaster body, beak facing left, with an egg-shaped hopper under her tail at the right; a round egg-sized barrel at the right is the nozzle. White and gold hen, pink comb.
+3. Pineapple Blaster (the drawing with the leafy tail): a long barrel that flares into a wide trumpet-shaped mouth at the right, with a big spray of green pineapple leaves fanning out at the back like a tail; pineapple-skin pattern along the barrel in gold; a small handle and trigger underneath.
+4. Peacock Blaster (the orange and purple drawing): a long body with a purple zigzag stripe along the top, a row of round peacock-feather "eyes" in orange and blue along the side, a fan of feather quills along its top edge and back, tapering to a pointed beak-like nozzle at the right.
+```
+
+Sheet `sheet-kid-2` (three blasters)
+
+```text
+Using the first attached image as the exact style reference (same outline weight, same watercolour shading, same level of detail), paint a sheet of three toy water blasters laid out in a row on a perfectly flat pure white background (#FFFFFF), with wide empty white space between blasters and around the edges. No blaster touches or overlaps another or the edge of the image. Exactly three blasters.
+
+The second attached image is a child's own drawings of these blasters. Keep each design's idea, its main shapes and its colours as he drew them, and paint it as a finished toy in the style of the first image.
+
+Every blaster is drawn in exact side-on profile, perfectly horizontal, with the nozzle pointing to the RIGHT and the handle at the lower left. All three face the same way, nozzle on the right. They are clearly plastic TOYS, never realistic firearms: rounded shapes, bright colours. Any opening such as a trigger guard shows plain white background through it. Tanks are painted fully opaque.
+
+Style: hand-painted watercolour with thick, fully closed dark navy-ink (#1F2138) outlines of identical weight on every object. Bold, exciting, friendly shapes, simple enough to read at 100 pixels wide. Single light source from the upper left. Palette built from: pink #FF6BA8, blue #4DB3E5, gold #FFC93C, orange #FF8A3D, mint #7FD9A8, ink #1F2138, slate #6B6F8C, cream #F5F2E8, with tints of those and bright glowing highlights.
+
+Strictly no people, no hands, nothing spraying or flying out, no arrows, no text, no letters, no numbers, no floor, no cast shadows, no gradient background. Only the three objects on plain white.
+
+The three blasters, reading left to right:
+1. Hover Suck Blaster (the blue drawing at the bottom left): a long flat blue body like a hovering vacuum machine, with a row of little vents along the top and five funnel-shaped suction nozzles hanging down underneath, each with a gold glow inside; a grip at the left end and a wide slot nozzle at the right end.
+2. Crystal Blaster (the spiky orange drawing): a jagged, spiky golden-orange body like a burst of flame or rock, with two big glowing red crystals outlined in blue set into its top and a round red and blue gem at the back; the sharpest crystal point at the right is the nozzle.
+3. Stretch Blue Blaster (the brown and blue drawing at the bottom right): a long boxy brown wooden-looking body with a blue stretchy panel of bands in the middle like a spring or elastic, a grey ribbed section, a round trigger housing at the left and a square block muzzle with three slots at the right.
+```
+
+What each one fires in the game (for the session, not the prompts): the snake spits pairs of green
+venom drops, as his drawing shows; the chicken fires eggs that crack on impact; the pineapple blaster
+fires little pineapples; the peacock sprays a fan of feathers with eye spots; the hover suck fires
+swirling suction rings; the crystal blaster fires red crystal shards; the stretch blue fires a stretchy
+blue band that snaps back.
+
 ## What to check on each painting
 
 - Backdrops: the plain wall takes up roughly the middle half of the picture. If it is a small patch with
