@@ -119,6 +119,9 @@ whose height follows the screen (1280 to about 1560), and remove the portrait ga
 - Each screen's portrait arithmetic goes in a pure layout module with unit tests like
   `tests/unit/resultsLayout.test.ts` (nothing overlaps, everything on screen, 16 px between stacked
   elements, touch targets at least 44 px).
+- **Check `_art_inbox/worlds/` first:** David was given the prompt for the tall paintings on 2026-11-28 and
+  may already have saved `garden_bg_tall`, `workshop_bg_tall`, `kitchen_bg_tall`, `funfair_bg_tall`,
+  `disco_bg_tall` and `ship_bg_tall` there. Use what is there; ask only for what is missing.
 - Backdrops: the six paintings are landscape, and cropping keeps only the middle third. For now scale to
   cover with the wall area centred, and ask David for a tall painting of each world (one prompt at a
   time, with the landscape painting as the reference image). Tall versions: `_art_inbox/worlds/<id>_bg_tall`,
