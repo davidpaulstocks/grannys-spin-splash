@@ -197,7 +197,7 @@ prompt, nothing overlapping or cut off on any screen; desktop at 1280x720 is unc
 `CLAUDE.md` (§3 rule 1, §5.8, §6.3, the status paragraph) and `BACKLOG.md` say what is built and what
 David has and has not seen.
 
-## Job 4 (the last and largest): ten more worlds
+## Job 4 (the last and largest): twenty more worlds
 
 David, 2026-11-28: his seven-year-old "has played for around 2 hours non stop, the pace is perfect and
 addictive and fun. But he has just completed all the worlds, and has earned the Volcano Blaster. So he's
@@ -235,6 +235,28 @@ their lists. Report the initial-download figure after this step and after each w
 | 14  | `sea`     | Under the Sea   | Dreamy: harp glissandi, vibraphone, soft horns, bass clarinet. Slow, swaying.                                                                                      |
 | 15  | `dino`    | Dinosaur Valley | Big drums, low brass, tuba, bassoon stomps. Heavy and funny.                                                                                                       |
 | 16  | `space`   | Space Station   | A synth band (the engine has no synth voices beyond its fallback pluck: add a small set of synthesised instruments, no download). The owner's son asked for space. |
+
+**Ten further worlds, added by David the same day** (prompts in section 5 of the prompts file), after
+the ten above, thresholds continuing in steps of 20:
+
+| #   | id           | World            | Band                                                                                             |
+| --- | ------------ | ---------------- | ------------------------------------------------------------------------------------------------ |
+| 17  | `stadium`    | Football Stadium | A stadium band: snare, bass drum, brass, hand claps on the beat. A chant you can stomp to.       |
+| 18  | `antarctica` | Antarctica       | Sparse and glittering: vibraphone, piccolo, soft timpani, a waddling bassoon.                    |
+| 19  | `desert`     | Desert           | A caravan: hand drums, flute, plucked harp and guitar, finger cymbals. Modal, unhurried.         |
+| 20  | `speedboat`  | Speedboat        | Surf rock: twangy guitar, driving drums, organ. Fast.                                            |
+| 21  | `office`     | Office           | Lounge swing: brushes, vibraphone, upright bass, clarinet, with clicks and a bell as percussion. |
+| 22  | `cricket`    | Cricket Pitch    | A village brass band: cornets, tuba, snare, glockenspiel. A gentle march.                        |
+| 23  | `bowling`    | Bowling Alley    | Fifties rock and roll: piano, sax, walking bass, hand claps.                                     |
+| 24  | `car`        | In the Car       | Road-trip funk: bass guitar, clavinet, drums, trumpet stabs like car horns.                      |
+| 25  | `train`      | On the Train     | A chugging shuffle on the snare, clarinet, strummed guitar, a piccolo whistle. Speeds up.        |
+| 26  | `mountains`  | Mountains        | Alpine: organ as an accordion, tuba oom-pah, clarinet, cowbells, a long horn call.               |
+
+Two of these sit close to worlds in the first ten (Antarctica and the Ice Palace; Mountains and the
+snowy Ice Palace): keep them apart in look and sound (Antarctica is outdoors, blue and sparse; the Ice
+Palace is indoors and sparkling; the Mountains are green and summery). If David would rather drop the
+Ice Palace now that Antarctica exists, that is his call: ask. Twenty-four more guns
+(`sheet-9-guns` to `sheet-12-guns`) go with them.
 
 - Write each band from instruments already recorded (the three sprites) wherever that gives the style;
   where a signature instrument is missing, look in the approved CC0 sources only

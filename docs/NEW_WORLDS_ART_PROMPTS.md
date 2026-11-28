@@ -144,6 +144,86 @@ The six blasters, reading left to right, top row first:
 6. SUPERNOVA: the ultimate prize, a dazzling star-shaped blaster bursting with gold, pink and blue rays, a blazing sun for a tank, rings of light, a crown of stars on top. The most spectacular blaster of all.
 ```
 
+## 5. Ten further worlds (17 to 26), added by David on 2026-11-28
+
+The same three templates as above (sections 1, 2 and 3) with these lines. Gun sheets 9 to 12 follow.
+
+**Wide backdrops** (template in section 1; then the tall one from section 2)
+
+| id           | World            | [SCENE]                                                                                                                                                 | [WALL]                                                                                                |
+| ------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `stadium`    | Football Stadium | a cheerful football stadium seen from the edge of the pitch, with floodlights, flags and the stands as soft rows of coloured shapes.                    | The wall is a giant blank scoreboard screen above the pitch. The floor is striped green grass.        |
+| `antarctica` | Antarctica       | an icy Antarctic shore, with blue icebergs, a little red research hut, deep blue sea and soft green lights in the sky.                                  | The wall is the huge flat face of an iceberg. The floor is snow.                                      |
+| `desert`     | Desert           | golden sand dunes at sunset, with a palm-tree oasis, clay pots and a string of lanterns.                                                                | The wall is the big plain canvas side of a striped desert tent. The floor is sand.                    |
+| `speedboat`  | Speedboat        | the deck of a speedboat skimming across a bright blue sea, with spray flying, a flag, life rings and islands far off.                                   | The wall is the boat's smooth cream cabin wall. The floor is the wooden deck.                         |
+| `office`     | Office           | a cosy, cheerful office, with desks, pot plants, a water cooler, a coat stand and big windows onto a sunny city.                                        | The wall is a huge blank cream whiteboard on wheels. The floor is carpet.                             |
+| `cricket`    | Cricket Pitch    | an English village cricket green on a summer afternoon, with a little pavilion, bunting, trees and a roller.                                            | The wall is the big cream sight screen at the end of the pitch. The floor is mown grass.              |
+| `bowling`    | Bowling Alley    | a retro bowling alley, with shiny wooden lanes, pins at the far end, coloured balls on a rack and glowing shapes (no letters).                          | The wall is the big plain panel above the lanes. The floor is the polished approach.                  |
+| `car`        | In the Car       | the inside of a family car on a road trip, seen from the back seat looking forward: seat backs, a dashboard, a steering wheel and a winding road ahead. | The wall is the big windscreen, filled with plain soft sky. The floor is the back of the front seats. |
+| `train`      | On the Train     | the inside of an old-fashioned railway carriage, with plush seats, luggage racks, brass lamps and countryside rushing past the windows.                 | The wall is the carriage's big plain wood-panelled end wall. The floor is patterned carpet.           |
+| `mountains`  | Mountains        | a green alpine meadow under snowy peaks, with wooden chalets, wildflowers, a winding path and a cable car far off.                                      | The wall is a great smooth pale rock face. The floor is meadow grass.                                 |
+
+**Visitors** (template in section 3; save as `sheet-<id>`)
+
+| id           | [SIX]                                                                                                                                                                                                                                                                      |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stadium`    | 1. A giant foam pointing hand. 2. A long striped supporter's scarf with no writing, flapping. 3. A cheeky fox cub holding a gold coin. 4. A hedgehog curled round a gold coin. 5. A golden football boot, sparkling. 6. A shiny golden football, gleaming.                 |
+| `antarctica` | 1. A chunky blue iceberg. 2. A big orange expedition tent. 3. A seal pup balancing a gold coin on its nose. 4. An albatross with a gold coin in its beak. 5. A snow globe with a tiny hut inside, sparkling. 6. A golden fish, gleaming.                                   |
+| `desert`     | 1. A swirling whirlwind of sand. 2. A big patterned rug, flying. 3. A fennec fox with huge ears, holding a gold coin. 4. A meerkat standing up, holding a gold coin. 5. A juicy slice of watermelon, sparkling. 6. A golden oil lamp, gleaming.                            |
+| `speedboat`  | 1. A big curling wave of spray. 2. A giant inflatable ring in pink and white stripes. 3. A playful dolphin balancing a gold coin on its nose. 4. A cormorant with a gold coin in its beak. 5. A colourful beach ball, sparkling. 6. A golden anchor, gleaming.             |
+| `office`     | 1. A whirl of flying papers. 2. A big spinning swivel chair. 3. A mouse in a tiny tie, holding a gold coin. 4. A round robot vacuum cleaner carrying a gold coin on top. 5. A doughnut with pink icing and sprinkles, sparkling. 6. A golden stapler, gleaming.            |
+| `cricket`    | 1. A giant cricket bat. 2. A big rolled-up pitch cover. 3. A mole popping out of a molehill, holding a gold coin. 4. A mallard duck with a gold coin in its beak. 5. A scone with jam and cream, sparkling. 6. A golden cricket ball, gleaming.                            |
+| `bowling`    | 1. A giant shiny bowling ball. 2. A rack of ten bowling pins. 3. A hamster in a bowling shirt, holding a gold coin. 4. A grinning bowling pin with eyes, hugging a gold coin. 5. A milkshake with a straw and a cherry, sparkling. 6. A golden bowling pin, gleaming.      |
+| `car`        | 1. A huge unfolding road map with no writing. 2. A pair of big fluffy dice on a string. 3. A happy dog with its tongue out, holding a gold coin. 4. A bumblebee carrying a gold coin. 5. A paper bag of colourful travel sweets, sparkling. 6. A golden car key, gleaming. |
+| `train`      | 1. A big puff of steam. 2. A wobbly stack of suitcases. 3. A mouse in a conductor's cap, holding a gold coin. 4. A jackdaw with a gold coin in its beak. 5. A sandwich on a little plate, sparkling. 6. A golden ticket with no writing, gleaming.                         |
+| `mountains`  | 1. A big fluffy cloud. 2. A bright hang-glider. 3. A marmot standing up, holding a gold coin. 4. A mountain goat with a gold coin in its mouth. 5. A wedge of holey cheese, sparkling. 6. A golden cowbell, gleaming.                                                      |
+
+**Gun sheets 9 to 12** (template in section 4; they continue the ladder upward from SUPERNOVA)
+
+Sheet 9 (`sheet-9-guns`)
+
+```text
+1. Goal Getter: a blaster shaped like a football boot kicking a ball, the ball is the nozzle, studs along the bottom, a net-patterned tank.
+2. Whistle Blaster: a big shiny referee's-whistle blaster in gold and pink, a lanyard loop for a handle guard, the mouthpiece is the nozzle.
+3. Iceberg Cannon: a chunky blaster carved from blue ice with a snowy top, a tank of slushy sea water, a jagged ice-tip nozzle.
+4. Seal Splasher: a blaster shaped like a happy grey seal balancing a ball on its nose, the ball is the nozzle, flippers for fins.
+5. Aurora Blaster: a sleek dark-blue blaster with ribbons of mint, pink and gold light flowing along it, a globe tank full of swirling lights.
+6. Oasis Soaker: a blaster built around a clay water jar under a little palm tree, a spout nozzle, a tank of cool blue water.
+```
+
+Sheet 10 (`sheet-10-guns`)
+
+```text
+1. Scarab Spinner: a gleaming golden beetle-shaped blaster with jewelled wing cases half open, antennae forward, the head is the nozzle.
+2. Sandstorm Blower: a blaster with a big brass horn nozzle and a whirling sand-coloured turbine, a tank of golden sand-water, cloth wraps on the grip.
+3. Jet-Ski Jetter: a blaster shaped like a pink and blue jet-ski, handlebars on top, a wave curling behind, the nose is the nozzle.
+4. Anchor Launcher: a navy and gold blaster with a big anchor-shaped nozzle, rope coiled round the barrel, a porthole tank.
+5. Speedboat Spray: a blaster shaped like a sleek racing speedboat with a stripe, a little windscreen, twin propellers behind, the bow is the nozzle.
+6. Stapler Squirter: a big chunky office-stapler blaster in pink and slate, the jaw opens at the front as the nozzle, a paper-clip handle guard.
+```
+
+Sheet 11 (`sheet-11-guns`)
+
+```text
+1. Coffee Cannon: a blaster built like a shiny coffee machine with dials and a steaming cup on top, the spout is the nozzle, a tank of warm brown liquid.
+2. Paper Plane Launcher: a blaster shaped like a giant folded paper aeroplane in cream with pink and blue stripes, the point is the nozzle.
+3. Cricket Bat Blaster: a blaster shaped like a cricket bat with a red ball fixed at the end as the nozzle, grip tape on the handle, three little stumps on top.
+4. Tea Kettle Torrent: a round whistling-kettle blaster in mint with a gold lid, puffs of steam shapes, the spout is the nozzle.
+5. Bowling Ball Blaster: a blaster built round a big glossy bowling ball with three finger holes, pins as fins, a lane-wood barrel.
+6. Strike Popper: a blaster shaped like a row of three bowling pins lying forward, red stripes round their necks, the front pin is the nozzle.
+```
+
+Sheet 12 (`sheet-12-guns`)
+
+```text
+1. Hot Rod Hose: a blaster shaped like a shiny orange hot-rod car with flame shapes on its sides, big back wheels, chrome pipes, the bonnet scoop is the nozzle.
+2. Traffic Light Blaster: a tall slate blaster with three glowing lights in pink, gold and mint along the top, a striped barrier-arm barrel.
+3. Steam Train Soaker: a blaster shaped like a friendly steam engine in blue and gold, a funnel on top, wheels along the bottom, the front lamp is the nozzle.
+4. Alphorn Avalanche: a very long curved wooden mountain-horn blaster with a wide bell as the nozzle, snow on top, a red and cream band round it.
+5. Summit Storm: a blaster shaped like a snowy mountain peak on its side with a flag at the top, clouds and lightning shapes round it, the peak is the nozzle.
+6. OMEGA SOAKER: the last and greatest, an enormous gleaming blaster in gold, pink and blue with four tanks, wings, a crown, rings of light and stars all round it. Bigger and grander than every other blaster.
+```
+
 ## What to check on each painting
 
 - Backdrops: the plain wall takes up roughly the middle half of the picture. If it is a small patch with
